@@ -1,15 +1,67 @@
 
 import { useState, useEffect } from 'react';
-import { Website, SEOIssue, mockWebsiteData, mockSEOIssues } from '@/lib/types';
+import { Website, SEOIssue, mockSEOIssues, projectToWebsite } from '@/lib/types';
 import { SEOAnalyzer } from '@/lib/seo-analyzer';
+import { useAuth } from '@/hooks/useAuth';
+import { 
+  createProject, 
+  getProjectsByUser, 
+  updateProjectStatus, 
+  subscribeToProjects 
+} from '@/lib/database';
+import type { Project } from '@/lib/types';
 
 export function useSEOAnalysis() {
-  const [websites, setWebsites] = useState<Website[]>([mockWebsiteData]);
+  const { user } = useAuth();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [websites, setWebsites] = useState<Website[]>([]);
   const [issues, setIssues] = useState<SEOIssue[]>(mockSEOIssues);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Load user's projects on mount
+  useEffect(() => {
+    if (user?.id) {
+      loadProjects();
+    }
+  }, [user?.id]);
+
+  // Subscribe to real-time updates
+  useEffect(() => {
+    if (user?.id) {
+      const channel = subscribeToProjects(user.id, (updatedProjects) => {
+        setProjects(updatedProjects);
+        setWebsites(updatedProjects.map(projectToWebsite));
+      });
+
+      return () => {
+        channel.unsubscribe();
+      };
+    }
+  }, [user?.id]);
+
+  const loadProjects = async () => {
+    if (!user?.id) return;
+
+    try {
+      setIsLoading(true);
+      const userProjects = await getProjectsByUser(user.id);
+      setProjects(userProjects);
+      setWebsites(userProjects.map(projectToWebsite));
+    } catch (err) {
+      setError('Failed to load projects');
+      console.error('Error loading projects:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const analyzeWebsite = async (url: string) => {
+    if (!user?.id) {
+      setError('User must be logged in');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -17,28 +69,31 @@ export function useSEOAnalysis() {
       // Validate URL
       new URL(url);
       
+      // Create project in database
+      const project = await createProject(user.id, url);
+      if (!project) {
+        throw new Error('Failed to create project');
+      }
+
+      // Update project status to analyzing
+      await updateProjectStatus(project.id, 'analyzing');
+      
+      // Perform analysis
       const analysisResult = await SEOAnalyzer.analyzeWebsite(url);
       
-      const newWebsite: Website = {
-        id: crypto.randomUUID(),
-        url,
-        status: analysisResult.status,
-        seoScore: analysisResult.seoScore,
-        issues: analysisResult.issues.length,
-        lastAnalyzed: new Date().toISOString().split('T')[0],
-        userId: 'current-user',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
+      // Update project with results
+      await updateProjectStatus(
+        project.id, 
+        analysisResult.status, 
+        analysisResult.seoScore
+      );
 
-      setWebsites(prev => [newWebsite, ...prev]);
-      setIssues(prev => [...analysisResult.issues.map(issue => ({
-        ...issue,
-        websiteId: newWebsite.id
-      })), ...prev]);
+      // Reload projects to get updated data
+      loadProjects();
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Analysis failed');
+      console.error('Analysis error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -70,6 +125,7 @@ export function useSEOAnalysis() {
     fixedIssues,
     analyzeWebsite,
     getWebsiteIssues,
-    toggleIssueFixed
+    toggleIssueFixed,
+    loadProjects
   };
 }

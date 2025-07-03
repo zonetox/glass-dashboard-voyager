@@ -9,7 +9,71 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      projects: {
+        Row: {
+          created_at: string | null
+          id: string
+          seo_score: number | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+          website_url: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          seo_score?: number | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+          website_url: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          seo_score?: number | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+          website_url?: string
+        }
+        Relationships: []
+      }
+      seo_analysis: {
+        Row: {
+          analysis_data: Json
+          created_at: string | null
+          id: string
+          issues_found: number | null
+          project_id: string
+          recommendations: Json
+        }
+        Insert: {
+          analysis_data: Json
+          created_at?: string | null
+          id?: string
+          issues_found?: number | null
+          project_id: string
+          recommendations: Json
+        }
+        Update: {
+          analysis_data?: Json
+          created_at?: string | null
+          id?: string
+          issues_found?: number | null
+          project_id?: string
+          recommendations?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_analysis_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
