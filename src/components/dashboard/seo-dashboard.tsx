@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Website, SEOIssue } from '@/lib/types';
+import { OptimizationSummary } from './optimization-summary';
 import { 
   TrendingUp, 
   Smartphone, 
@@ -14,8 +15,7 @@ import {
   Zap,
   CheckCircle,
   AlertTriangle,
-  Settings,
-  Globe
+  Settings
 } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +35,7 @@ export function SEODashboard({ website, issues, analysisData }: SEODashboardProp
     applicationPassword: ''
   });
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optimizationResult, setOptimizationResult] = useState<any>(null);
 
   const desktopScore = analysisData?.pageSpeedInsights?.desktop?.score || 0;
   const mobileScore = analysisData?.pageSpeedInsights?.mobile?.score || 0;
@@ -42,7 +43,7 @@ export function SEODashboard({ website, issues, analysisData }: SEODashboardProp
 
   function extractCitationScore(citationText: string): number {
     const match = citationText.match(/(\d+)\/10/);
-    return match ? parseInt(match[1]) * 10 : 50; // Convert to 0-100 scale
+    return match ? parseInt(match[1]) * 10 : 50;
   }
 
   const handleFixToggle = (issueId: string, checked: boolean) => {
@@ -78,6 +79,13 @@ export function SEODashboard({ website, issues, analysisData }: SEODashboardProp
     try {
       const selectedIssues = issues.filter(issue => selectedFixes.has(issue.id));
       
+      // Prepare before scores for comparison
+      const beforeScores = {
+        seoScore: website.seoScore,
+        desktopSpeed: desktopScore,
+        mobileSpeed: mobileScore
+      };
+      
       const response = await fetch(
         `https://3a96eb71-2922-44f0-a7ed-cc31d816713b.supabase.co/functions/v1/optimize-website`,
         {
@@ -90,7 +98,8 @@ export function SEODashboard({ website, issues, analysisData }: SEODashboardProp
             url: website.url,
             fixes: selectedIssues,
             wpCredentials,
-            schemaMarkup: analysisData?.schemaMarkup
+            schemaMarkup: analysisData?.schemaMarkup,
+            beforeScores
           })
         }
       );
@@ -100,6 +109,9 @@ export function SEODashboard({ website, issues, analysisData }: SEODashboardProp
       if (result.error) {
         throw new Error(result.error);
       }
+
+      // Store the optimization result for the summary
+      setOptimizationResult(result);
 
       toast({
         title: "Optimization completed",
@@ -127,11 +139,29 @@ export function SEODashboard({ website, issues, analysisData }: SEODashboardProp
     return 'text-red-400';
   };
 
-  const getScoreBgColor = (score: number) => {
-    if (score >= 80) return 'bg-green-500/20 border-green-500/20';
-    if (score >= 60) return 'bg-yellow-500/20 border-yellow-500/20';
-    return 'bg-red-500/20 border-red-500/20';
-  };
+  // If we have optimization results, show the summary
+  if (optimizationResult) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-white">Optimization Results</h2>
+          <Button 
+            onClick={() => setOptimizationResult(null)}
+            variant="outline"
+            className="border-white/20 text-white hover:bg-white/10"
+          >
+            Back to Dashboard
+          </Button>
+        </div>
+        
+        <OptimizationSummary
+          summaryData={optimizationResult}
+          url={website.url}
+          schemaMarkup={analysisData?.schemaMarkup}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -209,7 +239,11 @@ export function SEODashboard({ website, issues, analysisData }: SEODashboardProp
                       <Label htmlFor={`fix-${issue.id}`} className="text-white font-medium cursor-pointer">
                         {issue.title}
                       </Label>
-                      <Badge className={`${getScoreBgColor(issue.severity === 'high' ? 20 : issue.severity === 'medium' ? 60 : 80)}`}>
+                      <Badge className={
+                        issue.severity === 'high' ? 'bg-red-500/20 border-red-500/20 text-red-400' :
+                        issue.severity === 'medium' ? 'bg-yellow-500/20 border-yellow-500/20 text-yellow-400' :
+                        'bg-green-500/20 border-green-500/20 text-green-400'
+                      }>
                         {issue.severity}
                       </Badge>
                     </div>
