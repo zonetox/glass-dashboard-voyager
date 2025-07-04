@@ -2,41 +2,159 @@
 import { Website, SEOIssue } from './types';
 
 export class SEOAnalyzer {
-  static async analyzeWebsite(url: string): Promise<{
+  static async analyzeWebsite(url: string, projectId?: string): Promise<{
     seoScore: number;
     issues: SEOIssue[];
     status: Website['status'];
+    analysisData?: any;
   }> {
-    // Simulate API call with delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Mock analysis results
-    return {
-      seoScore: Math.floor(Math.random() * 40) + 60, // 60-100
-      issues: [
+    try {
+      console.log(`Starting analysis for: ${url}`);
+      
+      // Call the Supabase Edge Function
+      const response = await fetch(
+        `https://3a96eb71-2922-44f0-a7ed-cc31d816713b.supabase.co/functions/v1/analyze-website`,
         {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljamRycXl6dHp3ZWRkdGNvZGpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MTc4MTQsImV4cCI6MjA2NzA5MzgxNH0.1hVFiDBUwBVrU8RnA4cBXDixt4-EQnNF6qtET7ruWXo`
+          },
+          body: JSON.stringify({ url, projectId })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Analysis failed: ${response.statusText}`);
+      }
+
+      const analysisResult = await response.json();
+      
+      if (analysisResult.error) {
+        throw new Error(analysisResult.error);
+      }
+
+      // Generate SEO issues based on analysis results
+      const issues: SEOIssue[] = [];
+
+      if (!analysisResult.title) {
+        issues.push({
           id: crypto.randomUUID(),
-          websiteId: '',
+          websiteId: projectId || '',
           type: 'title',
           severity: 'high',
-          title: 'Missing meta titles',
-          description: 'Some pages are missing title tags',
-          recommendation: 'Add descriptive title tags to improve SEO',
+          title: 'Missing page title',
+          description: 'The page is missing a title tag',
+          recommendation: 'Add a descriptive title tag to improve SEO',
           isFixed: false
-        },
-        {
+        });
+      }
+
+      if (!analysisResult.metaDescription) {
+        issues.push({
           id: crypto.randomUUID(),
-          websiteId: '',
-          type: 'performance',
-          severity: 'medium',  
-          title: 'Image optimization needed',
-          description: 'Images could be compressed for better performance',
-          recommendation: 'Use WebP format and compress images',
+          websiteId: projectId || '',
+          type: 'meta',
+          severity: 'high',
+          title: 'Missing meta description',
+          description: 'The page is missing a meta description',
+          recommendation: 'Add a compelling meta description to improve click-through rates',
           isFixed: false
-        }
-      ],
-      status: 'completed'
-    };
+        });
+      }
+
+      if (analysisResult.headings?.h1?.length === 0) {
+        issues.push({
+          id: crypto.randomUUID(),
+          websiteId: projectId || '',
+          type: 'heading',
+          severity: 'medium',
+          title: 'Missing H1 tag',
+          description: 'The page is missing an H1 heading',
+          recommendation: 'Add a clear H1 heading to structure your content',
+          isFixed: false
+        });
+      }
+
+      if (analysisResult.images?.missingAlt > 0) {
+        issues.push({
+          id: crypto.randomUUID(),
+          websiteId: projectId || '',
+          type: 'image',
+          severity: 'medium',
+          title: 'Images missing alt text',
+          description: `${analysisResult.images.missingAlt} images are missing alt attributes`,
+          recommendation: 'Add descriptive alt text to all images for accessibility and SEO',
+          isFixed: false
+        });
+      }
+
+      if (analysisResult.pageSpeedInsights?.desktop?.score < 70) {
+        issues.push({
+          id: crypto.randomUUID(),
+          websiteId: projectId || '',
+          type: 'performance',
+          severity: 'high',
+          title: 'Poor page performance',
+          description: `Page speed score is ${analysisResult.pageSpeedInsights.desktop.score}/100`,
+          recommendation: analysisResult.pageSpeedInsights.opportunities?.[0] || 'Optimize page loading speed',
+          isFixed: false
+        });
+      }
+
+      if (analysisResult.pageSpeedInsights?.mobile?.score < 70) {
+        issues.push({
+          id: crypto.randomUUID(),
+          websiteId: projectId || '',
+          type: 'mobile',
+          severity: 'high',
+          title: 'Poor mobile performance',
+          description: `Mobile speed score is ${analysisResult.pageSpeedInsights.mobile.score}/100`,
+          recommendation: 'Optimize for mobile performance',
+          isFixed: false
+        });
+      }
+
+      // Calculate SEO score based on various factors
+      let seoScore = 100;
+      
+      // Deduct points for missing elements
+      if (!analysisResult.title) seoScore -= 20;
+      if (!analysisResult.metaDescription) seoScore -= 15;
+      if (analysisResult.headings?.h1?.length === 0) seoScore -= 10;
+      if (analysisResult.images?.missingAlt > 0) {
+        seoScore -= Math.min(15, analysisResult.images.missingAlt * 2);
+      }
+      
+      // Factor in performance scores
+      if (analysisResult.pageSpeedInsights) {
+        const avgPerformance = (
+          analysisResult.pageSpeedInsights.desktop.score + 
+          analysisResult.pageSpeedInsights.mobile.score
+        ) / 2;
+        seoScore = Math.round((seoScore + avgPerformance) / 2);
+      }
+
+      seoScore = Math.max(0, Math.min(100, seoScore));
+
+      console.log(`Analysis completed for: ${url}, Score: ${seoScore}`);
+
+      return {
+        seoScore,
+        issues,
+        status: 'completed',
+        analysisData: analysisResult
+      };
+
+    } catch (error) {
+      console.error('Analysis error:', error);
+      return {
+        seoScore: 0,
+        issues: [],
+        status: 'error',
+        analysisData: { error: error.message }
+      };
+    }
   }
 
   static calculateOverallScore(websites: Website[]): number {

@@ -78,8 +78,8 @@ export function useSEOAnalysis() {
       // Update project status to analyzing
       await updateProjectStatus(project.id, 'analyzing');
       
-      // Perform analysis
-      const analysisResult = await SEOAnalyzer.analyzeWebsite(url);
+      // Perform analysis with project ID so results are saved
+      const analysisResult = await SEOAnalyzer.analyzeWebsite(url, project.id);
       
       // Update project with results
       await updateProjectStatus(
@@ -88,8 +88,13 @@ export function useSEOAnalysis() {
         analysisResult.seoScore
       );
 
+      // Update local issues with the new analysis results
+      if (analysisResult.issues.length > 0) {
+        setIssues(prev => [...prev, ...analysisResult.issues]);
+      }
+
       // Reload projects to get updated data
-      loadProjects();
+      await loadProjects();
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Analysis failed');

@@ -1,12 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Database } from '@/integrations/supabase/types';
-
-type Project = Database['public']['Tables']['projects']['Row'];
-type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
-type ProjectUpdate = Database['public']['Tables']['projects']['Update'];
-type SeoAnalysis = Database['public']['Tables']['seo_analysis']['Row'];
-type SeoAnalysisInsert = Database['public']['Tables']['seo_analysis']['Insert'];
+import type { Project, ProjectInsert, SeoAnalysis } from './types';
 
 export async function createProject(userId: string, websiteUrl: string): Promise<Project | null> {
   try {
@@ -52,9 +46,13 @@ export async function getProjectsByUser(userId: string): Promise<Project[]> {
   }
 }
 
-export async function updateProjectStatus(projectId: string, status: string, seoScore?: number): Promise<boolean> {
+export async function updateProjectStatus(
+  projectId: string, 
+  status: string, 
+  seoScore?: number
+): Promise<boolean> {
   try {
-    const updateData: ProjectUpdate = { status };
+    const updateData: any = { status };
     if (seoScore !== undefined) {
       updateData.seo_score = seoScore;
     }
@@ -78,8 +76,8 @@ export async function updateProjectStatus(projectId: string, status: string, seo
 
 export async function saveAnalysisResults(
   projectId: string, 
-  analysisData: any, 
-  issuesFound: number = 0, 
+  analysisData: any,
+  issuesFound: number = 0,
   recommendations: any = {}
 ): Promise<SeoAnalysis | null> {
   try {
@@ -89,7 +87,7 @@ export async function saveAnalysisResults(
         project_id: projectId,
         analysis_data: analysisData,
         issues_found: issuesFound,
-        recommendations: recommendations
+        recommendations
       })
       .select()
       .single();
@@ -145,10 +143,12 @@ export async function deleteProject(projectId: string): Promise<boolean> {
   }
 }
 
-// Real-time subscription helper
-export function subscribeToProjects(userId: string, callback: (projects: Project[]) => void) {
+export function subscribeToProjects(
+  userId: string, 
+  callback: (projects: Project[]) => void
+) {
   const channel = supabase
-    .channel('projects_changes')
+    .channel('projects-changes')
     .on(
       'postgres_changes',
       {
