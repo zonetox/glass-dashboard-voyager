@@ -93,6 +93,13 @@ export function useSEOAnalysis() {
         setIssues(prev => [...prev, ...analysisResult.issues]);
       }
 
+      // Store analysis data with the website for the dashboard
+      setWebsites(prev => prev.map(website => 
+        website.id === project.id 
+          ? { ...website, analysisData: analysisResult.analysisData }
+          : website
+      ));
+
       // Reload projects to get updated data
       await loadProjects();
 

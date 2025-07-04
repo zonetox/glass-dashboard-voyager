@@ -3,7 +3,9 @@ import { DashboardLayout } from '@/components/DashboardLayout';
 import { WebsiteAnalyzer } from '@/components/dashboard/website-analyzer';
 import { OptimizationResults } from '@/components/dashboard/optimization-results';
 import { ProgressTracker } from '@/components/dashboard/progress-tracker';
+import { SEODashboard } from '@/components/dashboard/seo-dashboard';
 import { useSEOAnalysis } from '@/hooks/use-seo-analysis';
+import { useState } from 'react';
 
 export default function Dashboard() {
   const {
@@ -18,6 +20,12 @@ export default function Dashboard() {
     getWebsiteIssues,
     toggleIssueFixed
   } = useSEOAnalysis();
+
+  const [selectedWebsite, setSelectedWebsite] = useState<string | null>(null);
+
+  // Get the selected website data
+  const currentWebsite = selectedWebsite ? websites.find(w => w.id === selectedWebsite) : websites[0];
+  const currentIssues = currentWebsite ? getWebsiteIssues(currentWebsite.id) : [];
 
   return (
     <DashboardLayout>
@@ -59,7 +67,7 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Analysis Results Card - Full Width on Mobile, Spans 2 Columns on Large */}
+          {/* Analysis Results Card */}
           <div className="lg:col-span-1">
             <OptimizationResults
               websites={websites}
@@ -69,14 +77,34 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Full Width Results Section for Better Mobile Experience */}
-        <div className="lg:hidden">
-          <OptimizationResults
-            websites={websites}
-            getWebsiteIssues={getWebsiteIssues}
-            onToggleIssue={toggleIssueFixed}
+        {/* Website Selection for Detailed View */}
+        {websites.length > 1 && (
+          <div className="flex flex-wrap gap-2">
+            <span className="text-white font-medium">Select website for detailed optimization:</span>
+            {websites.map((website) => (
+              <button
+                key={website.id}
+                onClick={() => setSelectedWebsite(website.id)}
+                className={`px-3 py-1 rounded-lg text-sm transition-colors ${
+                  selectedWebsite === website.id || (!selectedWebsite && website === websites[0])
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                }`}
+              >
+                {new URL(website.url).hostname}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Detailed SEO Dashboard */}
+        {currentWebsite && (
+          <SEODashboard
+            website={currentWebsite}
+            issues={currentIssues}
+            analysisData={(currentWebsite as any).analysisData}
           />
-        </div>
+        )}
 
         {/* Quick Stats Section */}
         {websites.length > 0 && (
