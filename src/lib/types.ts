@@ -24,7 +24,7 @@ export interface Website {
 export interface SEOIssue {
   id: string;
   websiteId: string;
-  type: 'title' | 'meta' | 'heading' | 'image' | 'performance' | 'mobile';
+  type: 'title' | 'meta' | 'heading' | 'image' | 'performance' | 'mobile' | 'content';
   severity: 'high' | 'medium' | 'low';
   title: string;
   description: string;

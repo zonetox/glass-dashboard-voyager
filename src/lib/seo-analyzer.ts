@@ -115,6 +115,22 @@ export class SEOAnalyzer {
         });
       }
 
+      // Add AI-based recommendations as issues
+      if (analysisResult.aiAnalysis?.improvementSuggestions) {
+        analysisResult.aiAnalysis.improvementSuggestions.forEach((suggestion: string, index: number) => {
+          issues.push({
+            id: crypto.randomUUID(),
+            websiteId: projectId || '',
+            type: 'content',
+            severity: 'medium',
+            title: 'AI Content Suggestion',
+            description: `AI recommendation: ${suggestion}`,
+            recommendation: suggestion,
+            isFixed: false
+          });
+        });
+      }
+
       // Calculate SEO score based on various factors
       let seoScore = 100;
       
@@ -133,6 +149,14 @@ export class SEOAnalyzer {
           analysisResult.pageSpeedInsights.mobile.score
         ) / 2;
         seoScore = Math.round((seoScore + avgPerformance) / 2);
+      }
+
+      // Factor in AI citation potential (if available)
+      if (analysisResult.aiAnalysis?.citationPotential) {
+        const citationScore = this.extractCitationScore(analysisResult.aiAnalysis.citationPotential);
+        if (citationScore > 0) {
+          seoScore = Math.round((seoScore + citationScore * 10) / 2);
+        }
       }
 
       seoScore = Math.max(0, Math.min(100, seoScore));
@@ -155,6 +179,12 @@ export class SEOAnalyzer {
         analysisData: { error: error.message }
       };
     }
+  }
+
+  private static extractCitationScore(citationText: string): number {
+    // Extract numerical score from citation potential text
+    const match = citationText.match(/(\d+)\/10/);
+    return match ? parseInt(match[1]) : 5; // Default to 5 if no score found
   }
 
   static calculateOverallScore(websites: Website[]): number {

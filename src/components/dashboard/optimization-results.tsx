@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Website, SEOIssue } from '@/lib/types';
+import { AIAnalysisResults } from './ai-analysis-results';
 import { 
   BarChart3, 
   AlertTriangle, 
@@ -10,8 +11,11 @@ import {
   Globe,
   Calendar,
   TrendingUp,
-  ExternalLink
+  ExternalLink,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
+import { useState } from 'react';
 
 interface OptimizationResultsProps {
   websites: Website[];
@@ -24,6 +28,18 @@ export function OptimizationResults({
   getWebsiteIssues, 
   onToggleIssue 
 }: OptimizationResultsProps) {
+  const [expandedWebsites, setExpandedWebsites] = useState<Set<string>>(new Set());
+
+  const toggleWebsiteExpansion = (websiteId: string) => {
+    const newExpanded = new Set(expandedWebsites);
+    if (newExpanded.has(websiteId)) {
+      newExpanded.delete(websiteId);
+    } else {
+      newExpanded.add(websiteId);
+    }
+    setExpandedWebsites(newExpanded);
+  };
+
   const getStatusColor = (status: Website['status']) => {
     switch (status) {
       case 'completed': return 'bg-green-500/20 text-green-400 border-green-500/20';
@@ -65,93 +81,113 @@ export function OptimizationResults({
         <div className="space-y-4">
           {websites.map((website) => {
             const websiteIssues = getWebsiteIssues(website.id);
+            const isExpanded = expandedWebsites.has(website.id);
             
             return (
-              <div 
-                key={website.id}
-                className="p-4 bg-white/5 rounded-lg border border-white/10 hover:border-white/20 transition-colors"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Globe className="h-4 w-4 text-gray-400" />
-                      <span className="text-white font-medium truncate">{website.url}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 text-gray-400 hover:text-white"
-                        onClick={() => window.open(website.url, '_blank')}
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                      </Button>
+              <div key={website.id} className="space-y-3">
+                <div className="p-4 bg-white/5 rounded-lg border border-white/10 hover:border-white/20 transition-colors">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Globe className="h-4 w-4 text-gray-400" />
+                        <span className="text-white font-medium truncate">{website.url}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+                          onClick={() => window.open(website.url, '_blank')}
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      
+                      <div className="flex items-center gap-3 text-sm text-gray-400">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {website.lastAnalyzed}
+                        </div>
+                        <Badge className={getStatusColor(website.status)}>
+                          {website.status}
+                        </Badge>
+                      </div>
                     </div>
                     
-                    <div className="flex items-center gap-3 text-sm text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {website.lastAnalyzed}
+                    <div className="text-right">
+                      <div className="flex items-center gap-2 mb-1">
+                        <TrendingUp className="h-4 w-4 text-blue-400" />
+                        <span className="text-2xl font-bold text-white">{website.seoScore}</span>
+                        <span className="text-gray-400">/100</span>
                       </div>
-                      <Badge className={getStatusColor(website.status)}>
-                        {website.status}
-                      </Badge>
+                      <p className="text-xs text-gray-400">SEO Score</p>
                     </div>
                   </div>
-                  
-                  <div className="text-right">
-                    <div className="flex items-center gap-2 mb-1">
-                      <TrendingUp className="h-4 w-4 text-blue-400" />
-                      <span className="text-2xl font-bold text-white">{website.seoScore}</span>
-                      <span className="text-gray-400">/100</span>
+
+                  {websiteIssues.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4" />
+                          Issues Found ({websiteIssues.length})
+                        </h4>
+                        
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleWebsiteExpansion(website.id)}
+                          className="text-gray-400 hover:text-white h-6"
+                        >
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                      
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {websiteIssues.slice(0, isExpanded ? websiteIssues.length : 3).map((issue) => (
+                          <div 
+                            key={issue.id}
+                            className="flex items-start gap-3 p-2 bg-white/5 rounded border border-white/5"
+                          >
+                            <button
+                              onClick={() => onToggleIssue(issue.id)}
+                              className="mt-0.5 flex-shrink-0"
+                            >
+                              {issue.isFixed ? (
+                                <CheckCircle className="h-4 w-4 text-green-400" />
+                              ) : (
+                                <div className="h-4 w-4 rounded-full border-2 border-gray-400 hover:border-white transition-colors" />
+                              )}
+                            </button>
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`text-sm ${issue.isFixed ? 'text-gray-400 line-through' : 'text-white'}`}>
+                                  {issue.title}
+                                </span>
+                                <Badge className={getSeverityColor(issue.severity)}>
+                                  {issue.severity}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-gray-400">{issue.description}</p>
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {!isExpanded && websiteIssues.length > 3 && (
+                          <p className="text-xs text-gray-400 text-center py-2">
+                            +{websiteIssues.length - 3} more issues
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-400">SEO Score</p>
-                  </div>
+                  )}
                 </div>
 
-                {websiteIssues.length > 0 && (
-                  <div className="mt-4 space-y-2">
-                    <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4" />
-                      Issues Found ({websiteIssues.length})
-                    </h4>
-                    
-                    <div className="space-y-2 max-h-40 overflow-y-auto">
-                      {websiteIssues.slice(0, 3).map((issue) => (
-                        <div 
-                          key={issue.id}
-                          className="flex items-start gap-3 p-2 bg-white/5 rounded border border-white/5"
-                        >
-                          <button
-                            onClick={() => onToggleIssue(issue.id)}
-                            className="mt-0.5 flex-shrink-0"
-                          >
-                            {issue.isFixed ? (
-                              <CheckCircle className="h-4 w-4 text-green-400" />
-                            ) : (
-                              <div className="h-4 w-4 rounded-full border-2 border-gray-400 hover:border-white transition-colors" />
-                            )}
-                          </button>
-                          
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`text-sm ${issue.isFixed ? 'text-gray-400 line-through' : 'text-white'}`}>
-                                {issue.title}
-                              </span>
-                              <Badge className={getSeverityColor(issue.severity)}>
-                                {issue.severity}
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-gray-400">{issue.description}</p>
-                          </div>
-                        </div>
-                      ))}
-                      
-                      {websiteIssues.length > 3 && (
-                        <p className="text-xs text-gray-400 text-center py-2">
-                          +{websiteIssues.length - 3} more issues
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                {/* AI Analysis Results - Show when expanded and available */}
+                {isExpanded && website.status === 'completed' && (
+                  <AIAnalysisResults analysisData={(website as any).analysisData} />
                 )}
               </div>
             );

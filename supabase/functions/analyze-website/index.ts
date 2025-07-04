@@ -39,6 +39,16 @@ interface AnalysisResult {
     };
     opportunities: string[];
   };
+  aiAnalysis?: {
+    citationPotential: string;
+    semanticGaps: string[];
+    faqSuggestions: string[];
+    improvementSuggestions: string[];
+  };
+  schemaMarkup?: {
+    type: string;
+    jsonLd: any;
+  };
   error?: string;
 }
 
@@ -108,6 +118,7 @@ async function crawlWebsite(url: string): Promise<Partial<AnalysisResult>> {
       metaDescription,
       headings,
       images,
+      fullContent: html // Store for AI analysis
     };
 
   } catch (error) {
@@ -161,17 +172,172 @@ async function analyzePageSpeed(url: string): Promise<any> {
       ...(desktopData.lighthouseResult?.audits?.['render-blocking-resources']?.details?.items || []).map(() => 'Eliminate render-blocking resources'),
       ...(desktopData.lighthouseResult?.audits?.['unminified-css']?.details?.items || []).map(() => 'Minify CSS'),
       ...(desktopData.lighthouseResult?.audits?.['unminified-javascript']?.details?.items || []).map(() => 'Minify JavaScript'),
-    ].slice(0, 5); // Limit to top 5 opportunities
+    ].slice(0, 5);
 
     console.log(`PageSpeed analysis completed for: ${url}`);
     return {
       desktop: extractMetrics(desktopData),
       mobile: extractMetrics(mobileData),
-      opportunities: [...new Set(opportunities)], // Remove duplicates
+      opportunities: [...new Set(opportunities)],
     };
 
   } catch (error) {
     console.error(`Error analyzing PageSpeed for ${url}:`, error);
+    return null;
+  }
+}
+
+async function analyzeWithAI(content: any): Promise<any> {
+  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+  
+  if (!openaiApiKey) {
+    console.log('OpenAI API key not configured');
+    return null;
+  }
+
+  try {
+    console.log('Starting AI analysis');
+    
+    const contentSummary = `
+    Title: ${content.title || 'No title'}
+    Meta Description: ${content.metaDescription || 'No description'}
+    H1 Tags: ${content.headings.h1.join(', ') || 'None'}
+    H2 Tags: ${content.headings.h2.slice(0, 5).join(', ') || 'None'}
+    H3 Tags: ${content.headings.h3.slice(0, 5).join(', ') || 'None'}
+    Images: ${content.images.total} total (${content.images.missingAlt} missing alt text)
+    `;
+
+    const prompt = `Analyze this webpage content for AI citation potential:
+
+${contentSummary}
+
+Please provide analysis in this exact format:
+
+CITATION POTENTIAL: [Rate from 1-10 and explain why this page would/wouldn't be cited by ChatGPT or Google SGE]
+
+SEMANTIC GAPS: [List 3-5 missing topics or information gaps that would improve comprehensiveness]
+
+FAQ SUGGESTIONS: [Suggest 3-5 frequently asked questions that should be added to improve AI-readability]
+
+IMPROVEMENT SUGGESTIONS: [Provide 3-5 specific recommendations to make this content more likely to be cited by AI systems]
+
+Keep responses concise and actionable.`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are an SEO expert analyzing content for AI citation potential. Provide structured, actionable recommendations.' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 800,
+        temperature: 0.3,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('OpenAI API request failed');
+      return null;
+    }
+
+    const data = await response.json();
+    const analysis = data.choices[0].message.content;
+
+    // Parse the structured response
+    const sections = analysis.split('\n\n');
+    const citationPotential = sections.find(s => s.startsWith('CITATION POTENTIAL:'))?.replace('CITATION POTENTIAL:', '').trim() || '';
+    const semanticGaps = sections.find(s => s.startsWith('SEMANTIC GAPS:'))?.replace('SEMANTIC GAPS:', '').trim().split('\n').filter(Boolean) || [];
+    const faqSuggestions = sections.find(s => s.startsWith('FAQ SUGGESTIONS:'))?.replace('FAQ SUGGESTIONS:', '').trim().split('\n').filter(Boolean) || [];
+    const improvementSuggestions = sections.find(s => s.startsWith('IMPROVEMENT SUGGESTIONS:'))?.replace('IMPROVEMENT SUGGESTIONS:', '').trim().split('\n').filter(Boolean) || [];
+
+    console.log('AI analysis completed');
+    return {
+      citationPotential,
+      semanticGaps,
+      faqSuggestions,
+      improvementSuggestions
+    };
+
+  } catch (error) {
+    console.error('Error in AI analysis:', error);
+    return null;
+  }
+}
+
+async function generateSchemaMarkup(content: any): Promise<any> {
+  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+  
+  if (!openaiApiKey) {
+    console.log('OpenAI API key not configured for schema generation');
+    return null;
+  }
+
+  try {
+    console.log('Generating schema.org markup');
+    
+    const contentSummary = `
+    URL: ${content.url}
+    Title: ${content.title || 'No title'}
+    Meta Description: ${content.metaDescription || 'No description'}
+    H1 Tags: ${content.headings.h1.join(', ') || 'None'}
+    H2 Tags: ${content.headings.h2.join(', ') || 'None'}
+    `;
+
+    const prompt = `Based on this webpage content, generate appropriate schema.org JSON-LD markup:
+
+${contentSummary}
+
+Choose the most suitable schema type (Article, BlogPosting, WebPage, FAQ, Product, etc.) and generate valid JSON-LD markup. Return ONLY the JSON without any explanations or markdown formatting.`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are a schema.org expert. Generate valid JSON-LD markup based on webpage content. Return only JSON without explanations.' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 600,
+        temperature: 0.1,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('OpenAI API request failed for schema generation');
+      return null;
+    }
+
+    const data = await response.json();
+    let jsonLd = data.choices[0].message.content.trim();
+    
+    // Clean up the response to ensure it's valid JSON
+    jsonLd = jsonLd.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    try {
+      const parsedSchema = JSON.parse(jsonLd);
+      const schemaType = parsedSchema['@type'] || 'WebPage';
+      
+      console.log('Schema markup generated successfully');
+      return {
+        type: schemaType,
+        jsonLd: parsedSchema
+      };
+    } catch (parseError) {
+      console.error('Failed to parse generated schema:', parseError);
+      return null;
+    }
+
+  } catch (error) {
+    console.error('Error generating schema markup:', error);
     return null;
   }
 }
@@ -191,7 +357,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Starting analysis for: ${url}`);
+    console.log(`Starting comprehensive analysis for: ${url}`);
 
     // Perform crawling and PageSpeed analysis in parallel
     const [crawlResult, pageSpeedResult] = await Promise.all([
@@ -199,9 +365,28 @@ serve(async (req) => {
       analyzePageSpeed(url)
     ]);
 
+    if (crawlResult.error) {
+      return new Response(
+        JSON.stringify(crawlResult),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Perform AI analysis and schema generation in parallel
+    const [aiAnalysis, schemaMarkup] = await Promise.all([
+      analyzeWithAI(crawlResult),
+      generateSchemaMarkup(crawlResult)
+    ]);
+
     const analysisResult: AnalysisResult = {
-      ...crawlResult,
+      url: crawlResult.url!,
+      title: crawlResult.title,
+      metaDescription: crawlResult.metaDescription,
+      headings: crawlResult.headings!,
+      images: crawlResult.images!,
       pageSpeedInsights: pageSpeedResult,
+      aiAnalysis,
+      schemaMarkup,
     };
 
     // If we have a project ID, save the results to Supabase
@@ -217,17 +402,21 @@ serve(async (req) => {
         (!crawlResult.metaDescription ? 1 : 0) +
         (crawlResult.headings?.h1.length === 0 ? 1 : 0);
 
+      const recommendations = {
+        high_priority: issues_found > 5 ? ['Fix critical SEO issues'] : [],
+        medium_priority: pageSpeedResult ? ['Improve page speed'] : [],
+        low_priority: ['Optimize images', 'Add structured data'],
+        ai_suggestions: aiAnalysis?.improvementSuggestions || [],
+        schema_markup: schemaMarkup ? [schemaMarkup] : []
+      };
+
       await supabase
         .from('seo_analysis')
         .insert({
           project_id: projectId,
           analysis_data: analysisResult,
           issues_found,
-          recommendations: {
-            high_priority: issues_found > 5 ? ['Fix critical SEO issues'] : [],
-            medium_priority: pageSpeedResult ? ['Improve page speed'] : [],
-            low_priority: ['Optimize images', 'Add structured data']
-          }
+          recommendations
         });
 
       console.log(`Analysis results saved for project: ${projectId}`);
