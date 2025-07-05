@@ -87,7 +87,7 @@ export function SEODashboard({ website, issues, analysisData }: SEODashboardProp
       };
       
       const response = await fetch(
-        `https://3a96eb71-2922-44f0-a7ed-cc31d816713b.supabase.co/functions/v1/optimize-website`,
+        `https://ycjdrqyztzweddtcodjo.supabase.co/functions/v1/optimize-website`,
         {
           method: 'POST',
           headers: {
