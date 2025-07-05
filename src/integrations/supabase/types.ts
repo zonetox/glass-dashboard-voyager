@@ -9,6 +9,60 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      optimization_history: {
+        Row: {
+          backup_url: string | null
+          created_at: string | null
+          desktop_speed_after: number | null
+          desktop_speed_before: number | null
+          fixes_applied: Json
+          id: string
+          mobile_speed_after: number | null
+          mobile_speed_before: number | null
+          report_url: string | null
+          seo_score_after: number | null
+          seo_score_before: number | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+          website_url: string
+        }
+        Insert: {
+          backup_url?: string | null
+          created_at?: string | null
+          desktop_speed_after?: number | null
+          desktop_speed_before?: number | null
+          fixes_applied?: Json
+          id?: string
+          mobile_speed_after?: number | null
+          mobile_speed_before?: number | null
+          report_url?: string | null
+          seo_score_after?: number | null
+          seo_score_before?: number | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+          website_url: string
+        }
+        Update: {
+          backup_url?: string | null
+          created_at?: string | null
+          desktop_speed_after?: number | null
+          desktop_speed_before?: number | null
+          fixes_applied?: Json
+          id?: string
+          mobile_speed_after?: number | null
+          mobile_speed_before?: number | null
+          report_url?: string | null
+          seo_score_after?: number | null
+          seo_score_before?: number | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+          website_url?: string
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           created_at: string | null
