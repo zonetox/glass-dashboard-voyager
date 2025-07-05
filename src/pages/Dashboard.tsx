@@ -56,7 +56,7 @@ export default function Dashboard() {
 
         {/* Main Dashboard Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white/5 border border-white/10">
+          <TabsList className="grid w-full grid-cols-6 bg-white/5 border border-white/10">
             <TabsTrigger value="overview" className="text-white data-[state=active]:bg-white/10">
               Overview
             </TabsTrigger>
@@ -65,6 +65,12 @@ export default function Dashboard() {
             </TabsTrigger>
             <TabsTrigger value="semantic" className="text-white data-[state=active]:bg-white/10">
               Semantic Analysis
+            </TabsTrigger>
+            <TabsTrigger value="content-cluster" className="text-white data-[state=active]:bg-white/10">
+              Content Clusters
+            </TabsTrigger>
+            <TabsTrigger value="content-writer" className="text-white data-[state=active]:bg-white/10">
+              AI Writer
             </TabsTrigger>
             <TabsTrigger value="detailed" className="text-white data-[state=active]:bg-white/10">
               Detailed View
@@ -134,6 +140,14 @@ export default function Dashboard() {
 
           <TabsContent value="semantic">
             <SemanticAnalyzer />
+          </TabsContent>
+
+          <TabsContent value="content-cluster">
+            <ContentClusterGenerator />
+          </TabsContent>
+
+          <TabsContent value="content-writer">
+            <ContentWriter />
           </TabsContent>
 
           <TabsContent value="detailed" className="space-y-6">
