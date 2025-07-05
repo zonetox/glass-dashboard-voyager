@@ -6,6 +6,8 @@ import { ProgressTracker } from '@/components/dashboard/progress-tracker';
 import { SEODashboard } from '@/components/dashboard/seo-dashboard';
 import { OptimizationHistory } from '@/components/dashboard/optimization-history';
 import { SemanticAnalyzer } from '@/components/dashboard/semantic-analyzer';
+import { ContentClusterGenerator } from '@/components/dashboard/content-cluster-generator';
+import { ContentWriter } from '@/components/dashboard/content-writer';
 import { useSEOAnalysis } from '@/hooks/use-seo-analysis';
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
