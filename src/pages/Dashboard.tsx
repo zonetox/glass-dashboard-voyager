@@ -9,6 +9,8 @@ import { SemanticAnalyzer } from '@/components/dashboard/semantic-analyzer';
 import { ContentClusterGenerator } from '@/components/dashboard/content-cluster-generator';
 import { ContentWriter } from '@/components/dashboard/content-writer';
 import { InternalLinksOptimizer } from '@/components/dashboard/internal-links-optimizer';
+import { UsageTracker } from '@/components/dashboard/usage-tracker';
+import { ScanHistory } from '@/components/dashboard/scan-history';
 import { useSEOAnalysis } from '@/hooks/use-seo-analysis';
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -59,9 +61,12 @@ export default function Dashboard() {
 
         {/* Main Dashboard Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 bg-white/5 border border-white/10">
+          <TabsList className="grid w-full grid-cols-8 bg-white/5 border border-white/10">
             <TabsTrigger value="overview" className="text-white data-[state=active]:bg-white/10">
               Overview
+            </TabsTrigger>
+            <TabsTrigger value="usage" className="text-white data-[state=active]:bg-white/10">
+              Usage & Plan
             </TabsTrigger>
             <TabsTrigger value="history" className="text-white data-[state=active]:bg-white/10">
               History
@@ -85,7 +90,7 @@ export default function Dashboard() {
 
           <TabsContent value="overview" className="space-y-6">
             {/* Main Dashboard Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               {/* Add Website Card */}
               <div className="lg:col-span-1">
                 <WebsiteAnalyzer 
@@ -102,6 +107,11 @@ export default function Dashboard() {
                   fixedIssues={fixedIssues}
                   websites={websites.length}
                 />
+              </div>
+
+              {/* Usage Tracker Card */}
+              <div className="lg:col-span-1">
+                <UsageTracker />
               </div>
 
               {/* Analysis Results Card */}
@@ -140,8 +150,36 @@ export default function Dashboard() {
             )}
           </TabsContent>
 
+          <TabsContent value="usage">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <UsageTracker />
+              <div className="space-y-6">
+                <div className="p-6 bg-white/5 rounded-lg border border-white/10">
+                  <h3 className="text-lg font-semibold text-white mb-4">Plan Comparison</h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-300">Free</span>
+                      <span className="text-gray-400">5 scans, 10 rewrites, 2 optimizations</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-blue-400">Pro</span>
+                      <span className="text-gray-400">50 scans, 100 rewrites, 20 optimizations</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-purple-400">Agency</span>
+                      <span className="text-gray-400">Unlimited everything</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
           <TabsContent value="history">
-            <OptimizationHistory onRescan={handleRescan} />
+            <div className="space-y-6">
+              <ScanHistory onRescan={handleRescan} />
+              <OptimizationHistory onRescan={handleRescan} />
+            </div>
           </TabsContent>
 
           <TabsContent value="semantic">

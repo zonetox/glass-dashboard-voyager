@@ -1,92 +1,93 @@
-
-import { Database } from '@/integrations/supabase/types';
-
-// Database types from Supabase
-export type Project = Database['public']['Tables']['projects']['Row'];
-export type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
-export type ProjectUpdate = Database['public']['Tables']['projects']['Update'];
-export type SeoAnalysis = Database['public']['Tables']['seo_analysis']['Row'];
-export type SeoAnalysisInsert = Database['public']['Tables']['seo_analysis']['Insert'];
-
-// Legacy types for existing components (mapped to new database types)
 export interface Website {
   id: string;
   url: string;
-  status: 'analyzing' | 'completed' | 'error' | 'pending';
+  name: string;
+  description: string;
+  category: string;
+  lastScanDate: string;
   seoScore: number;
-  issues: number;
-  lastAnalyzed: string;
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
+  pageSpeedScore: number;
+  mobileFriendlinessScore: number;
+  securityScore: number;
+  technologies: string[];
 }
 
 export interface SEOIssue {
   id: string;
-  websiteId: string;
-  type: 'title' | 'meta' | 'heading' | 'image' | 'performance' | 'mobile' | 'content';
-  severity: 'high' | 'medium' | 'low';
   title: string;
   description: string;
+  severity: 'high' | 'medium' | 'low';
+  category: string;
+  affectedUrl: string;
   recommendation: string;
   isFixed: boolean;
 }
 
-export interface OptimizationProgress {
-  websiteId: string;
-  totalIssues: number;
-  fixedIssues: number;
-  inProgress: number;
-  lastUpdated: string;
+export interface AnalysisResult {
+  seoScore: number;
+  pageSpeedScore: number;
+  mobileFriendlinessScore: number;
+  securityScore: number;
+  issues: SEOIssue[];
 }
 
-// Helper function to convert Project to Website for existing components
-export function projectToWebsite(project: Project): Website {
-  return {
-    id: project.id,
-    url: project.website_url,
-    status: project.status as Website['status'],
-    seoScore: project.seo_score || 0,
-    issues: 0, // Will be calculated from analysis data
-    lastAnalyzed: project.updated_at || '',
-    userId: project.user_id,
-    createdAt: project.created_at || '',
-    updatedAt: project.updated_at || ''
-  };
+export interface Project {
+  id: string;
+  user_id: string;
+  website_url: string;
+  status: string;
+  seo_score?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
-// Mock data for development (will be replaced with real data)
-export const mockWebsiteData: Website = {
-  id: "1",
-  url: "https://example.com",
-  status: "analyzing",
-  seoScore: 65,
-  issues: 12,
-  lastAnalyzed: "2024-01-15",
-  userId: "user-1",
-  createdAt: "2024-01-15T10:00:00Z",
-  updatedAt: "2024-01-15T10:00:00Z"
-};
+export interface ProjectInsert {
+  user_id: string;
+  website_url: string;
+  status?: string;
+  seo_score?: number;
+}
 
-export const mockSEOIssues: SEOIssue[] = [
-  {
-    id: "1",
-    websiteId: "1",
-    type: "title",
-    severity: "high",
-    title: "Missing page titles",
-    description: "5 pages are missing title tags",
-    recommendation: "Add descriptive title tags to all pages",
-    isFixed: false
-  },
-  {
-    id: "2", 
-    websiteId: "1",
-    type: "performance",
-    severity: "medium",
-    title: "Slow loading images",
-    description: "Images are not optimized for web",
-    recommendation: "Compress and resize images",
-    isFixed: true
-  }
-];
+export interface SeoAnalysis {
+  id: string;
+  project_id: string;
+  analysis_data: any;
+  issues_found?: number;
+  recommendations: any;
+  created_at?: string;
+}
+
+export interface UserProfile {
+  id: string;
+  user_id: string;
+  tier: 'free' | 'pro' | 'agency';
+  scans_limit: number;
+  ai_rewrites_limit: number;
+  optimizations_limit: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface UserUsage {
+  id: string;
+  user_id: string;
+  scans_used: number;
+  ai_rewrites_used: number;
+  optimizations_used: number;
+  reset_date: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ScanResult {
+  id: string;
+  user_id: string;
+  website_url: string;
+  scan_data_path?: string;
+  optimization_log_path?: string;
+  pdf_report_path?: string;
+  seo_score?: number;
+  issues_count?: number;
+  status: string;
+  created_at?: string;
+}

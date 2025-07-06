@@ -93,6 +93,45 @@ export type Database = {
         }
         Relationships: []
       }
+      scan_results: {
+        Row: {
+          created_at: string | null
+          id: string
+          issues_count: number | null
+          optimization_log_path: string | null
+          pdf_report_path: string | null
+          scan_data_path: string | null
+          seo_score: number | null
+          status: string | null
+          user_id: string
+          website_url: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          issues_count?: number | null
+          optimization_log_path?: string | null
+          pdf_report_path?: string | null
+          scan_data_path?: string | null
+          seo_score?: number | null
+          status?: string | null
+          user_id: string
+          website_url: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          issues_count?: number | null
+          optimization_log_path?: string | null
+          pdf_report_path?: string | null
+          scan_data_path?: string | null
+          seo_score?: number | null
+          status?: string | null
+          user_id?: string
+          website_url?: string
+        }
+        Relationships: []
+      }
       seo_analysis: {
         Row: {
           analysis_data: Json
@@ -128,15 +167,84 @@ export type Database = {
           },
         ]
       }
+      user_profiles: {
+        Row: {
+          ai_rewrites_limit: number
+          created_at: string | null
+          id: string
+          optimizations_limit: number
+          scans_limit: number
+          tier: Database["public"]["Enums"]["user_tier"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_rewrites_limit?: number
+          created_at?: string | null
+          id?: string
+          optimizations_limit?: number
+          scans_limit?: number
+          tier?: Database["public"]["Enums"]["user_tier"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_rewrites_limit?: number
+          created_at?: string | null
+          id?: string
+          optimizations_limit?: number
+          scans_limit?: number
+          tier?: Database["public"]["Enums"]["user_tier"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_usage: {
+        Row: {
+          ai_rewrites_used: number
+          created_at: string | null
+          id: string
+          optimizations_used: number
+          reset_date: string
+          scans_used: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_rewrites_used?: number
+          created_at?: string | null
+          id?: string
+          optimizations_used?: number
+          reset_date?: string
+          scans_used?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_rewrites_used?: number
+          created_at?: string | null
+          id?: string
+          optimizations_used?: number
+          reset_date?: string
+          scans_used?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      reset_monthly_usage: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_tier: "free" | "pro" | "agency"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -251,6 +359,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_tier: ["free", "pro", "agency"],
+    },
   },
 } as const
