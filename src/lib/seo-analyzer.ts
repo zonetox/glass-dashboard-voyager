@@ -5,7 +5,7 @@ export class SEOAnalyzer {
   static async analyzeWebsite(url: string, projectId?: string): Promise<{
     seoScore: number;
     issues: SEOIssue[];
-    status: Website['status'];
+    status: 'pending' | 'analyzing' | 'completed' | 'error';
     analysisData?: any;
   }> {
     try {
@@ -45,6 +45,8 @@ export class SEOAnalyzer {
           severity: 'high',
           title: 'Missing page title',
           description: 'The page is missing a title tag',
+          category: 'Meta Tags',
+          affectedUrl: url,
           recommendation: 'Add a descriptive title tag to improve SEO',
           isFixed: false
         });
@@ -58,6 +60,8 @@ export class SEOAnalyzer {
           severity: 'high',
           title: 'Missing meta description',
           description: 'The page is missing a meta description',
+          category: 'Meta Tags',
+          affectedUrl: url,
           recommendation: 'Add a compelling meta description to improve click-through rates',
           isFixed: false
         });
@@ -71,6 +75,8 @@ export class SEOAnalyzer {
           severity: 'medium',
           title: 'Missing H1 tag',
           description: 'The page is missing an H1 heading',
+          category: 'Content Structure',
+          affectedUrl: url,
           recommendation: 'Add a clear H1 heading to structure your content',
           isFixed: false
         });
@@ -84,6 +90,8 @@ export class SEOAnalyzer {
           severity: 'medium',
           title: 'Images missing alt text',
           description: `${analysisResult.images.missingAlt} images are missing alt attributes`,
+          category: 'Accessibility',
+          affectedUrl: url,
           recommendation: 'Add descriptive alt text to all images for accessibility and SEO',
           isFixed: false
         });
@@ -97,6 +105,8 @@ export class SEOAnalyzer {
           severity: 'high',
           title: 'Poor page performance',
           description: `Page speed score is ${analysisResult.pageSpeedInsights.desktop.score}/100`,
+          category: 'Performance',
+          affectedUrl: url,
           recommendation: analysisResult.pageSpeedInsights.opportunities?.[0] || 'Optimize page loading speed',
           isFixed: false
         });
@@ -110,6 +120,8 @@ export class SEOAnalyzer {
           severity: 'high',
           title: 'Poor mobile performance',
           description: `Mobile speed score is ${analysisResult.pageSpeedInsights.mobile.score}/100`,
+          category: 'Mobile',
+          affectedUrl: url,
           recommendation: 'Optimize for mobile performance',
           isFixed: false
         });
@@ -125,6 +137,8 @@ export class SEOAnalyzer {
             severity: 'medium',
             title: 'AI Content Suggestion',
             description: `AI recommendation: ${suggestion}`,
+            category: 'Content Optimization',
+            affectedUrl: url,
             recommendation: suggestion,
             isFixed: false
           });

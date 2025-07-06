@@ -1,3 +1,4 @@
+
 export interface Website {
   id: string;
   url: string;
@@ -5,19 +6,23 @@ export interface Website {
   description: string;
   category: string;
   lastScanDate: string;
+  lastAnalyzed: string;
   seoScore: number;
   pageSpeedScore: number;
   mobileFriendlinessScore: number;
   securityScore: number;
   technologies: string[];
+  status: 'pending' | 'analyzing' | 'completed' | 'error';
 }
 
 export interface SEOIssue {
   id: string;
+  websiteId: string;
   title: string;
   description: string;
   severity: 'high' | 'medium' | 'low';
   category: string;
+  type: string;
   affectedUrl: string;
   recommendation: string;
   isFixed: boolean;
@@ -90,4 +95,39 @@ export interface ScanResult {
   issues_count?: number;
   status: string;
   created_at?: string;
+}
+
+// Mock data for development
+export const mockSEOIssues: SEOIssue[] = [
+  {
+    id: '1',
+    websiteId: 'mock-1',
+    title: 'Missing meta description',
+    description: 'Your page is missing a meta description',
+    severity: 'high',
+    category: 'Meta Tags',
+    type: 'meta',
+    affectedUrl: '/',
+    recommendation: 'Add a compelling meta description',
+    isFixed: false
+  }
+];
+
+// Helper function to convert Project to Website
+export function projectToWebsite(project: Project): Website {
+  return {
+    id: project.id,
+    url: project.website_url,
+    name: new URL(project.website_url).hostname,
+    description: `SEO analysis for ${project.website_url}`,
+    category: 'Website',
+    lastScanDate: project.created_at || new Date().toISOString(),
+    lastAnalyzed: project.updated_at || project.created_at || new Date().toISOString(),
+    seoScore: project.seo_score || 0,
+    pageSpeedScore: 0,
+    mobileFriendlinessScore: 0,
+    securityScore: 0,
+    technologies: [],
+    status: (project.status as 'pending' | 'analyzing' | 'completed' | 'error') || 'pending'
+  };
 }
