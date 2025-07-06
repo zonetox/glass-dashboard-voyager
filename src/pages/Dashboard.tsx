@@ -1,6 +1,7 @@
+
 import { useState } from 'react';
-import { DashboardLayout } from '@/components/layouts/dashboard-layout';
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { DashboardLayout } from '@/components/DashboardLayout';
+import { DashboardHeader } from '@/components/DashboardHeader';
 import { WebsiteAnalyzer } from '@/components/dashboard/website-analyzer';
 import { OptimizationHistory } from '@/components/dashboard/optimization-history';
 import { ScanHistory } from '@/components/dashboard/scan-history';
@@ -11,6 +12,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function Dashboard() {
   const [analysisUrl, setAnalysisUrl] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const handleAnalyze = async (url: string) => {
+    setIsAnalyzing(true);
+    try {
+      // TODO: Implement actual analysis logic
+      console.log('Analyzing website:', url);
+      setAnalysisUrl(url);
+    } catch (error) {
+      console.error('Analysis failed:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -45,7 +60,7 @@ export default function Dashboard() {
 
           <TabsContent value="analyze" className="space-y-6">
             <div className="grid gap-6">
-              <WebsiteAnalyzer initialUrl={analysisUrl} />
+              <WebsiteAnalyzer onAnalyze={handleAnalyze} isLoading={isAnalyzing} />
             </div>
           </TabsContent>
 
