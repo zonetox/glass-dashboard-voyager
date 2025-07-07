@@ -272,6 +272,48 @@ export type Database = {
           },
         ]
       }
+      scan_comparisons: {
+        Row: {
+          alert_sent: boolean | null
+          created_at: string | null
+          current_seo_score: number | null
+          fixed_issues: Json | null
+          id: string
+          new_issues: Json | null
+          previous_seo_score: number | null
+          scan_date: string | null
+          score_change: number | null
+          user_id: string
+          website_url: string
+        }
+        Insert: {
+          alert_sent?: boolean | null
+          created_at?: string | null
+          current_seo_score?: number | null
+          fixed_issues?: Json | null
+          id?: string
+          new_issues?: Json | null
+          previous_seo_score?: number | null
+          scan_date?: string | null
+          score_change?: number | null
+          user_id: string
+          website_url: string
+        }
+        Update: {
+          alert_sent?: boolean | null
+          created_at?: string | null
+          current_seo_score?: number | null
+          fixed_issues?: Json | null
+          id?: string
+          new_issues?: Json | null
+          previous_seo_score?: number | null
+          scan_date?: string | null
+          score_change?: number | null
+          user_id?: string
+          website_url?: string
+        }
+        Relationships: []
+      }
       scan_results: {
         Row: {
           created_at: string | null
@@ -306,6 +348,48 @@ export type Database = {
           scan_data_path?: string | null
           seo_score?: number | null
           status?: string | null
+          user_id?: string
+          website_url?: string
+        }
+        Relationships: []
+      }
+      scheduled_scans: {
+        Row: {
+          auto_optimize: boolean | null
+          created_at: string | null
+          email_alerts: boolean | null
+          frequency_days: number
+          id: string
+          is_active: boolean | null
+          last_scan_at: string | null
+          next_scan_at: string
+          updated_at: string | null
+          user_id: string
+          website_url: string
+        }
+        Insert: {
+          auto_optimize?: boolean | null
+          created_at?: string | null
+          email_alerts?: boolean | null
+          frequency_days?: number
+          id?: string
+          is_active?: boolean | null
+          last_scan_at?: string | null
+          next_scan_at: string
+          updated_at?: string | null
+          user_id: string
+          website_url: string
+        }
+        Update: {
+          auto_optimize?: boolean | null
+          created_at?: string | null
+          email_alerts?: boolean | null
+          frequency_days?: number
+          id?: string
+          is_active?: boolean | null
+          last_scan_at?: string | null
+          next_scan_at?: string
+          updated_at?: string | null
           user_id?: string
           website_url?: string
         }
