@@ -8,6 +8,8 @@ import { ScanHistory } from '@/components/dashboard/scan-history';
 import { RollbackManager } from '@/components/dashboard/rollback-manager';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { UsageTracker } from '@/components/dashboard/usage-tracker';
+import { FullScanManager } from '@/components/dashboard/fullscan-manager';
+import { OrganizationManager } from '@/components/dashboard/organization-manager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function Dashboard() {

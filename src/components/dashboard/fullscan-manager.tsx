@@ -9,17 +9,9 @@ import { Progress } from '@/components/ui/progress';
 import { Globe, Search, FileText, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 
-interface FullScanResult {
-  id: string;
-  root_domain: string;
-  total_pages: number;
-  completed_pages: number;
-  status: 'pending' | 'scanning' | 'completed' | 'failed';
-  scan_data: any[];
-  summary_stats?: any;
-  created_at: string;
-}
+type FullScanResult = Database['public']['Tables']['fullscan_results']['Row'];
 
 export function FullScanManager() {
   const [scans, setScans] = useState<FullScanResult[]>([]);
@@ -83,7 +75,7 @@ export function FullScanManager() {
     setScanning(false);
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string | null) => {
     switch (status) {
       case 'completed': return <CheckCircle className="w-5 h-5 text-green-500" />;
       case 'scanning': return <Search className="w-5 h-5 text-blue-500 animate-spin" />;
@@ -92,7 +84,7 @@ export function FullScanManager() {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | null) => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-800';
       case 'scanning': return 'bg-blue-100 text-blue-800';
@@ -174,12 +166,12 @@ export function FullScanManager() {
                     <div>
                       <h4 className="font-semibold">{scan.root_domain}</h4>
                       <p className="text-sm text-gray-600">
-                        {new Date(scan.created_at).toLocaleDateString()}
+                        {new Date(scan.created_at || '').toLocaleDateString()}
                       </p>
                     </div>
                   </div>
                   <Badge className={getStatusColor(scan.status)}>
-                    {scan.status}
+                    {scan.status || 'pending'}
                   </Badge>
                 </div>
 
@@ -187,10 +179,10 @@ export function FullScanManager() {
                   <div className="mb-4">
                     <div className="flex justify-between text-sm mb-2">
                       <span>Progress</span>
-                      <span>{scan.completed_pages} / {scan.total_pages} pages</span>
+                      <span>{scan.completed_pages || 0} / {scan.total_pages || 0} pages</span>
                     </div>
                     <Progress 
-                      value={scan.total_pages > 0 ? (scan.completed_pages / scan.total_pages) * 100 : 0} 
+                      value={(scan.total_pages || 0) > 0 ? ((scan.completed_pages || 0) / (scan.total_pages || 0)) * 100 : 0} 
                     />
                   </div>
                 )}
@@ -199,25 +191,25 @@ export function FullScanManager() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue-600">
-                        {scan.scan_data?.length || 0}
+                        {Array.isArray(scan.scan_data) ? scan.scan_data.length : 0}
                       </div>
                       <div className="text-sm text-gray-600">Pages Scanned</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-green-600">
-                        {scan.summary_stats.avg_seo_score || 0}
+                        {(scan.summary_stats as any)?.avg_seo_score || 0}
                       </div>
                       <div className="text-sm text-gray-600">Avg SEO Score</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-yellow-600">
-                        {scan.summary_stats.issues_found || 0}
+                        {(scan.summary_stats as any)?.issues_found || 0}
                       </div>
                       <div className="text-sm text-gray-600">Issues Found</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-purple-600">
-                        {scan.summary_stats.avg_readability || 0}
+                        {(scan.summary_stats as any)?.avg_readability || 0}
                       </div>
                       <div className="text-sm text-gray-600">Avg Readability</div>
                     </div>
