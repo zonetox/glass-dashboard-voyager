@@ -44,6 +44,12 @@ export default function Dashboard() {
               <TabsTrigger value="content" className="bg-white/5 data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400 border-white/20">
                 Content
               </TabsTrigger>
+              <TabsTrigger value="fullscan" className="bg-white/5 data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400 border-white/20">
+                Full Scan
+              </TabsTrigger>
+              <TabsTrigger value="organizations" className="bg-white/5 data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400 border-white/20">
+                Organizations
+              </TabsTrigger>
               <TabsTrigger value="rollback" className="bg-white/5 data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400 border-white/20">
                 Rollback
               </TabsTrigger>
@@ -74,6 +80,14 @@ export default function Dashboard() {
             <div className="grid gap-6">
               <div>Content</div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="fullscan" className="space-y-6">
+            <FullScanManager />
+          </TabsContent>
+
+          <TabsContent value="organizations" className="space-y-6">
+            <OrganizationManager />
           </TabsContent>
 
           <TabsContent value="rollback" className="space-y-6">
