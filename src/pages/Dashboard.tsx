@@ -8,16 +8,48 @@ import { APITokens } from '@/components/dashboard/api-tokens';
 import { CompetitorAnalysis } from '@/components/dashboard/competitor-analysis';
 import { MetaOptimizer } from '@/components/dashboard/meta-optimizer';
 import { FAQGenerator } from '@/components/dashboard/faq-generator';
+import { Website, SEOIssue, mockSEOIssues } from '@/lib/types';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Mock website data for demonstration
+  const mockWebsite: Website = {
+    id: 'demo-1',
+    url: 'https://example.com',
+    name: 'Example Website',
+    description: 'Demo website for SEO analysis',
+    category: 'Business',
+    lastScanDate: new Date().toISOString(),
+    lastAnalyzed: new Date().toISOString(),
+    seoScore: 75,
+    pageSpeedScore: 85,
+    mobileFriendlinessScore: 90,
+    securityScore: 95,
+    technologies: ['React', 'Tailwind CSS'],
+    status: 'completed'
+  };
+
+  const handleAnalyze = async (url: string) => {
+    setIsAnalyzing(true);
+    try {
+      // Simulate analysis - in real app this would call your analysis API
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log('Analyzing website:', url);
+    } catch (error) {
+      console.error('Analysis failed:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <SEODashboard />;
+        return <SEODashboard website={mockWebsite} issues={mockSEOIssues} />;
       case 'analyzer':
-        return <WebsiteAnalyzer />;
+        return <WebsiteAnalyzer onAnalyze={handleAnalyze} isLoading={isAnalyzing} />;
       case 'writer':
         return <ContentWriter />;
       case 'meta-optimizer':
@@ -29,27 +61,44 @@ export default function Dashboard() {
       case 'competitors':
         return <CompetitorAnalysis />;
       default:
-        return <SEODashboard />;
+        return <SEODashboard website={mockWebsite} issues={mockSEOIssues} />;
     }
   };
 
-  const navItems = [
-    { id: 'overview', label: 'Overview', icon: '📊' },
-    { id: 'analyzer', label: 'Analyzer', icon: '🔍' },
-    { id: 'writer', label: 'Writer', icon: '✍️' },
-    { id: 'meta-optimizer', label: 'Meta Tags', icon: '🏷️' },
-    { id: 'faq-generator', label: 'FAQ Schema', icon: '❓' },
-    { id: 'api', label: 'API', icon: '🔌' },
-    { id: 'competitors', label: 'Competitors', icon: '🏆' },
-  ];
-
   return (
-    <DashboardLayout 
-      activeTab={activeTab} 
-      setActiveTab={setActiveTab}
-      navItems={navItems}
-    >
-      {renderContent()}
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Navigation Tabs */}
+        <div className="border-b border-gray-800">
+          <nav className="flex space-x-8">
+            {[
+              { id: 'overview', label: 'Overview', icon: '📊' },
+              { id: 'analyzer', label: 'Analyzer', icon: '🔍' },
+              { id: 'writer', label: 'Writer', icon: '✍️' },
+              { id: 'meta-optimizer', label: 'Meta Tags', icon: '🏷️' },
+              { id: 'faq-generator', label: 'FAQ Schema', icon: '❓' },
+              { id: 'api', label: 'API', icon: '🔌' },
+              { id: 'competitors', label: 'Competitors', icon: '🏆' },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                  activeTab === item.id
+                    ? 'border-blue-500 text-blue-400'
+                    : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300'
+                }`}
+              >
+                <span className="mr-2">{item.icon}</span>
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Content */}
+        {renderContent()}
+      </div>
     </DashboardLayout>
   );
 }
