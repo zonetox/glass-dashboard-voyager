@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,7 +52,9 @@ export function APITokens() {
       // Transform the data to match our interface
       const transformedData = data?.map(token => ({
         ...token,
-        permissions: Array.isArray(token.permissions) ? token.permissions : ['scan', 'results', 'history']
+        permissions: Array.isArray(token.permissions) 
+          ? (token.permissions as string[])
+          : ['scan', 'results', 'history']
       })) || [];
       
       setTokens(transformedData);
@@ -180,6 +181,22 @@ curl "https://ycjdrqyztzweddtcodjo.supabase.co/functions/v1/api-results" \\
   -H "Authorization: Bearer YOUR_API_TOKEN"
 \`\`\`
 
+### 4. Meta Tag Suggestions
+\`\`\`bash
+curl -X POST "https://ycjdrqyztzweddtcodjo.supabase.co/functions/v1/api-metasuggest" \\
+  -H "Authorization: Bearer YOUR_API_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"title": "Your Article Title", "content": "Your article content..."}'
+\`\`\`
+
+### 5. Generate FAQ Schema
+\`\`\`bash
+curl -X POST "https://ycjdrqyztzweddtcodjo.supabase.co/functions/v1/api-faq-schema" \\
+  -H "Authorization: Bearer YOUR_API_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"content": "Your article content..."}'
+\`\`\`
+
 ## Node.js Example
 \`\`\`javascript
 const fetch = require('node-fetch');
@@ -187,29 +204,28 @@ const fetch = require('node-fetch');
 const API_TOKEN = 'YOUR_API_TOKEN';
 const BASE_URL = 'https://ycjdrqyztzweddtcodjo.supabase.co/functions/v1';
 
-// Trigger scan
-async function scanWebsite(url) {
-  const response = await fetch(\`\${BASE_URL}/api-scan\`, {
+// Generate meta suggestions
+async function getMetaSuggestions(title, content) {
+  const response = await fetch(\`\${BASE_URL}/api-metasuggest\`, {
     method: 'POST',
     headers: {
       'Authorization': \`Bearer \${API_TOKEN}\`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ url })
+    body: JSON.stringify({ title, content })
   });
   return response.json();
 }
 
-// Get results
-async function getResults(url = null, limit = 10) {
-  const params = new URLSearchParams();
-  if (url) params.append('url', url);
-  params.append('limit', limit.toString());
-  
-  const response = await fetch(\`\${BASE_URL}/api-results?\${params}\`, {
+// Generate FAQ schema
+async function generateFAQSchema(content) {
+  const response = await fetch(\`\${BASE_URL}/api-faq-schema\`, {
+    method: 'POST',
     headers: {
-      'Authorization': \`Bearer \${API_TOKEN}\`
-    }
+      'Authorization': \`Bearer \${API_TOKEN}\`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ content })
   });
   return response.json();
 }
@@ -222,26 +238,25 @@ import requests
 API_TOKEN = 'YOUR_API_TOKEN'
 BASE_URL = 'https://ycjdrqyztzweddtcodjo.supabase.co/functions/v1'
 
-def scan_website(url):
+def get_meta_suggestions(title, content):
     response = requests.post(
-        f'{BASE_URL}/api-scan',
+        f'{BASE_URL}/api-metasuggest',
         headers={
             'Authorization': f'Bearer {API_TOKEN}',
             'Content-Type': 'application/json'
         },
-        json={'url': url}
+        json={'title': title, 'content': content}
     )
     return response.json()
 
-def get_results(url=None, limit=10):
-    params = {'limit': limit}
-    if url:
-        params['url'] = url
-        
-    response = requests.get(
-        f'{BASE_URL}/api-results',
-        headers={'Authorization': f'Bearer {API_TOKEN}'},
-        params=params
+def generate_faq_schema(content):
+    response = requests.post(
+        f'{BASE_URL}/api-faq-schema',
+        headers={
+            'Authorization': f'Bearer {API_TOKEN}',
+            'Content-Type': 'application/json'
+        },
+        json={'content': content}
     )
     return response.json()
 \`\`\`
