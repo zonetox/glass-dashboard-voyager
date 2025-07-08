@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,9 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PenTool, FileText, Loader2, Copy, Download } from 'lucide-react';
+import { PenTool, FileText, Loader2, Copy, Download, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { ContentDuplicationChecker } from './content-duplication-checker';
 
 interface WriteResponse {
   title: string;
@@ -22,14 +22,38 @@ interface WriteResponse {
   schema_markup: object;
 }
 
+interface DuplicationResult {
+  is_duplicate: boolean;
+  similarity_score: number;
+  existing_content: Array<{
+    title: string;
+    url: string;
+    similarity: number;
+  }>;
+  suggested_angles: string[];
+  search_results: Array<{
+    title: string;
+    url: string;
+    snippet: string;
+  }>;
+}
+
 export function ContentWriter() {
   const [topic, setTopic] = useState('');
   const [keyword, setKeyword] = useState('');
   const [articleType, setArticleType] = useState<string>('');
   const [tone, setTone] = useState<string>('professional');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isCheckingDuplication, setIsCheckingDuplication] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<WriteResponse | null>(null);
+  const [duplicationResult, setDuplicationResult] = useState<DuplicationResult | null>(null);
+  const [showDuplicationWarning, setShowDuplicationWarning] = useState(false);
   const { toast } = useToast();
+
+  const handleDuplicationCheck = (result: DuplicationResult) => {
+    setDuplicationResult(result);
+    setShowDuplicationWarning(result.is_duplicate);
+  };
 
   const generateContent = async () => {
     if (!topic.trim() || !keyword.trim() || !articleType) {
@@ -39,6 +63,18 @@ export function ContentWriter() {
         variant: "destructive"
       });
       return;
+    }
+
+    // Show warning if duplication detected and user hasn't been warned
+    if (duplicationResult?.is_duplicate && showDuplicationWarning) {
+      const proceed = confirm(
+        `⚠️ Content duplication detected (${duplicationResult.similarity_score}% similar)!\n\nWe found similar content that might affect your SEO ranking. Consider using one of the suggested fresh angles instead.\n\nDo you want to proceed anyway?`
+      );
+      
+      if (!proceed) {
+        return;
+      }
+      setShowDuplicationWarning(false);
     }
 
     setIsGenerating(true);
@@ -94,6 +130,39 @@ export function ContentWriter() {
 
   return (
     <div className="space-y-6">
+      {/* Duplication Checker */}
+      <ContentDuplicationChecker 
+        onCheck={handleDuplicationCheck}
+        isChecking={isCheckingDuplication}
+      />
+      
+      {duplicationResult?.is_duplicate && showDuplicationWarning && (
+        <Card className="glass-card border-yellow-500/20 bg-yellow-500/5">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <div className="text-yellow-400 text-xl">⚠️</div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-yellow-300 mb-2">Content Duplication Warning</h4>
+                <p className="text-yellow-200 text-sm mb-3">
+                  Similar content detected ({duplicationResult.similarity_score}% similarity). 
+                  Consider using a fresh angle to avoid SEO penalties.
+                </p>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => setShowDuplicationWarning(false)}
+                    className="border-yellow-500/20 text-yellow-300 hover:bg-yellow-500/10"
+                  >
+                    I understand, proceed anyway
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="glass-card border-white/10">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center gap-2 text-white">

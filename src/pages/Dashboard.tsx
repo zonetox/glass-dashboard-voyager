@@ -8,6 +8,7 @@ import { APITokens } from '@/components/dashboard/api-tokens';
 import { CompetitorAnalysis } from '@/components/dashboard/competitor-analysis';
 import { MetaOptimizer } from '@/components/dashboard/meta-optimizer';
 import { FAQGenerator } from '@/components/dashboard/faq-generator';
+import { FullScoreAnalyzer } from '@/components/dashboard/full-score-analyzer';
 import { Website, SEOIssue, mockSEOIssues } from '@/lib/types';
 
 export default function Dashboard() {
@@ -56,6 +57,8 @@ export default function Dashboard() {
         return <MetaOptimizer />;
       case 'faq-generator':
         return <FAQGenerator />;
+      case 'full-score':
+        return <FullScoreAnalyzer />;
       case 'api':
         return <APITokens />;
       case 'competitors':
@@ -77,6 +80,7 @@ export default function Dashboard() {
               { id: 'writer', label: 'Writer', icon: '✍️' },
               { id: 'meta-optimizer', label: 'Meta Tags', icon: '🏷️' },
               { id: 'faq-generator', label: 'FAQ Schema', icon: '❓' },
+              { id: 'full-score', label: 'Full Score', icon: '🎯' },
               { id: 'api', label: 'API', icon: '🔌' },
               { id: 'competitors', label: 'Competitors', icon: '🏆' },
             ].map((item) => (
