@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { DashboardHeader } from '@/components/DashboardHeader';
@@ -12,6 +13,8 @@ import { OrganizationManager } from '@/components/dashboard/organization-manager
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScheduledScans } from '@/components/dashboard/scheduled-scans';
 import { StrategyAdvisor } from '@/components/dashboard/strategy-advisor';
+import { APITokens } from '@/components/dashboard/api-tokens';
+import { CompetitorAnalysis } from '@/components/dashboard/competitor-analysis';
 
 export default function Dashboard() {
   const [analysisUrl, setAnalysisUrl] = useState('');
@@ -50,8 +53,14 @@ export default function Dashboard() {
               <TabsTrigger value="strategy" className="bg-white/5 data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400 border-white/20">
                 Strategy
               </TabsTrigger>
+              <TabsTrigger value="competitors" className="bg-white/5 data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400 border-white/20">
+                Competitors
+              </TabsTrigger>
               <TabsTrigger value="scheduled" className="bg-white/5 data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400 border-white/20">
                 Scheduled
+              </TabsTrigger>
+              <TabsTrigger value="api" className="bg-white/5 data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400 border-white/20">
+                API
               </TabsTrigger>
               <TabsTrigger value="fullscan" className="bg-white/5 data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-400 border-white/20">
                 Full Scan
@@ -95,8 +104,16 @@ export default function Dashboard() {
             <StrategyAdvisor />
           </TabsContent>
 
+          <TabsContent value="competitors" className="space-y-6">
+            <CompetitorAnalysis />
+          </TabsContent>
+
           <TabsContent value="scheduled" className="space-y-6">
             <ScheduledScans />
+          </TabsContent>
+
+          <TabsContent value="api" className="space-y-6">
+            <APITokens />
           </TabsContent>
 
           <TabsContent value="fullscan" className="space-y-6">
