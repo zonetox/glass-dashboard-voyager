@@ -49,7 +49,14 @@ export function APITokens() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTokens(data || []);
+      
+      // Transform the data to match our interface
+      const transformedData = data?.map(token => ({
+        ...token,
+        permissions: Array.isArray(token.permissions) ? token.permissions : ['scan', 'results', 'history']
+      })) || [];
+      
+      setTokens(transformedData);
     } catch (error) {
       console.error('Error fetching tokens:', error);
       toast({
