@@ -40,6 +40,8 @@ export function APITestComponent() {
       console.log('Starting API test for URL:', testUrl);
       
       // Test multiple functions in parallel
+      console.log('Starting API tests with URL:', testUrl);
+
       const [
         websiteResult,
         pageSpeedResult
@@ -75,13 +77,22 @@ export function APITestComponent() {
         combinedDetails = { ...combinedDetails, pageSpeedData: data };
       }
 
-      // Handle errors
+      // Handle errors with more detail
       let errorMessage = '';
-      if (websiteResult.status === 'rejected' || websiteResult.value?.error) {
-        errorMessage += `Website Analysis: ${websiteResult.status === 'rejected' ? websiteResult.reason : websiteResult.value.error}. `;
+      if (websiteResult.status === 'rejected') {
+        console.error('Website analysis rejected:', websiteResult.reason);
+        errorMessage += `Website Analysis: ${websiteResult.reason}. `;
+      } else if (websiteResult.value?.error) {
+        console.error('Website analysis error:', websiteResult.value.error);
+        errorMessage += `Website Analysis: ${websiteResult.value.error}. `;
       }
-      if (pageSpeedResult.status === 'rejected' || pageSpeedResult.value?.error) {
-        errorMessage += `PageSpeed Analysis: ${pageSpeedResult.status === 'rejected' ? pageSpeedResult.reason : pageSpeedResult.value.error}. `;
+      
+      if (pageSpeedResult.status === 'rejected') {
+        console.error('PageSpeed analysis rejected:', pageSpeedResult.reason);
+        errorMessage += `PageSpeed Analysis: ${pageSpeedResult.reason}. `;
+      } else if (pageSpeedResult.value?.error) {
+        console.error('PageSpeed analysis error:', pageSpeedResult.value.error);
+        errorMessage += `PageSpeed Analysis: ${pageSpeedResult.value.error}. `;
       }
 
       const result: APITestResult = {

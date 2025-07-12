@@ -30,7 +30,10 @@ serve(async (req) => {
   }
 
   try {
-    const { url } = await req.json();
+    const requestData = await req.json();
+    const { url } = requestData;
+
+    console.log('Received request data:', requestData);
 
     if (!url) {
       return new Response(
@@ -73,6 +76,11 @@ serve(async (req) => {
 
     // Get comprehensive analysis using AI
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    
+    console.log('Environment variables check:', {
+      hasOpenAIKey: !!openAIApiKey,
+      keyPrefix: openAIApiKey ? openAIApiKey.substring(0, 7) + '...' : 'none'
+    });
     
     if (!openAIApiKey) {
       throw new Error('OpenAI API key not configured');

@@ -50,19 +50,16 @@ export function FullScoreAnalyzer() {
       console.log('Starting full score analysis for:', websiteUrl);
       
       const { data, error } = await supabase.functions.invoke('internal-fullscore', {
-        body: JSON.stringify({ 
+        body: { 
           url: websiteUrl.trim()
-        }),
-        headers: {
-          'Content-Type': 'application/json'
         }
       });
 
-      console.log('Full score analysis response:', { data, error });
+      console.log('Full score analysis response:', { data, error, status: !error ? 'success' : 'error' });
 
       if (error) {
-        console.error('Full score analysis error:', error);
-        throw error;
+        console.error('Full score analysis error details:', error);
+        throw new Error(error.message || 'Failed to analyze website');
       }
 
       const result: FullScoreResult = {
