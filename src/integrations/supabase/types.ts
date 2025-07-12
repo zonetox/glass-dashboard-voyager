@@ -694,6 +694,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      promote_to_admin: {
+        Args: { _user_email: string }
+        Returns: boolean
+      }
       record_api_usage: {
         Args: { _token_id: string; _user_id: string; _endpoint: string }
         Returns: undefined
