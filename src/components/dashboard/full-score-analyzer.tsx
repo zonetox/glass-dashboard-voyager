@@ -47,13 +47,20 @@ export function FullScoreAnalyzer() {
     setIsAnalyzing(true);
     
     try {
+      console.log('Starting full score analysis for:', websiteUrl);
+      
       const { data, error } = await supabase.functions.invoke('internal-fullscore', {
         body: { 
           url: websiteUrl.trim()
         }
       });
 
-      if (error) throw error;
+      console.log('Full score analysis response:', { data, error });
+
+      if (error) {
+        console.error('Full score analysis error:', error);
+        throw error;
+      }
 
       const result: FullScoreResult = {
         overall_score: data.overall_score || 0,
@@ -77,11 +84,17 @@ export function FullScoreAnalyzer() {
         description: `Overall score: ${result.overall_score}/100 (${result.grade})`
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error analyzing full score:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint
+      });
+      
       toast({
         title: "Error",
-        description: "Failed to analyze website score. Please try again.",
+        description: `Failed to analyze website score: ${error?.message || 'Please try again.'}`,
         variant: "destructive"
       });
     } finally {
