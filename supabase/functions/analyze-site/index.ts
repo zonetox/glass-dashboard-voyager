@@ -64,8 +64,9 @@ serve(async (req) => {
     const robotsMeta = $('meta[name="robots"]').attr("content") || "";
     const viewport = $('meta[name="viewport"]').attr("content") || "";
     
-    // Extract body text for analysis
+    // Extract body text for AI analysis (limit to 6000 chars for GPT)
     const bodyText = $("body").text().replace(/\s+/g, " ").trim();
+    const content = bodyText.slice(0, 6000);
     const wordCount = bodyText.split(" ").length;
     
     console.log(`SEO data extracted: ${h1.length} H1s, ${h2.length} H2s, ${h3.length} H3s, ${images.length} images, ${wordCount} words`);
@@ -99,42 +100,6 @@ serve(async (req) => {
     if (openAIApiKey) {
       console.log("Starting AI analysis...");
       try {
-        const aiPrompt = `Analyze this webpage content for advanced SEO insights:
-
-URL: ${url}
-Title: ${title}
-Meta Description: ${metaDescription}
-H1 tags: ${h1.join(", ")}
-H2 tags: ${h2.join(", ")}
-H3 tags: ${h3.join(", ")}
-Word count: ${wordCount}
-Images: ${images.length} total, ${images.filter(img => !img.alt).length} without alt text
-Canonical: ${canonical}
-Robots meta: ${robotsMeta}
-
-Content preview (first 1000 chars): ${bodyText.substring(0, 1000)}
-
-Please provide a JSON response with the following structure:
-{
-  "searchIntent": "string (Informational/Transactional/Commercial/Navigational)",
-  "semanticTopics": ["array of main topics covered"],
-  "contentGap": ["array of missing topics/headings that should be added"],
-  "suggestions": {
-    "newTitle": "improved title suggestion",
-    "improvedMeta": "improved meta description",
-    "extraHeadings": ["suggested H2/H3 headings to add"]
-  },
-  "keywordDensity": [{"keyword": "word", "density": 1.2}],
-  "technicalSEO": {
-    "hasCanonical": boolean,
-    "robotsDirective": "string",
-    "headingStructure": "string assessment",
-    "imageOptimization": "string assessment"
-  },
-  "overallScore": number (1-100),
-  "priorityIssues": ["array of top 3 issues to fix"]
-}`;
-
         const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -142,12 +107,33 @@ Please provide a JSON response with the following structure:
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini',
+            model: 'gpt-4o',
             messages: [
-              { role: 'system', content: 'You are an expert SEO analyst. Analyze website content and provide detailed SEO insights in valid JSON format only.' },
-              { role: 'user', content: aiPrompt }
+              {
+                role: 'system',
+                content: `Bạn là một chuyên gia SEO. Hãy phân tích nội dung HTML sau để xác định các yếu tố SEO sau: 
+- Intent của bài viết (Informational, Navigational, Transactional, Commercial)
+- Semantic topic (từ khóa chính đang bao phủ)
+- Từ khóa hoặc heading còn thiếu (content gap)
+- Gợi ý thay title, meta description, và h1 tốt hơn
+- Heading phụ nên bổ sung
+- Mật độ từ khóa (top 5 keyword xuất hiện nhiều nhất)
+- Tổng số từ trong nội dung
+Trả về theo cấu trúc JSON chính xác.`
+              },
+              {
+                role: 'user',
+                content: `URL: ${url}
+Title hiện tại: ${title}
+Meta description hiện tại: ${metaDescription}
+H1 tags: ${h1.join(", ")}
+H2 tags: ${h2.join(", ")}
+H3 tags: ${h3.join(", ")}
+Số từ: ${wordCount}
+Nội dung chính: ${content}`
+              }
             ],
-            temperature: 0.3,
+            temperature: 0.4,
             max_tokens: 2000,
           }),
         });
