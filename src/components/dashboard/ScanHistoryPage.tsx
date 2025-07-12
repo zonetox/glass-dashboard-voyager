@@ -32,29 +32,16 @@ export function ScanHistoryPage() {
           <h2 className="text-xl font-bold mb-4">📜 Lịch sử phân tích SEO</h2>
           <ScanHistory scans={scans} setSelectedScanId={setSelectedScanId} />
         </>
+      ) : scanLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-muted-foreground">Đang tải chi tiết...</div>
+        </div>
       ) : (
-        <>
-          <div className="flex items-center gap-4 mb-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleBackToList}
-              className="gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Quay lại danh sách
-            </Button>
-            <h2 className="text-xl font-bold">Chi tiết phân tích</h2>
-          </div>
-          
-          {scanLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-muted-foreground">Đang tải chi tiết...</div>
-            </div>
-          ) : (
-            <ScanDetail scan={scan} />
-          )}
-        </>
+        <ScanDetail 
+          scan={scan} 
+          onBack={handleBackToList}
+          onDelete={handleBackToList}
+        />
       )}
     </div>
   );
