@@ -30,8 +30,19 @@ serve(async (req) => {
   }
 
   try {
-    const requestData = await req.json();
-    const { url } = requestData;
+    let requestData;
+    let url;
+    
+    try {
+      requestData = await req.json();
+      url = requestData.url;
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     console.log('Received request data:', requestData);
 
