@@ -47,7 +47,7 @@ export function FullScoreAnalyzer() {
     setIsAnalyzing(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('api-fullscore', {
+      const { data, error } = await supabase.functions.invoke('internal-fullscore', {
         body: { 
           url: websiteUrl.trim()
         }
