@@ -70,6 +70,42 @@ export default function Dashboard() {
         return <SEODashboard website={mockWebsite} issues={mockSEOIssues} />;
       case 'analyzer':
         return <WebsiteAnalyzer onAnalysisComplete={handleAnalysisComplete} />;
+      case 'ai-seo':
+        return (
+          <div className="space-y-8">
+            <div className="text-center space-y-4 py-8">
+              <div className="text-6xl">🤖</div>
+              <h2 className="text-3xl font-bold">AI Gợi ý SEO</h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Sử dụng trí tuệ nhân tạo để phân tích và đưa ra gợi ý cải thiện SEO cho website của bạn
+              </p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-6">
+              <ContentWriter />
+              <MetaOptimizer />
+              <FAQGenerator />
+              <FullScoreAnalyzer />
+            </div>
+          </div>
+        );
+      case 'auto-fix':
+        return (
+          <div className="space-y-8">
+            <div className="text-center space-y-4 py-8">
+              <div className="text-6xl">🔧</div>
+              <h2 className="text-3xl font-bold">Fix Tự động</h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Tự động phát hiện và sửa các lỗi SEO phổ biến trên website của bạn
+              </p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-6">
+              <ScanHistory />
+              <ProgressTracker />
+              <ScheduledScans />
+              <CompetitorAnalysis />
+            </div>
+          </div>
+        );
       case 'writer':
         return <ContentWriter />;
       case 'meta-optimizer':
@@ -106,23 +142,17 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Simple Mobile Dropdown */}
-      <div className="lg:hidden p-4">
+      <div className="lg:hidden p-6">
         <select 
           value={activeTab} 
           onChange={(e) => handleTabChange(e.target.value)}
-          className="w-full p-3 bg-card border border-border rounded-lg text-foreground"
+          className="w-full p-4 bg-card border border-border rounded-lg text-foreground text-lg font-medium"
         >
-          <option value="overview">📊 Overview</option>
-          <option value="analyzer">🔍 Analyzer</option>
-          <option value="writer">✍️ Writer</option>
-          <option value="meta-optimizer">🏷️ Meta Tags</option>
-          <option value="faq-generator">❓ FAQ Schema</option>
-          <option value="full-score">🎯 Full Score</option>
-          <option value="scan-history">📋 History</option>
-          <option value="progress">📈 Progress</option>
-          <option value="usage">📊 Usage</option>
-          <option value="competitors">🏆 Competitors</option>
-          <option value="scheduled">⏰ Scheduled</option>
+          <option value="overview">📊 Tổng quan</option>
+          <option value="analyzer">🔍 Phân tích SEO</option>
+          <option value="ai-seo">🤖 AI Gợi ý</option>
+          <option value="auto-fix">🔧 Fix Tự động</option>
+          <option value="usage">📊 Sử dụng</option>
           <option value="api">🔌 API</option>
           <option value="admin">⚙️ Admin</option>
           <option value="profile">👤 Profile</option>
@@ -132,37 +162,76 @@ export default function Dashboard() {
       {/* Desktop: Simple Sidebar + Content */}
       <div className="lg:flex">
         {/* Simple Sidebar - Desktop Only */}
-        <div className="hidden lg:block lg:w-64 lg:min-h-screen lg:bg-card lg:border-r lg:border-border">
-          <div className="p-6">
-            <h1 className="text-xl font-bold text-foreground mb-6">SEO Dashboard</h1>
-            <nav className="space-y-1">
+        <div className="hidden lg:block lg:w-80 lg:min-h-screen lg:bg-card lg:border-r lg:border-border">
+          <div className="p-8">
+            <h1 className="text-2xl font-bold text-foreground mb-8">SEO Dashboard</h1>
+            <nav className="space-y-3">
               {[
-                { id: 'overview', label: 'Overview', icon: '📊' },
-                { id: 'analyzer', label: 'Analyzer', icon: '🔍' },
-                { id: 'writer', label: 'Writer', icon: '✍️' },
-                { id: 'meta-optimizer', label: 'Meta Tags', icon: '🏷️' },
-                { id: 'faq-generator', label: 'FAQ Schema', icon: '❓' },
-                { id: 'full-score', label: 'Full Score', icon: '🎯' },
-                { id: 'scan-history', label: 'History', icon: '📋' },
-                { id: 'progress', label: 'Progress', icon: '📈' },
-                { id: 'usage', label: 'Usage', icon: '📊' },
-                { id: 'competitors', label: 'Competitors', icon: '🏆' },
-                { id: 'scheduled', label: 'Scheduled', icon: '⏰' },
-                { id: 'api', label: 'API', icon: '🔌' },
-                { id: 'admin', label: 'Admin', icon: '⚙️' },
-                { id: 'profile', label: 'Profile', icon: '👤' },
+                { 
+                  id: 'overview', 
+                  label: 'Tổng quan', 
+                  icon: '📊',
+                  description: 'Xem tổng quan thống kê SEO'
+                },
+                { 
+                  id: 'analyzer', 
+                  label: 'Phân tích SEO', 
+                  icon: '🔍',
+                  description: 'Quét và phân tích website'
+                },
+                { 
+                  id: 'ai-seo', 
+                  label: 'AI Gợi ý', 
+                  icon: '🤖',
+                  description: 'Trí tuệ nhân tạo hỗ trợ SEO'
+                },
+                { 
+                  id: 'auto-fix', 
+                  label: 'Fix Tự động', 
+                  icon: '🔧',
+                  description: 'Tự động sửa lỗi SEO'
+                },
+                { 
+                  id: 'usage', 
+                  label: 'Sử dụng', 
+                  icon: '📊',
+                  description: 'Theo dõi sử dụng API'
+                },
+                { 
+                  id: 'api', 
+                  label: 'API', 
+                  icon: '🔌',
+                  description: 'Quản lý API tokens'
+                },
+                { 
+                  id: 'admin', 
+                  label: 'Admin', 
+                  icon: '⚙️',
+                  description: 'Cài đặt hệ thống'
+                },
+                { 
+                  id: 'profile', 
+                  label: 'Profile', 
+                  icon: '👤',
+                  description: 'Thông tin tài khoản'
+                },
               ].map((item) => (
                 <button
                   key={item.id}
                   onClick={() => handleTabChange(item.id)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-3 ${
+                  className={`w-full text-left p-4 rounded-xl text-base transition-all duration-200 flex flex-col gap-1 hover:scale-[1.02] ${
                     activeTab === item.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      ? 'bg-primary text-primary-foreground shadow-lg'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/80'
                   }`}
                 >
-                  <span>{item.icon}</span>
-                  <span>{item.label}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{item.icon}</span>
+                    <span className="font-medium">{item.label}</span>
+                  </div>
+                  <p className="text-xs opacity-80 ml-8">
+                    {item.description}
+                  </p>
                 </button>
               ))}
             </nav>
@@ -170,7 +239,7 @@ export default function Dashboard() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
             {renderContent()}
           </div>
