@@ -30,7 +30,14 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
+    console.log('Environment check:', {
+      hasGoogleKey: !!googleKey,
+      hasSupabaseUrl: !!supabaseUrl,
+      hasSupabaseKey: !!supabaseKey
+    });
+
     if (!googleKey) {
+      console.error('GOOGLE_PAGESPEED_API_KEY not found in environment');
       return new Response(
         JSON.stringify({ error: 'Google PageSpeed API key not configured' }),
         { 
