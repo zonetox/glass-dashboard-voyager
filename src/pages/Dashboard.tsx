@@ -106,40 +106,42 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Navigation Tabs */}
-        <div className="border-b border-gray-800">
-          <nav className="flex space-x-8">
-            {[
-              { id: 'overview', label: 'Overview', icon: '📊' },
-              { id: 'analyzer', label: 'Analyzer', icon: '🔍' },
-              { id: 'writer', label: 'Writer', icon: '✍️' },
-              { id: 'meta-optimizer', label: 'Meta Tags', icon: '🏷️' },
-              { id: 'faq-generator', label: 'FAQ Schema', icon: '❓' },
-              { id: 'full-score', label: 'Full Score', icon: '🎯' },
-              { id: 'scan-history', label: 'History', icon: '📋' },
-              { id: 'progress', label: 'Progress', icon: '📈' },
-              { id: 'usage', label: 'Usage', icon: '📊' },
-              { id: 'competitors', label: 'Competitors', icon: '🏆' },
-              { id: 'scheduled', label: 'Scheduled', icon: '⏰' },
-              { id: 'admin', label: 'Admin', icon: '⚙️' },
-              { id: 'admin-overview', label: 'Admin Overview', icon: '👨‍💼' },
-              { id: 'test', label: 'Test', icon: '🧪' },
-              { id: 'api', label: 'API', icon: '🔌' },
-              { id: 'profile', label: 'Profile', icon: '👤' },
-            ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleTabChange(item.id)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                  activeTab === item.id
-                    ? 'border-blue-500 text-blue-400'
-                    : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300'
-                }`}
-              >
-                <span className="mr-2">{item.icon}</span>
-                {item.label}
-              </button>
-            ))}
+        {/* Navigation Tabs - Responsive Scrollable */}
+        <div className="border-b border-border">
+          <nav className="flex overflow-x-auto scrollbar-hide">
+            <div className="flex space-x-1 min-w-max px-4">
+              {[
+                { id: 'overview', label: 'Overview', icon: '📊' },
+                { id: 'analyzer', label: 'Analyzer', icon: '🔍' },
+                { id: 'writer', label: 'Writer', icon: '✍️' },
+                { id: 'meta-optimizer', label: 'Meta Tags', icon: '🏷️' },
+                { id: 'faq-generator', label: 'FAQ Schema', icon: '❓' },
+                { id: 'full-score', label: 'Full Score', icon: '🎯' },
+                { id: 'scan-history', label: 'History', icon: '📋' },
+                { id: 'progress', label: 'Progress', icon: '📈' },
+                { id: 'usage', label: 'Usage', icon: '📊' },
+                { id: 'competitors', label: 'Competitors', icon: '🏆' },
+                { id: 'scheduled', label: 'Scheduled', icon: '⏰' },
+                { id: 'admin', label: 'Admin', icon: '⚙️' },
+                { id: 'admin-overview', label: 'Admin Overview', icon: '👨‍💼' },
+                { id: 'test', label: 'Test', icon: '🧪' },
+                { id: 'api', label: 'API', icon: '🔌' },
+                { id: 'profile', label: 'Profile', icon: '👤' },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => handleTabChange(item.id)}
+                  className={`py-3 px-4 border-b-2 font-medium text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${
+                    activeTab === item.id
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground'
+                  }`}
+                >
+                  <span className="text-xs">{item.icon}</span>
+                  <span className="hidden sm:inline">{item.label}</span>
+                </button>
+              ))}
+            </div>
           </nav>
         </div>
 

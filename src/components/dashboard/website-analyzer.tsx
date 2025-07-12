@@ -106,31 +106,35 @@ export function WebsiteAnalyzer({ onAnalysisComplete }: WebsiteAnalyzerProps) {
         throw new Error(error.message || 'Analysis failed');
       }
       
-      setProgress(100);
-      setCurrentStep('Analysis complete!');
-      setAnalysisResult(data);
-      
-      if (onAnalysisComplete) {
-        onAnalysisComplete(data);
+      if (data && !data.error) {
+        setProgress(100);
+        setCurrentStep('Analysis complete!');
+        setAnalysisResult(data);
+        
+        if (onAnalysisComplete) {
+          onAnalysisComplete(data);
+        }
+        
+        toast({
+          title: "Analysis Complete",
+          description: `Successfully analyzed ${websiteUrl}`,
+        });
+      } else {
+        throw new Error(data?.error || 'Analysis returned empty result');
       }
-      
-      toast({
-        title: "Analysis Complete",
-        description: `Successfully analyzed ${websiteUrl}`,
-      });
       
     } catch (error: any) {
       console.error('Analysis error:', error);
       setError(error.message || 'Analysis failed');
+      setProgress(0);
+      setCurrentStep('');
       toast({
         title: "Analysis Failed",
-        description: error.message || 'Failed to analyze website',
+        description: error.message || 'Failed to analyze website. Please check if the URL is accessible and API keys are configured.',
         variant: "destructive",
       });
     } finally {
       setIsAnalyzing(false);
-      setProgress(0);
-      setCurrentStep('');
     }
   };
 
