@@ -98,11 +98,15 @@ export function WebsiteAnalyzer({ onAnalysisComplete }: WebsiteAnalyzerProps) {
       setCurrentStep('Generating schema markup...');
       
       // Call the analyze-website edge function
+      console.log('Calling analyze-website function with URL:', websiteUrl);
       const { data, error } = await supabase.functions.invoke('analyze-website', {
         body: { url: websiteUrl }
       });
       
+      console.log('Edge function response:', { data, error });
+      
       if (error) {
+        console.error('Edge function error:', error);
         throw new Error(error.message || 'Analysis failed');
       }
       
@@ -222,6 +226,18 @@ export function WebsiteAnalyzer({ onAnalysisComplete }: WebsiteAnalyzerProps) {
               <Progress value={progress} className="h-2" />
             </div>
           )}
+
+          {/* Quick Test Button */}
+          <div className="mt-4 space-y-3">
+            <Button 
+              onClick={() => analyzeWebsite('https://example.com')}
+              variant="outline"
+              className="w-full"
+              disabled={isAnalyzing}
+            >
+              Test with Example.com
+            </Button>
+          </div>
 
           <div className="mt-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
             <p className="text-sm text-blue-300">
