@@ -4,10 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { History, Download, FileText, Trash2, Eye, Calendar, TrendingUp } from 'lucide-react';
+import { History, Download, FileText, Trash2, Eye, Calendar, TrendingUp, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { useScanHistory } from '@/hooks/useScanHistory';
+import ScanHistoryComponent from '@/components/dashboard/ScanHistory';
 import { getScanResults, downloadScanData } from '@/lib/user-management';
+import type { Tables } from '@/integrations/supabase/types';
 
 interface ScanResult {
   id: string;
@@ -21,11 +25,16 @@ interface ScanResult {
   pdf_report_path: string | null;
 }
 
+type Scan = Tables<"scans">;
+
 export function ScanHistory() {
+  const { user } = useAuth();
+  const { scans: aiScans, loading: aiScansLoading } = useScanHistory(user?.id || null);
   const [scanResults, setScanResults] = useState<ScanResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedScan, setSelectedScan] = useState<ScanResult | null>(null);
   const [viewingData, setViewingData] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'ai-analysis' | 'legacy-scans'>('ai-analysis');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -134,100 +143,142 @@ export function ScanHistory() {
 
   return (
     <div className="space-y-6">
-      <Card className="glass-card border-white/10">
+      <Card className="border">
         <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-white">
-            <History className="h-5 w-5 text-blue-400" />
-            Scan History
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <History className="h-5 w-5 text-primary" />
+              📜 Lịch sử phân tích SEO
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                loadScanHistory();
+              }}
+              className="gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {scanResults.length === 0 ? (
-            <div className="text-center py-8">
-              <History className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-400 mb-2">No scan history found</p>
-              <p className="text-sm text-gray-500">Start analyzing websites to see your scan history here</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {scanResults.map((scan) => (
-                <div key={scan.id} className="border border-white/20 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-400">{formatDate(scan.created_at)}</span>
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'ai-analysis' | 'legacy-scans')}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="ai-analysis">🤖 AI Analysis</TabsTrigger>
+              <TabsTrigger value="legacy-scans">📊 Legacy Scans</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="ai-analysis" className="mt-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">AI SEO Analysis History</h3>
+                {aiScansLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-muted-foreground">Đang tải...</div>
+                  </div>
+                ) : (
+                  <ScanHistoryComponent scans={aiScans} />
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="legacy-scans" className="mt-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Legacy Scan Results</h3>
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-muted-foreground">Loading scan history...</div>
+                  </div>
+                ) : scanResults.length === 0 ? (
+                  <div className="text-center py-8">
+                    <History className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground mb-2">No scan history found</p>
+                    <p className="text-sm text-muted-foreground">Start analyzing websites to see your scan history here</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {scanResults.map((scan) => (
+                      <div key={scan.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm text-muted-foreground">{formatDate(scan.created_at)}</span>
+                            </div>
+                            <Badge 
+                              className={scan.status === 'completed' ? 'bg-green-500/20 text-green-700' : 'bg-yellow-500/20 text-yellow-700'}
+                            >
+                              {scan.status}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => viewScanData(scan)}
+                              disabled={!scan.scan_data_path}
+                              className="gap-1"
+                            >
+                              <Eye className="h-3 w-3" />
+                              View
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteScan(scan.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="font-medium">{scan.website_url}</div>
+                          
+                          <div className="flex items-center gap-4">
+                            {scan.seo_score !== null && (
+                              <div className="flex items-center gap-2">
+                                <TrendingUp className="h-4 w-4 text-primary" />
+                                <span className="text-sm text-muted-foreground">SEO Score:</span>
+                                <Badge variant="secondary">
+                                  {scan.seo_score}/100 ({getScoreLabel(scan.seo_score)})
+                                </Badge>
+                              </div>
+                            )}
+                            
+                            {scan.issues_count !== null && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">Issues:</span>
+                                <Badge variant="destructive">
+                                  {scan.issues_count}
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+
+                          {scan.seo_score !== null && (
+                            <Progress 
+                              value={scan.seo_score} 
+                              className="h-2 mt-2"
+                            />
+                          )}
+                        </div>
                       </div>
-                      <Badge 
-                        className={`${scan.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}
-                      >
-                        {scan.status}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => viewScanData(scan)}
-                        disabled={!scan.scan_data_path}
-                        className="border-white/20 text-white hover:bg-white/10"
-                      >
-                        <Eye className="h-3 w-3 mr-1" />
-                        View
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteScan(scan.id)}
-                        className="border-red-500/20 text-red-400 hover:bg-red-500/10"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
+                    ))}
                   </div>
-
-                  <div className="space-y-2">
-                    <div className="text-white font-medium">{scan.website_url}</div>
-                    
-                    <div className="flex items-center gap-4">
-                      {scan.seo_score !== null && (
-                        <div className="flex items-center gap-2">
-                          <TrendingUp className="h-4 w-4 text-blue-400" />
-                          <span className="text-sm text-gray-300">SEO Score:</span>
-                          <Badge className={`${getScoreColor(scan.seo_score)}/20 text-white`}>
-                            {scan.seo_score}/100 ({getScoreLabel(scan.seo_score)})
-                          </Badge>
-                        </div>
-                      )}
-                      
-                      {scan.issues_count !== null && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-300">Issues:</span>
-                          <Badge className="bg-red-500/20 text-red-400">
-                            {scan.issues_count}
-                          </Badge>
-                        </div>
-                      )}
-                    </div>
-
-                    {scan.seo_score !== null && (
-                      <Progress 
-                        value={scan.seo_score} 
-                        className="h-2 mt-2"
-                      />
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
       {selectedScan && viewingData && (
-        <Card className="glass-card border-white/10">
+        <Card className="border">
           <CardHeader className="pb-4">
-            <CardTitle className="flex items-center justify-between text-white">
+            <CardTitle className="flex items-center justify-between">
               <span>Scan Details: {selectedScan.website_url}</span>
               <Button
                 variant="outline"
@@ -236,7 +287,6 @@ export function ScanHistory() {
                   setSelectedScan(null);
                   setViewingData(null);
                 }}
-                className="border-white/20 text-white"
               >
                 Close
               </Button>
@@ -244,14 +294,14 @@ export function ScanHistory() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="overview" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-3 bg-white/5">
-                <TabsTrigger value="overview" className="text-white data-[state=active]:bg-white/10">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="overview">
                   Overview
                 </TabsTrigger>
-                <TabsTrigger value="issues" className="text-white data-[state=active]:bg-white/10">
+                <TabsTrigger value="issues">
                   Issues
                 </TabsTrigger>
-                <TabsTrigger value="recommendations" className="text-white data-[state=active]:bg-white/10">
+                <TabsTrigger value="recommendations">
                   Recommendations
                 </TabsTrigger>
               </TabsList>
@@ -259,24 +309,24 @@ export function ScanHistory() {
               <TabsContent value="overview" className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <h4 className="font-semibold text-white">Performance Metrics</h4>
+                    <h4 className="font-semibold">Performance Metrics</h4>
                     <div className="space-y-2">
                       {viewingData.performanceMetrics && Object.entries(viewingData.performanceMetrics).map(([key, value]: [string, any]) => (
                         <div key={key} className="flex justify-between">
-                          <span className="text-gray-300 capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
-                          <span className="text-white">{value}</span>
+                          <span className="text-muted-foreground capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
+                          <span className="font-medium">{value}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                   
                   <div className="space-y-2">
-                    <h4 className="font-semibold text-white">SEO Metrics</h4>
+                    <h4 className="font-semibold">SEO Metrics</h4>
                     <div className="space-y-2">
                       {viewingData.seoMetrics && Object.entries(viewingData.seoMetrics).map(([key, value]: [string, any]) => (
                         <div key={key} className="flex justify-between">
-                          <span className="text-gray-300 capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
-                          <span className="text-white">{typeof value === 'object' ? JSON.stringify(value) : value}</span>
+                          <span className="text-muted-foreground capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
+                          <span className="font-medium">{typeof value === 'object' ? JSON.stringify(value) : value}</span>
                         </div>
                       ))}
                     </div>
@@ -288,14 +338,14 @@ export function ScanHistory() {
                 {viewingData.issues && viewingData.issues.length > 0 ? (
                   <div className="space-y-3">
                     {viewingData.issues.map((issue: any, index: number) => (
-                      <div key={index} className="border border-red-500/20 rounded-lg p-3 bg-red-500/5">
+                      <div key={index} className="border border-destructive/20 rounded-lg p-3 bg-destructive/5">
                         <div className="flex items-start gap-3">
-                          <Badge className="bg-red-500/20 text-red-400 mt-0.5">
+                          <Badge variant="destructive" className="mt-0.5">
                             {issue.severity || 'Medium'}
                           </Badge>
                           <div className="flex-1">
-                            <h5 className="font-medium text-white mb-1">{issue.title || issue.type}</h5>
-                            <p className="text-sm text-gray-300">{issue.description || issue.message}</p>
+                            <h5 className="font-medium mb-1">{issue.title || issue.type}</h5>
+                            <p className="text-sm text-muted-foreground">{issue.description || issue.message}</p>
                           </div>
                         </div>
                       </div>
@@ -303,7 +353,7 @@ export function ScanHistory() {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <p className="text-gray-400">No issues found in this scan</p>
+                    <p className="text-muted-foreground">No issues found in this scan</p>
                   </div>
                 )}
               </TabsContent>
@@ -312,14 +362,14 @@ export function ScanHistory() {
                 {viewingData.recommendations && viewingData.recommendations.length > 0 ? (
                   <div className="space-y-3">
                     {viewingData.recommendations.map((rec: any, index: number) => (
-                      <div key={index} className="border border-blue-500/20 rounded-lg p-3 bg-blue-500/5">
+                      <div key={index} className="border border-primary/20 rounded-lg p-3 bg-primary/5">
                         <div className="flex items-start gap-3">
-                          <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                          <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
                             {index + 1}
                           </div>
                           <div className="flex-1">
-                            <h5 className="font-medium text-white mb-1">{rec.title || 'Recommendation'}</h5>
-                            <p className="text-sm text-gray-300">{rec.description || rec}</p>
+                            <h5 className="font-medium mb-1">{rec.title || 'Recommendation'}</h5>
+                            <p className="text-sm text-muted-foreground">{rec.description || rec}</p>
                           </div>
                         </div>
                       </div>
@@ -327,7 +377,7 @@ export function ScanHistory() {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <p className="text-gray-400">No recommendations available</p>
+                    <p className="text-muted-foreground">No recommendations available</p>
                   </div>
                 )}
               </TabsContent>
