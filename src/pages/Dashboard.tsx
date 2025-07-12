@@ -13,7 +13,7 @@ import { Website, SEOIssue, mockSEOIssues } from '@/lib/types';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
 
   // Mock website data for demonstration
   const mockWebsite: Website = {
@@ -32,17 +32,9 @@ export default function Dashboard() {
     status: 'completed'
   };
 
-  const handleAnalyze = async (url: string) => {
-    setIsAnalyzing(true);
-    try {
-      // Simulate analysis - in real app this would call your analysis API
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log('Analyzing website:', url);
-    } catch (error) {
-      console.error('Analysis failed:', error);
-    } finally {
-      setIsAnalyzing(false);
-    }
+  const handleAnalysisComplete = (result: any) => {
+    console.log('Analysis completed:', result);
+    // Here you can handle the analysis result, e.g., save to state, update UI, etc.
   };
 
   const renderContent = () => {
@@ -50,7 +42,7 @@ export default function Dashboard() {
       case 'overview':
         return <SEODashboard website={mockWebsite} issues={mockSEOIssues} />;
       case 'analyzer':
-        return <WebsiteAnalyzer onAnalyze={handleAnalyze} isLoading={isAnalyzing} />;
+        return <WebsiteAnalyzer onAnalysisComplete={handleAnalysisComplete} />;
       case 'writer':
         return <ContentWriter />;
       case 'meta-optimizer':
