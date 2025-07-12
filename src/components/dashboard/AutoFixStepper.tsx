@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +36,7 @@ interface FixStep {
   icon: React.ReactNode;
   status: StepStatus;
   result?: string;
+  error?: string;
 }
 
 const getStatusIcon = (status: StepStatus) => {
@@ -56,11 +57,11 @@ const getStatusBadge = (status: StepStatus) => {
     case "pending":
       return <Badge variant="outline" className="text-muted-foreground">Chờ xử lý</Badge>;
     case "running":
-      return <Badge className="bg-blue-500/20 text-blue-700 dark:text-blue-400">Đang xử lý</Badge>;
+      return <Badge className="bg-blue-500/20 text-blue-700 dark:text-blue-400">⏳ Đang xử lý</Badge>;
     case "success":
-      return <Badge className="bg-green-500/20 text-green-700 dark:text-green-400">Hoàn thành</Badge>;
+      return <Badge className="bg-green-500/20 text-green-700 dark:text-green-400">✅ Hoàn tất</Badge>;
     case "failed":
-      return <Badge className="bg-red-500/20 text-red-700 dark:text-red-400">Thất bại</Badge>;
+      return <Badge className="bg-red-500/20 text-red-700 dark:text-red-400">❌ Lỗi</Badge>;
   }
 };
 
@@ -75,69 +76,77 @@ export default function AutoFixStepper({
   const [steps, setSteps] = useState<FixStep[]>([
     {
       id: 1,
-      title: "Phân tích lỗi",
-      description: "Quét và phân tích các vấn đề SEO trên website",
+      title: "🛠 Bước 1: Phân tích lỗi SEO",
+      description: "Quét và phát hiện các vấn đề SEO trên website của bạn",
       icon: <Search className="h-5 w-5" />,
       status: "pending"
     },
     {
       id: 2,
-      title: "Tạo nội dung sửa bằng AI",
-      description: "AI tạo ra các giải pháp tối ưu cho từng vấn đề",
+      title: "🤖 Bước 2: Gợi ý nội dung sửa bằng AI",
+      description: "AI tạo nội dung tối ưu để sửa các lỗi được phát hiện",
       icon: <Brain className="h-5 w-5" />,
       status: "pending"
     },
     {
       id: 3,
-      title: "Lưu bản backup",
-      description: "Sao lưu trạng thái hiện tại để có thể khôi phục",
+      title: "💾 Bước 3: Tạo bản sao lưu (Backup)",
+      description: "Lưu trữ phiên bản hiện tại trước khi thực hiện thay đổi",
       icon: <Archive className="h-5 w-5" />,
       status: "pending"
     },
     {
       id: 4,
-      title: "Áp dụng sửa",
-      description: "Triển khai các cải thiện lên website",
+      title: "⚙️ Bước 4: Áp dụng sửa đổi",
+      description: "Triển khai các thay đổi được đề xuất lên website",
       icon: <Wrench className="h-5 w-5" />,
       status: "pending"
     },
     {
       id: 5,
-      title: "Kiểm tra lại",
-      description: "Xác minh các cải thiện đã được áp dụng thành công",
+      title: "🔍 Bước 5: Kiểm tra lại kết quả",
+      description: "Xác minh các thay đổi và đánh giá hiệu quả SEO",
       icon: <CheckCircle2 className="h-5 w-5" />,
       status: "pending"
     }
   ]);
 
-  const updateStepStatus = (stepId: number, status: StepStatus, result?: string) => {
+  const updateStepStatus = (stepId: number, status: StepStatus, result?: string, error?: string) => {
     setSteps(prev => prev.map(step => 
       step.id === stepId 
-        ? { ...step, status, result }
+        ? { ...step, status, result, error }
         : step
     ));
   };
 
+  // Mock API simulation - easily extensible for real API calls
   const simulateStep = async (stepId: number): Promise<boolean> => {
     updateStepStatus(stepId, "running");
     
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000));
+    // Simulate processing time (1-3 seconds)
+    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
     
-    // Simulate success/failure (90% success rate)
-    const success = Math.random() > 0.1;
+    // Simulate success/failure (85% success rate)
+    const success = Math.random() > 0.15;
     
     if (success) {
-      const results = [
-        "Phát hiện 12 vấn đề SEO cần khắc phục",
-        "Tạo thành công 15 gợi ý cải thiện từ AI",
-        "Backup được tạo tại: backup_2024_01_15.zip",
-        "Áp dụng thành công 12/12 cải thiện",
-        "Kiểm tra hoàn tất - SEO score tăng từ 65 → 89"
+      const successResults = [
+        "Phát hiện 12 lỗi SEO: thiếu meta description, title quá dài, thiếu alt text cho 8 hình ảnh",
+        "Tạo thành công 8 đề xuất nội dung: meta descriptions mới, tối ưu headings, cải thiện internal links",
+        "Backup được lưu thành công tại backup_2025_01_12_15_30.zip (2.3MB)",
+        "Áp dụng thành công 8/8 sửa đổi: cập nhật meta tags, tối ưu hình ảnh, cải thiện cấu trúc HTML",
+        "Kiểm tra hoàn tất: SEO score tăng từ 65 → 89 điểm (+24 điểm)"
       ];
-      updateStepStatus(stepId, "success", results[stepId - 1]);
+      updateStepStatus(stepId, "success", successResults[stepId - 1]);
     } else {
-      updateStepStatus(stepId, "failed", "Có lỗi xảy ra trong quá trình xử lý");
+      const errorMessages = [
+        "Lỗi kết nối: Không thể truy cập website để phân tích. Vui lòng kiểm tra URL và thử lại.",
+        "Lỗi API: Dịch vụ AI đang bảo trì. Thời gian dự kiến khôi phục: 15 phút.",
+        "Lỗi lưu trữ: Không đủ dung lượng để tạo backup. Vui lòng liên hệ support để nâng cấp.",
+        "Lỗi quyền truy cập: Website từ chối quyền sửa đổi. Kiểm tra cài đặt bảo mật.",
+        "Lỗi kiểm tra: Không thể kết nối để xác minh kết quả. Website có thể đang offline."
+      ];
+      updateStepStatus(stepId, "failed", undefined, errorMessages[stepId - 1]);
     }
     
     return success;
@@ -252,6 +261,11 @@ export default function AutoFixStepper({
                       {step.result && (
                         <p className="text-xs bg-muted p-2 rounded border-l-2 border-primary">
                           {step.result}
+                        </p>
+                      )}
+                      {step.error && (
+                        <p className="text-xs bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 p-2 rounded border-l-2 border-red-400">
+                          {step.error}
                         </p>
                       )}
                     </div>
