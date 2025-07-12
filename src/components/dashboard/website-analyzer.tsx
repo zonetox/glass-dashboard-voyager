@@ -97,9 +97,9 @@ export function WebsiteAnalyzer({ onAnalysisComplete }: WebsiteAnalyzerProps) {
       setProgress(80);
       setCurrentStep('Generating schema markup...');
       
-      // Call the analyze-website edge function
-      console.log('Calling analyze-website function with URL:', websiteUrl);
-      const { data, error } = await supabase.functions.invoke('analyze-website', {
+      // Call the analyze-site edge function
+      console.log('Calling analyze-site function with URL:', websiteUrl);
+      const { data, error } = await supabase.functions.invoke('analyze-site', {
         body: { url: websiteUrl }
       });
       
