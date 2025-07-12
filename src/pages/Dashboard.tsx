@@ -18,6 +18,7 @@ import { AdminSettings } from '@/components/dashboard/admin-settings';
 import { AdminTestRunner } from '@/components/dashboard/admin-test-runner';
 import { AdminOverview } from '@/components/dashboard/admin-overview';
 import { UserProfile } from '@/components/UserProfile';
+import { APITestComponent } from '@/components/dashboard/api-test-component';
 import { Website, SEOIssue, mockSEOIssues } from '@/lib/types';
 
 export default function Dashboard() {
@@ -95,7 +96,7 @@ export default function Dashboard() {
       case 'admin-overview':
         return <AdminOverview />;
       case 'test':
-        return <AdminTestRunner />;
+        return <APITestComponent />;
       case 'profile':
         return <UserProfile />;
       default:

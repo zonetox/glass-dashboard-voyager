@@ -347,10 +347,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log('=== ANALYZE WEBSITE FUNCTION STARTED ===');
+  
   try {
     const { url, projectId } = await req.json();
+    console.log('Request received:', { url, projectId });
 
     if (!url) {
+      console.error('ERROR: URL is required');
       return new Response(
         JSON.stringify({ error: 'URL is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -358,14 +362,28 @@ serve(async (req) => {
     }
 
     console.log(`Starting comprehensive analysis for: ${url}`);
+    
+    // Check API keys availability
+    const openaiKey = Deno.env.get('OPENAI_API_KEY');
+    const googleKey = Deno.env.get('GOOGLE_PAGESPEED_API_KEY');
+    
+    console.log('API Keys status:', {
+      openai: openaiKey ? 'Available' : 'Missing',
+      google: googleKey ? 'Available' : 'Missing'
+    });
 
     // Perform crawling and PageSpeed analysis in parallel
+    console.log('Starting parallel analysis...');
     const [crawlResult, pageSpeedResult] = await Promise.all([
       crawlWebsite(url),
       analyzePageSpeed(url)
     ]);
 
+    console.log('Crawl result status:', crawlResult.error ? 'Failed' : 'Success');
+    console.log('PageSpeed result status:', pageSpeedResult ? 'Success' : 'Failed');
+
     if (crawlResult.error) {
+      console.error('Crawl failed:', crawlResult.error);
       return new Response(
         JSON.stringify(crawlResult),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -373,10 +391,14 @@ serve(async (req) => {
     }
 
     // Perform AI analysis and schema generation in parallel
+    console.log('Starting AI analysis and schema generation...');
     const [aiAnalysis, schemaMarkup] = await Promise.all([
       analyzeWithAI(crawlResult),
       generateSchemaMarkup(crawlResult)
     ]);
+    
+    console.log('AI Analysis status:', aiAnalysis ? 'Success' : 'Failed');
+    console.log('Schema generation status:', schemaMarkup ? 'Success' : 'Failed');
 
     const analysisResult: AnalysisResult = {
       url: crawlResult.url!,
@@ -422,15 +444,34 @@ serve(async (req) => {
       console.log(`Analysis results saved for project: ${projectId}`);
     }
 
+    console.log('=== ANALYSIS COMPLETED SUCCESSFULLY ===');
+    console.log('Final result summary:', {
+      url: analysisResult.url,
+      hasTitle: !!analysisResult.title,
+      hasMetaDescription: !!analysisResult.metaDescription,
+      h1Count: analysisResult.headings.h1.length,
+      imageCount: analysisResult.images.total,
+      hasPageSpeed: !!analysisResult.pageSpeedInsights,
+      hasAI: !!analysisResult.aiAnalysis,
+      hasSchema: !!analysisResult.schemaMarkup
+    });
+
     return new Response(
       JSON.stringify(analysisResult),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error in analyze-website function:', error);
+    console.error('=== ANALYZE WEBSITE FUNCTION ERROR ===');
+    console.error('Error details:', error);
+    console.error('Error stack:', error.stack);
+    
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ 
+        error: 'Internal server error',
+        message: error.message,
+        details: 'Check function logs for more information'
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
