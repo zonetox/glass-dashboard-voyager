@@ -12,6 +12,9 @@ import { FullScoreAnalyzer } from '@/components/dashboard/full-score-analyzer';
 import { ScanHistory } from '@/components/dashboard/scan-history';
 import { ProgressTracker } from '@/components/dashboard/progress-tracker';
 import { UsageTracker } from '@/components/dashboard/usage-tracker';
+import { ScheduledScans } from '@/components/dashboard/scheduled-scans';
+import { AdminSettings } from '@/components/dashboard/admin-settings';
+import { AdminTestRunner } from '@/components/dashboard/admin-test-runner';
 import { Website, SEOIssue, mockSEOIssues } from '@/lib/types';
 
 export default function Dashboard() {
@@ -64,6 +67,12 @@ export default function Dashboard() {
         return <APITokens />;
       case 'competitors':
         return <CompetitorAnalysis />;
+      case 'scheduled':
+        return <ScheduledScans />;
+      case 'admin':
+        return <AdminSettings />;
+      case 'test':
+        return <AdminTestRunner />;
       default:
         return <SEODashboard website={mockWebsite} issues={mockSEOIssues} />;
     }
@@ -86,6 +95,9 @@ export default function Dashboard() {
               { id: 'progress', label: 'Progress', icon: '📈' },
               { id: 'usage', label: 'Usage', icon: '📊' },
               { id: 'competitors', label: 'Competitors', icon: '🏆' },
+              { id: 'scheduled', label: 'Scheduled', icon: '⏰' },
+              { id: 'admin', label: 'Admin', icon: '⚙️' },
+              { id: 'test', label: 'Test', icon: '🧪' },
               { id: 'api', label: 'API', icon: '🔌' },
             ].map((item) => (
               <button

@@ -1,45 +1,65 @@
-
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Clock, Mail, Zap, Trash2, Plus } from 'lucide-react';
-import { toast } from 'sonner';
+import { Calendar, Clock, Plus, Trash2, Edit, Globe } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+import { useAuth } from '@/hooks/useAuth';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
-type ScheduledScan = Database['public']['Tables']['scheduled_scans']['Row'];
+interface ScheduledScan {
+  id: string;
+  website_url: string;
+  frequency_days: number;
+  next_scan_at: string;
+  last_scan_at: string | null;
+  is_active: boolean;
+  auto_optimize: boolean;
+  email_alerts: boolean;
+  created_at: string;
+}
 
 export function ScheduledScans() {
   const [scans, setScans] = useState<ScheduledScan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newScan, setNewScan] = useState({
     website_url: '',
-    frequency_days: 30,
-    email_alerts: true,
-    auto_optimize: false
+    frequency_days: 7,
+    auto_optimize: false,
+    email_alerts: true
   });
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
-    loadScheduledScans();
-  }, []);
+    if (user) {
+      fetchScheduledScans();
+    }
+  }, [user]);
 
-  const loadScheduledScans = async () => {
+  const fetchScheduledScans = async () => {
     try {
       const { data, error } = await supabase
         .from('scheduled_scans')
         .select('*')
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       setScans(data || []);
     } catch (error) {
-      console.error('Error loading scheduled scans:', error);
-      toast.error('Failed to load scheduled scans');
+      console.error('Error fetching scheduled scans:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch scheduled scans",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -47,45 +67,56 @@ export function ScheduledScans() {
 
   const createScheduledScan = async () => {
     if (!newScan.website_url.trim()) {
-      toast.error('Please enter a website URL');
+      toast({
+        title: "Error",
+        description: "Please enter a website URL",
+        variant: "destructive"
+      });
       return;
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
       const nextScanDate = new Date();
       nextScanDate.setDate(nextScanDate.getDate() + newScan.frequency_days);
 
       const { error } = await supabase
         .from('scheduled_scans')
         .insert({
-          user_id: user.id,
+          user_id: user?.id,
           website_url: newScan.website_url,
           frequency_days: newScan.frequency_days,
-          email_alerts: newScan.email_alerts,
+          next_scan_at: nextScanDate.toISOString(),
           auto_optimize: newScan.auto_optimize,
-          next_scan_at: nextScanDate.toISOString()
+          email_alerts: newScan.email_alerts,
+          is_active: true
         });
 
       if (error) throw error;
 
-      toast.success('Scheduled scan created successfully');
+      await fetchScheduledScans();
+      setShowCreateDialog(false);
       setNewScan({
         website_url: '',
-        frequency_days: 30,
-        email_alerts: true,
-        auto_optimize: false
+        frequency_days: 7,
+        auto_optimize: false,
+        email_alerts: true
       });
-      loadScheduledScans();
+
+      toast({
+        title: "Success",
+        description: "Scheduled scan created successfully"
+      });
     } catch (error) {
       console.error('Error creating scheduled scan:', error);
-      toast.error('Failed to create scheduled scan');
+      toast({
+        title: "Error",
+        description: "Failed to create scheduled scan",
+        variant: "destructive"
+      });
     }
   };
 
-  const toggleScan = async (scanId: string, isActive: boolean) => {
+  const toggleScanStatus = async (scanId: string, isActive: boolean) => {
     try {
       const { error } = await supabase
         .from('scheduled_scans')
@@ -93,15 +124,27 @@ export function ScheduledScans() {
         .eq('id', scanId);
 
       if (error) throw error;
-      loadScheduledScans();
-      toast.success(`Scan ${!isActive ? 'activated' : 'paused'}`);
+      await fetchScheduledScans();
+
+      toast({
+        title: "Success",
+        description: `Scan ${!isActive ? 'activated' : 'deactivated'} successfully`
+      });
     } catch (error) {
-      console.error('Error toggling scan:', error);
-      toast.error('Failed to update scan');
+      console.error('Error updating scan status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update scan status",
+        variant: "destructive"
+      });
     }
   };
 
   const deleteScan = async (scanId: string) => {
+    if (!confirm('Are you sure you want to delete this scheduled scan?')) {
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('scheduled_scans')
@@ -109,174 +152,216 @@ export function ScheduledScans() {
         .eq('id', scanId);
 
       if (error) throw error;
-      loadScheduledScans();
-      toast.success('Scheduled scan deleted');
+      await fetchScheduledScans();
+
+      toast({
+        title: "Success",
+        description: "Scheduled scan deleted successfully"
+      });
     } catch (error) {
       console.error('Error deleting scan:', error);
-      toast.error('Failed to delete scan');
+      toast({
+        title: "Error",
+        description: "Failed to delete scan",
+        variant: "destructive"
+      });
     }
   };
 
+  const getFrequencyText = (days: number) => {
+    if (days === 1) return 'Daily';
+    if (days === 7) return 'Weekly';
+    if (days === 30) return 'Monthly';
+    return `Every ${days} days`;
+  };
+
+  const getNextScanText = (nextScanAt: string) => {
+    const date = new Date(nextScanAt);
+    const now = new Date();
+    const diffMs = date.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Tomorrow';
+    if (diffDays > 0) return `In ${diffDays} days`;
+    return 'Overdue';
+  };
+
   if (loading) {
-    return <div className="flex justify-center p-8">Loading scheduled scans...</div>;
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading scheduled scans...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Scheduled Scans</h2>
-        <p className="text-gray-600">Automate regular SEO monitoring and optimization</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-2">Scheduled Scans</h2>
+          <p className="text-gray-400">Automate regular SEO audits for your websites</p>
+        </div>
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogTrigger asChild>
+            <Button className="bg-blue-500 hover:bg-blue-600">
+              <Plus className="w-4 h-4 mr-2" />
+              Schedule New Scan
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-gray-900 border-gray-700">
+            <DialogHeader>
+              <DialogTitle className="text-white">Schedule New Scan</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="websiteUrl" className="text-white">Website URL</Label>
+                <Input
+                  id="websiteUrl"
+                  value={newScan.website_url}
+                  onChange={(e) => setNewScan({ ...newScan, website_url: e.target.value })}
+                  placeholder="https://example.com"
+                  className="bg-gray-800 border-gray-600 text-white"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="frequency" className="text-white">Scan Frequency</Label>
+                <Select
+                  value={newScan.frequency_days.toString()}
+                  onValueChange={(value) => setNewScan({ ...newScan, frequency_days: parseInt(value) })}
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Daily</SelectItem>
+                    <SelectItem value="7">Weekly</SelectItem>
+                    <SelectItem value="14">Bi-weekly</SelectItem>
+                    <SelectItem value="30">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Label htmlFor="autoOptimize" className="text-white">Auto-optimize after scan</Label>
+                <Switch
+                  id="autoOptimize"
+                  checked={newScan.auto_optimize}
+                  onCheckedChange={(checked) => setNewScan({ ...newScan, auto_optimize: checked })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Label htmlFor="emailAlerts" className="text-white">Email alerts</Label>
+                <Switch
+                  id="emailAlerts"
+                  checked={newScan.email_alerts}
+                  onCheckedChange={(checked) => setNewScan({ ...newScan, email_alerts: checked })}
+                />
+              </div>
+
+              <Button onClick={createScheduledScan} className="w-full bg-blue-500 hover:bg-blue-600">
+                Create Scheduled Scan
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="w-5 h-5" />
-            Schedule New Scan
-          </CardTitle>
-          <CardDescription>
-            Set up automated rescanning for your websites
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="website-url">Website URL</Label>
-            <Input
-              id="website-url"
-              value={newScan.website_url}
-              onChange={(e) => setNewScan(prev => ({ ...prev, website_url: e.target.value }))}
-              placeholder="https://example.com"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="frequency">Scan Frequency</Label>
-            <Select
-              value={newScan.frequency_days.toString()}
-              onValueChange={(value) => setNewScan(prev => ({ ...prev, frequency_days: parseInt(value) }))}
+      {scans.length === 0 ? (
+        <Card className="glass-card border-white/10">
+          <CardContent className="pt-6 text-center">
+            <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-white mb-2">No Scheduled Scans</h3>
+            <p className="text-gray-400 mb-4">
+              Set up automated SEO scans to monitor your websites regularly
+            </p>
+            <Button 
+              onClick={() => setShowCreateDialog(true)}
+              className="bg-blue-500 hover:bg-blue-600"
             >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7">Weekly (7 days)</SelectItem>
-                <SelectItem value="14">Bi-weekly (14 days)</SelectItem>
-                <SelectItem value="30">Monthly (30 days)</SelectItem>
-                <SelectItem value="60">Bi-monthly (60 days)</SelectItem>
-                <SelectItem value="90">Quarterly (90 days)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Mail className="w-4 h-4" />
-              <Label htmlFor="email-alerts">Email Alerts</Label>
-            </div>
-            <Switch
-              id="email-alerts"
-              checked={newScan.email_alerts}
-              onCheckedChange={(checked) => setNewScan(prev => ({ ...prev, email_alerts: checked }))}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4" />
-              <Label htmlFor="auto-optimize">Auto-optimize on Issues</Label>
-            </div>
-            <Switch
-              id="auto-optimize"
-              checked={newScan.auto_optimize}
-              onCheckedChange={(checked) => setNewScan(prev => ({ ...prev, auto_optimize: checked }))}
-            />
-          </div>
-
-          <Button onClick={createScheduledScan} className="w-full">
-            Create Scheduled Scan
-          </Button>
-        </CardContent>
-      </Card>
-
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Active Scheduled Scans</h3>
-        
-        {scans.length === 0 ? (
-          <Card>
-            <CardContent className="text-center p-8">
-              <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-semibold mb-2">No Scheduled Scans</h3>
-              <p className="text-gray-600">Create your first scheduled scan above.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          scans.map((scan) => (
-            <Card key={scan.id}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h4 className="font-semibold">{new URL(scan.website_url).hostname}</h4>
-                    <p className="text-sm text-gray-600">
-                      Every {scan.frequency_days} days
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={scan.is_active ? 'default' : 'secondary'}>
-                      {scan.is_active ? 'Active' : 'Paused'}
-                    </Badge>
-                    <Switch
-                      checked={scan.is_active || false}
-                      onCheckedChange={() => toggleScan(scan.id, scan.is_active || false)}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <div>
-                    <div className="text-sm text-gray-600">Last Scan</div>
-                    <div className="font-medium">
-                      {scan.last_scan_at 
-                        ? new Date(scan.last_scan_at).toLocaleDateString()
-                        : 'Never'
-                      }
+              <Plus className="w-4 h-4 mr-2" />
+              Schedule Your First Scan
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {scans.map((scan) => (
+            <Card key={scan.id} className="glass-card border-white/10">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 bg-blue-500/20 rounded-lg">
+                      <Globe className="h-5 w-5 text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-white">{scan.website_url}</h3>
+                      <div className="flex items-center gap-4 text-sm text-gray-400 mt-1">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {getFrequencyText(scan.frequency_days)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          Next: {getNextScanText(scan.next_scan_at)}
+                        </span>
+                        {scan.last_scan_at && (
+                          <span>Last: {new Date(scan.last_scan_at).toLocaleDateString()}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <div className="text-sm text-gray-600">Next Scan</div>
-                    <div className="font-medium">
-                      {new Date(scan.next_scan_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-600">Email Alerts</div>
-                    <div className="font-medium">
-                      {scan.email_alerts ? 'Enabled' : 'Disabled'}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-600">Auto-optimize</div>
-                    <div className="font-medium">
-                      {scan.auto_optimize ? 'Enabled' : 'Disabled'}
-                    </div>
-                  </div>
-                </div>
 
-                <div className="flex justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => deleteScan(scan.id)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </Button>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Badge className={`${
+                        scan.is_active 
+                          ? 'bg-green-500/20 text-green-400 border-green-500/20'
+                          : 'bg-gray-500/20 text-gray-400 border-gray-500/20'
+                      }`}>
+                        {scan.is_active ? 'Active' : 'Inactive'}
+                      </Badge>
+                      
+                      {scan.auto_optimize && (
+                        <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/20">
+                          Auto-optimize
+                        </Badge>
+                      )}
+                      
+                      {scan.email_alerts && (
+                        <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/20">
+                          Email alerts
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={scan.is_active}
+                        onCheckedChange={() => toggleScanStatus(scan.id, scan.is_active)}
+                      />
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => deleteScan(scan.id)}
+                        className="border-red-500/20 text-red-400 hover:bg-red-500/10"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
