@@ -31,11 +31,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Fetch user role when user changes
   const fetchUserRole = async (userId: string) => {
     try {
-      const { data } = await supabase.rpc('get_user_role', { _user_id: userId });
-      setUserRole(data);
+      const { data, error } = await supabase.rpc('get_user_role', { _user_id: userId });
+      if (error) throw error;
+      setUserRole(data || 'member');
     } catch (error) {
       console.error('Error fetching user role:', error);
-      setUserRole(null);
+      setUserRole('member'); // Default fallback
     }
   };
 
@@ -48,9 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Fetch role when user logs in
         if (session?.user) {
-          setTimeout(() => {
-            fetchUserRole(session.user.id);
-          }, 0);
+          fetchUserRole(session.user.id);
         } else {
           setUserRole(null);
         }

@@ -43,7 +43,8 @@
   }
   
   body {
-    @apply bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-foreground min-h-screen;
+    @apply bg-background text-foreground min-h-screen;
+    background: linear-gradient(135deg, hsl(var(--background)), hsl(217 32% 8%));
     background-attachment: fixed;
   }
 }
