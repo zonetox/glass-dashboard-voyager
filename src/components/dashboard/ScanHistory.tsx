@@ -6,9 +6,10 @@ type Scan = Tables<"scans">;
 
 interface ScanHistoryProps {
   scans: Scan[];
+  setSelectedScanId?: (scanId: string) => void;
 }
 
-export default function ScanHistory({ scans }: ScanHistoryProps) {
+export default function ScanHistory({ scans, setSelectedScanId }: ScanHistoryProps) {
   if (!scans.length) {
     return (
       <p className="text-muted-foreground text-sm italic">
@@ -24,8 +25,11 @@ export default function ScanHistory({ scans }: ScanHistoryProps) {
           key={scan.id}
           className="p-4 border hover:bg-muted/50 cursor-pointer transition-all animate-fade-in hover-scale"
           onClick={() => {
-            // TODO: mở chi tiết ở Prompt 2.6
-            console.log("Click scan:", scan.id);
+            if (setSelectedScanId) {
+              setSelectedScanId(scan.id);
+            } else {
+              console.log("Click scan:", scan.id);
+            }
           }}
         >
           <div className="text-sm font-medium text-primary">{scan.url}</div>

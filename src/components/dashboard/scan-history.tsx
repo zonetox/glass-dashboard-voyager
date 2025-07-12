@@ -178,7 +178,7 @@ export function ScanHistory() {
                     <div className="text-muted-foreground">Đang tải...</div>
                   </div>
                 ) : (
-                  <ScanHistoryComponent scans={aiScans} />
+                  <ScanHistoryComponent scans={aiScans} setSelectedScanId={(scanId) => console.log('Selected scan:', scanId)} />
                 )}
               </div>
             </TabsContent>
