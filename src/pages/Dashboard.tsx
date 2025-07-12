@@ -17,6 +17,7 @@ import { ScheduledScans } from '@/components/dashboard/scheduled-scans';
 import { AdminSettings } from '@/components/dashboard/admin-settings';
 import { AdminTestRunner } from '@/components/dashboard/admin-test-runner';
 import { AdminOverview } from '@/components/dashboard/admin-overview';
+import { UserProfile } from '@/components/UserProfile';
 import { Website, SEOIssue, mockSEOIssues } from '@/lib/types';
 
 export default function Dashboard() {
@@ -95,6 +96,8 @@ export default function Dashboard() {
         return <AdminOverview />;
       case 'test':
         return <AdminTestRunner />;
+      case 'profile':
+        return <UserProfile />;
       default:
         return <SEODashboard website={mockWebsite} issues={mockSEOIssues} />;
     }
@@ -122,6 +125,7 @@ export default function Dashboard() {
               { id: 'admin-overview', label: 'Admin Overview', icon: '👨‍💼' },
               { id: 'test', label: 'Test', icon: '🧪' },
               { id: 'api', label: 'API', icon: '🔌' },
+              { id: 'profile', label: 'Profile', icon: '👤' },
             ].map((item) => (
               <button
                 key={item.id}

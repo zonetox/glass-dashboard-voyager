@@ -1,6 +1,6 @@
 
 import { useAuth } from "../hooks/useAuth";
-import { AuthForm } from "../components/AuthForm";
+import { PricingSection } from '@/components/PricingSection';
 import { Button } from "@/components/ui/button";
 import { Navigate, useNavigate } from "react-router-dom";
 import { 
@@ -93,10 +93,7 @@ const Index = () => {
                 <Button 
                   size="lg" 
                   className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg"
-                  onClick={() => {
-                    const authForm = document.getElementById('auth-form');
-                    authForm?.scrollIntoView({ behavior: 'smooth' });
-                  }}
+                  onClick={() => navigate('/auth')}
                 >
                   Get Started Free
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -105,9 +102,12 @@ const Index = () => {
                   variant="outline" 
                   size="lg"
                   className="border-white/20 text-white hover:bg-white/10 px-8 py-3 text-lg"
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => {
+                    const pricingSection = document.getElementById('pricing');
+                    pricingSection?.scrollIntoView({ behavior: 'smooth' });
+                  }}
                 >
-                  View Demo
+                  View Pricing
                 </Button>
               </div>
             </div>
@@ -129,9 +129,25 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Auth Form */}
-          <div className="lg:max-w-md lg:mx-auto" id="auth-form">
-            <AuthForm />
+          {/* Feature Highlight */}
+          <div className="lg:max-w-md lg:mx-auto">
+            <div className="glass-card p-8 text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <BarChart3 className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-4">
+                AI-Powered SEO Analysis
+              </h3>
+              <p className="text-gray-400 mb-6">
+                Get instant insights and actionable recommendations to improve your website's search rankings.
+              </p>
+              <Button 
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                onClick={() => navigate('/auth')}
+              >
+                Start Free Analysis
+              </Button>
+            </div>
           </div>
         </div>
       </section>
@@ -174,6 +190,9 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <PricingSection />
+
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-16">
         <div className="glass-card p-8 lg:p-12 text-center">
@@ -188,10 +207,7 @@ const Index = () => {
           <Button 
             size="lg"
             className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 text-lg"
-            onClick={() => {
-              const authForm = document.getElementById('auth-form');
-              authForm?.scrollIntoView({ behavior: 'smooth' });
-            }}
+            onClick={() => navigate('/auth')}
           >
             Start Your Free Analysis
             <ArrowRight className="ml-2 h-5 w-5" />
