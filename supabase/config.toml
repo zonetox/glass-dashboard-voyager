@@ -81,3 +81,6 @@ verify_jwt = false
 
 [functions.pagespeed-analysis]
 verify_jwt = false
+
+[functions.backup-site]
+verify_jwt = true

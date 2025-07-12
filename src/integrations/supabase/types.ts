@@ -124,6 +124,39 @@ export type Database = {
           },
         ]
       }
+      backups: {
+        Row: {
+          ai_suggested_data: Json
+          created_at: string
+          id: string
+          original_data: Json
+          type: string
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          ai_suggested_data: Json
+          created_at?: string
+          id?: string
+          original_data: Json
+          type: string
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          ai_suggested_data?: Json
+          created_at?: string
+          id?: string
+          original_data?: Json
+          type?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       competitor_analysis: {
         Row: {
           analysis_data: Json
