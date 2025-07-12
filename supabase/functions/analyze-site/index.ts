@@ -9,6 +9,7 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.33.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -215,6 +216,55 @@ Nội dung chính: ${content}`
         priorityIssues: ["AI analysis unavailable"]
       }
     };
+
+    // Save results to Supabase database
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (supabaseUrl && supabaseServiceKey) {
+      console.log("Saving analysis results to database...");
+      try {
+        const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
+        
+        // Extract user_id from Authorization header if present
+        const authHeader = req.headers.get('authorization');
+        let userId = null;
+        
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          try {
+            // Verify the JWT token to get user_id
+            const token = authHeader.replace('Bearer ', '');
+            const { data: { user }, error } = await supabaseClient.auth.getUser(token);
+            if (user && !error) {
+              userId = user.id;
+            }
+          } catch (authError) {
+            console.log("Could not verify user token:", authError.message);
+          }
+        }
+
+        const { data, error } = await supabaseClient.from("scans").insert({
+          url,
+          seo: response.seo,
+          ai_analysis: response.aiAnalysis,
+          user_id: userId
+        });
+
+        if (error) {
+          console.error("Failed to save scan results:", error.message);
+        } else {
+          console.log("Scan results saved successfully");
+          // Add the saved scan ID to the response if available
+          if (data && data.length > 0) {
+            response.scanId = data[0].id;
+          }
+        }
+      } catch (dbError) {
+        console.error("Database save error:", dbError.message);
+      }
+    } else {
+      console.log("Supabase credentials not configured - skipping database save");
+    }
 
     console.log(`Analysis completed successfully for ${url}`);
 

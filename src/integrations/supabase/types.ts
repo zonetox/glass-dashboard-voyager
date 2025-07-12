@@ -510,6 +510,33 @@ export type Database = {
         }
         Relationships: []
       }
+      scans: {
+        Row: {
+          ai_analysis: Json | null
+          created_at: string | null
+          id: string
+          seo: Json | null
+          url: string
+          user_id: string | null
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          created_at?: string | null
+          id?: string
+          seo?: Json | null
+          url: string
+          user_id?: string | null
+        }
+        Update: {
+          ai_analysis?: Json | null
+          created_at?: string | null
+          id?: string
+          seo?: Json | null
+          url?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       scheduled_scans: {
         Row: {
           auto_optimize: boolean | null
