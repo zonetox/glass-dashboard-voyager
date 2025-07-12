@@ -104,127 +104,165 @@ export function FullScoreAnalyzer() {
   };
 
   return (
-    <div className="space-y-6">
-      <Card className="glass-card border-white/10">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-white">
-            <Target className="h-5 w-5 text-purple-400" />
+    <div className="max-w-6xl mx-auto space-y-8 p-6">
+      {/* Hero Section */}
+      <div className="text-center space-y-4">
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <Target className="h-8 w-8 text-purple-400" />
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
             Full Score Analysis
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <Label className="text-gray-300 mb-2 block">Website URL</Label>
-              <Input
-                value={websiteUrl}
-                onChange={(e) => setWebsiteUrl(e.target.value)}
-                placeholder="https://example.com"
-                className="bg-white/5 border-white/10 text-white placeholder:text-gray-400"
-              />
+          </h1>
+        </div>
+        <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+          Get comprehensive SEO and performance analysis with our advanced scoring system
+        </p>
+      </div>
+
+      {/* Analysis Form */}
+      <Card className="glass-card border-white/10 max-w-2xl mx-auto">
+        <CardContent className="p-8">
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label className="text-gray-300 text-base font-medium">Website URL</Label>
+              <div className="relative">
+                <Input
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  className="bg-white/5 border-white/10 text-white placeholder:text-gray-400 h-12 text-lg"
+                  disabled={isAnalyzing}
+                />
+              </div>
             </div>
 
             <Button 
               onClick={analyzeFullScore}
-              disabled={isAnalyzing}
-              className="w-full bg-purple-600 hover:bg-purple-700"
+              disabled={isAnalyzing || !websiteUrl.trim()}
+              className="w-full h-12 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold text-lg shadow-lg transition-all duration-200"
             >
               {isAnalyzing ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Analyzing Full Score...
+                  <Loader2 className="h-5 w-5 mr-3 animate-spin" />
+                  Analyzing Website...
                 </>
               ) : (
                 <>
-                  <BarChart className="h-4 w-4 mr-2" />
-                  Analyze Full Score
+                  <BarChart className="h-5 w-5 mr-3" />
+                  Start Analysis
                 </>
               )}
             </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-            <div className="text-sm text-gray-400 space-y-1">
-              <p>Comprehensive scoring system:</p>
-              <div className="grid grid-cols-1 gap-1 ml-4">
-                <span>• SEO Traditional (20%)</span>
-                <span>• AI Readability (20%)</span>
-                <span>• Semantic Depth (20%)</span>
-                <span>• Technical Performance (20%)</span>
-                <span>• Schema & Structured Data (20%)</span>
+      {/* Scoring System Info */}
+      <Card className="glass-card border-white/10 max-w-4xl mx-auto">
+        <CardHeader>
+          <CardTitle className="text-white text-xl text-center">Comprehensive Scoring System</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {[
+              { name: 'SEO Traditional', icon: '🔍', percentage: '20%' },
+              { name: 'AI Readability', icon: '🤖', percentage: '20%' },
+              { name: 'Semantic Depth', icon: '📊', percentage: '20%' },
+              { name: 'Technical Performance', icon: '⚡', percentage: '20%' },
+              { name: 'Schema & Structured Data', icon: '🏗️', percentage: '20%' }
+            ].map((item, index) => (
+              <div key={index} className="text-center p-4 bg-white/5 rounded-lg border border-white/10 hover:border-purple-400/30 transition-colors">
+                <div className="text-2xl mb-2">{item.icon}</div>
+                <div className="text-white font-medium text-sm mb-1">{item.name}</div>
+                <div className="text-purple-400 font-semibold">{item.percentage}</div>
               </div>
-            </div>
+            ))}
           </div>
         </CardContent>
       </Card>
 
       {scoreResult && (
-        <Card className="glass-card border-white/10">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center justify-between text-white">
-              <span className="flex items-center gap-2">
-                <TrendingUp className={`h-5 w-5`} style={{ color: scoreResult.color }} />
-                Full Score Results
-              </span>
-              <Badge 
-                className="text-lg px-4 py-2" 
-                style={{ 
-                  backgroundColor: `${scoreResult.color}20`, 
-                  color: scoreResult.color,
-                  borderColor: `${scoreResult.color}40`
-                }}
-              >
-                {scoreResult.emoji} {scoreResult.overall_score}/100
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Overall Score Display */}
-            <div className="text-center p-6 bg-white/5 rounded-lg border border-white/10">
-              <div 
-                className="text-6xl font-bold mb-2" 
-                style={{ color: scoreResult.color }}
-              >
-                {scoreResult.overall_score}
+        <div className="space-y-8 animate-fade-in">
+          {/* Overall Score Card */}
+          <Card className="glass-card border-white/10 max-w-4xl mx-auto">
+            <CardContent className="p-8">
+              <div className="text-center space-y-6">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+                  <div className="text-center">
+                    <div 
+                      className="text-8xl font-bold mb-2" 
+                      style={{ color: scoreResult.color }}
+                    >
+                      {scoreResult.overall_score}
+                    </div>
+                    <div className="text-3xl text-white mb-2">{scoreResult.grade}</div>
+                    <div className="text-6xl">{scoreResult.emoji}</div>
+                  </div>
+                  
+                  <div className="flex-1 w-full max-w-md space-y-4">
+                    <h3 className="text-xl font-semibold text-white">Overall Performance</h3>
+                    <Progress 
+                      value={scoreResult.overall_score} 
+                      className="w-full h-4"
+                      style={{
+                        '--progress-background': scoreResult.color
+                      } as any}
+                    />
+                    <p className="text-gray-400 text-sm">
+                      Based on comprehensive analysis of 5 key metrics
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="text-2xl text-white mb-2">{scoreResult.grade}</div>
-              <div className="text-4xl mb-4">{scoreResult.emoji}</div>
-              <Progress 
-                value={scoreResult.overall_score} 
-                className="w-full h-3"
-                style={{
-                  '--progress-background': scoreResult.color
-                } as any}
-              />
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* Score Breakdown */}
-            <div>
-              <h4 className="font-semibold text-white mb-4">Score Breakdown</h4>
-              <div className="space-y-4">
+          {/* Score Breakdown Grid */}
+          <Card className="glass-card border-white/10 max-w-6xl mx-auto">
+            <CardHeader>
+              <CardTitle className="text-white text-2xl text-center">Detailed Score Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {Object.entries(scoreResult.breakdown).map(([key, score]) => {
                   const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                   const color = getScoreColor(score);
+                  const icons = {
+                    'Seo Traditional': '🔍',
+                    'Ai Readability': '🤖',
+                    'Semantic Depth': '📊',
+                    'Technical Performance': '⚡',
+                    'Schema Structured Data': '🏗️'
+                  };
                   
                   return (
-                    <div key={key} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-300 font-medium">{label}</span>
-                        <div className="flex items-center gap-2">
-                          <Badge 
-                            className="text-xs"
-                            style={{ 
-                              backgroundColor: `${color}20`, 
-                              color: color,
-                              borderColor: `${color}40`
-                            }}
-                          >
-                            {getScoreLabel(score)}
-                          </Badge>
-                          <span className="text-white font-semibold">{score}/100</span>
-                        </div>
+                    <div key={key} className="bg-white/5 rounded-xl p-6 border border-white/10 hover:border-purple-400/30 transition-all duration-300 hover:scale-105">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="text-2xl">{icons[label] || '📈'}</div>
+                        <h4 className="font-semibold text-white text-lg">{label}</h4>
                       </div>
+                      
+                      <div className="flex items-center justify-between mb-3">
+                        <Badge 
+                          className="text-sm px-3 py-1"
+                          style={{ 
+                            backgroundColor: `${color}20`, 
+                            color: color,
+                            borderColor: `${color}40`
+                          }}
+                        >
+                          {getScoreLabel(score)}
+                        </Badge>
+                        <span 
+                          className="text-2xl font-bold"
+                          style={{ color: color }}
+                        >
+                          {score}/100
+                        </span>
+                      </div>
+                      
                       <Progress 
                         value={score} 
-                        className="h-2"
+                        className="h-3"
                         style={{
                           '--progress-background': color
                         } as any}
@@ -233,47 +271,55 @@ export function FullScoreAnalyzer() {
                   );
                 })}
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* Recommendations */}
-            <div>
-              <h4 className="font-semibold text-white mb-4">Recommendations for Improvement</h4>
-              <div className="space-y-3">
-                {scoreResult.recommendations.map((rec, index) => (
-                  <div key={index} className="flex items-start gap-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded">
-                    <div className="text-blue-400 font-semibold text-sm mt-0.5">
-                      {index + 1}.
+          {/* Recommendations */}
+          {scoreResult.recommendations.length > 0 && (
+            <Card className="glass-card border-white/10 max-w-4xl mx-auto">
+              <CardHeader>
+                <CardTitle className="text-white text-2xl text-center">Improvement Recommendations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 gap-4">
+                  {scoreResult.recommendations.map((rec, index) => (
+                    <div key={index} className="flex items-start gap-4 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-lg hover:border-blue-400/40 transition-colors">
+                      <div className="flex-shrink-0 w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+                        <span className="text-blue-400 font-bold text-sm">{index + 1}</span>
+                      </div>
+                      <p className="text-blue-200 flex-1 leading-relaxed">{rec}</p>
                     </div>
-                    <p className="text-blue-300 text-sm flex-1">{rec}</p>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Score Legend */}
+          <Card className="glass-card border-white/10 max-w-4xl mx-auto">
+            <CardHeader>
+              <CardTitle className="text-white text-xl text-center">Score Interpretation Guide</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { emoji: '🔴', range: '0-40', label: 'Critical', color: 'bg-red-500', desc: 'Needs immediate attention' },
+                  { emoji: '🟡', range: '41-70', label: 'Average', color: 'bg-yellow-500', desc: 'Room for improvement' },
+                  { emoji: '🟢', range: '71-90', label: 'Good', color: 'bg-green-500', desc: 'Well optimized' },
+                  { emoji: '⭐️', range: '91-100', label: 'Excellent', color: 'bg-violet-500', desc: 'Outstanding performance' }
+                ].map((item, index) => (
+                  <div key={index} className="text-center p-4 bg-white/5 rounded-lg border border-white/10">
+                    <div className="text-2xl mb-2">{item.emoji}</div>
+                    <div className={`w-6 h-6 rounded-full ${item.color} mx-auto mb-2`}></div>
+                    <div className="text-white font-semibold text-sm mb-1">{item.range}</div>
+                    <div className="text-gray-400 text-xs">{item.label}</div>
+                    <div className="text-gray-500 text-xs mt-1">{item.desc}</div>
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Color Legend */}
-            <div className="p-4 bg-white/5 rounded border border-white/10">
-              <h5 className="font-semibold text-white mb-3">Score Ranges</h5>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-red-500"></div>
-                  <span className="text-sm text-gray-300">🔴 0-40 Critical</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-yellow-500"></div>
-                  <span className="text-sm text-gray-300">🟡 41-70 Average</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-green-500"></div>
-                  <span className="text-sm text-gray-300">🟢 71-90 Good</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-violet-500"></div>
-                  <span className="text-sm text-gray-300">⭐️ 91-100 Excellent</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
