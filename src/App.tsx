@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import SharedScanView from "./pages/SharedScanView";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/scan/:id" element={<SharedScanView />} />
             <Route 
               path="/dashboard" 
               element={
