@@ -78,3 +78,6 @@ verify_jwt = false
 
 [functions.write]
 verify_jwt = false
+
+[functions.pagespeed-analysis]
+verify_jwt = false

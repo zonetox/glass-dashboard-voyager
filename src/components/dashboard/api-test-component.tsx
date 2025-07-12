@@ -37,27 +37,59 @@ export function APITestComponent() {
     setTestResult(null);
 
     try {
-      // Test the analyze-website function
-      const { data, error } = await supabase.functions.invoke('analyze-website', {
-        body: { url: testUrl }
-      });
+      console.log('Starting API test for URL:', testUrl);
+      
+      // Test multiple functions in parallel
+      const [
+        websiteResult,
+        pageSpeedResult
+      ] = await Promise.allSettled([
+        supabase.functions.invoke('analyze-website', {
+          body: { url: testUrl }
+        }),
+        supabase.functions.invoke('pagespeed-analysis', {
+          body: { url: testUrl }
+        })
+      ]);
 
-      if (error) {
-        setTestResult({
-          openaiWorking: false,
-          googlePageSpeedWorking: false,
-          crawlingWorking: false,
-          error: error.message || 'API test failed'
-        });
-        return;
+      console.log('API test results:', { websiteResult, pageSpeedResult });
+
+      // Process results
+      let crawlingWorking = false;
+      let googlePageSpeedWorking = false;
+      let openaiWorking = false;
+      let combinedDetails = {};
+
+      // Check website analysis result
+      if (websiteResult.status === 'fulfilled' && !websiteResult.value.error) {
+        const data = websiteResult.value.data;
+        crawlingWorking = !!(data?.title || data?.headings);
+        openaiWorking = !!data?.aiAnalysis;
+        combinedDetails = { ...combinedDetails, ...data };
       }
 
-      // Analyze the response to determine what's working
+      // Check pagespeed analysis result  
+      if (pageSpeedResult.status === 'fulfilled' && !pageSpeedResult.value.error) {
+        const data = pageSpeedResult.value.data;
+        googlePageSpeedWorking = !!(data?.seo?.performance);
+        combinedDetails = { ...combinedDetails, pageSpeedData: data };
+      }
+
+      // Handle errors
+      let errorMessage = '';
+      if (websiteResult.status === 'rejected' || websiteResult.value?.error) {
+        errorMessage += `Website Analysis: ${websiteResult.status === 'rejected' ? websiteResult.reason : websiteResult.value.error}. `;
+      }
+      if (pageSpeedResult.status === 'rejected' || pageSpeedResult.value?.error) {
+        errorMessage += `PageSpeed Analysis: ${pageSpeedResult.status === 'rejected' ? pageSpeedResult.reason : pageSpeedResult.value.error}. `;
+      }
+
       const result: APITestResult = {
-        crawlingWorking: !!(data?.title || data?.headings),
-        googlePageSpeedWorking: !!data?.pageSpeedInsights,
-        openaiWorking: !!data?.aiAnalysis,
-        details: data
+        crawlingWorking,
+        googlePageSpeedWorking,
+        openaiWorking,
+        details: combinedDetails,
+        error: errorMessage || undefined
       };
 
       setTestResult(result);
@@ -172,8 +204,14 @@ export function APITestComponent() {
                     {testResult.details.pageSpeedInsights && (
                       <p><strong>PageSpeed Desktop Score:</strong> {testResult.details.pageSpeedInsights.desktop?.score}/100</p>
                     )}
+                    {testResult.details.pageSpeedData?.seo?.performance && (
+                      <p><strong>PageSpeed Performance:</strong> Desktop: {testResult.details.pageSpeedData.seo.performance.desktop}/100, Mobile: {testResult.details.pageSpeedData.seo.performance.mobile}/100</p>
+                    )}
                     {testResult.details.aiAnalysis?.citationPotential && (
                       <p><strong>AI Analysis:</strong> ✓ Generated</p>
+                    )}
+                    {testResult.details.pageSpeedData?.ai_analysis && (
+                      <p><strong>AI Analysis (PageSpeed):</strong> ✓ {testResult.details.pageSpeedData.ai_analysis.overallScore}/100</p>
                     )}
                   </div>
                 </div>
