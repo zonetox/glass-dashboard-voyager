@@ -6,7 +6,10 @@ import { Separator } from "@/components/ui/separator";
 import { Share2, FileDown, Trash2, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useCompareScans } from "@/hooks/useCompareScans";
 import AISEOResult from "@/components/dashboard/AISEOResult";
+import SEOCompare from "@/components/dashboard/SEOCompare";
 import type { Tables } from "@/integrations/supabase/types";
 import html2pdf from "html2pdf.js";
 
@@ -20,6 +23,13 @@ interface ScanDetailProps {
 
 export default function ScanDetail({ scan, onBack, onDelete }: ScanDetailProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
+  
+  // Fetch comparison data for the same URL
+  const { scans: history, hasComparison } = useCompareScans(
+    scan?.url || null, 
+    scan?.user_id || user?.id || null
+  );
 
   const handleDelete = async () => {
     if (!scan) return;
@@ -175,6 +185,13 @@ export default function ScanDetail({ scan, onBack, onDelete }: ScanDetailProps) 
 
         {scan.ai_analysis && (
           <AISEOResult aiAnalysis={scan.ai_analysis} />
+        )}
+
+        {/* SEO Comparison - Show when there are multiple scans for the same URL */}
+        {hasComparison && history.length >= 2 && (
+          <div className="mt-6">
+            <SEOCompare before={history[1]} after={history[0]} />
+          </div>
         )}
       </div>
     </div>
