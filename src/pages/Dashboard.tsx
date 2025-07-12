@@ -9,6 +9,9 @@ import { CompetitorAnalysis } from '@/components/dashboard/competitor-analysis';
 import { MetaOptimizer } from '@/components/dashboard/meta-optimizer';
 import { FAQGenerator } from '@/components/dashboard/faq-generator';
 import { FullScoreAnalyzer } from '@/components/dashboard/full-score-analyzer';
+import { ScanHistory } from '@/components/dashboard/scan-history';
+import { ProgressTracker } from '@/components/dashboard/progress-tracker';
+import { UsageTracker } from '@/components/dashboard/usage-tracker';
 import { Website, SEOIssue, mockSEOIssues } from '@/lib/types';
 
 export default function Dashboard() {
@@ -51,6 +54,12 @@ export default function Dashboard() {
         return <FAQGenerator />;
       case 'full-score':
         return <FullScoreAnalyzer />;
+      case 'scan-history':
+        return <ScanHistory />;
+      case 'progress':
+        return <ProgressTracker />;
+      case 'usage':
+        return <UsageTracker />;
       case 'api':
         return <APITokens />;
       case 'competitors':
@@ -73,8 +82,11 @@ export default function Dashboard() {
               { id: 'meta-optimizer', label: 'Meta Tags', icon: '🏷️' },
               { id: 'faq-generator', label: 'FAQ Schema', icon: '❓' },
               { id: 'full-score', label: 'Full Score', icon: '🎯' },
-              { id: 'api', label: 'API', icon: '🔌' },
+              { id: 'scan-history', label: 'History', icon: '📋' },
+              { id: 'progress', label: 'Progress', icon: '📈' },
+              { id: 'usage', label: 'Usage', icon: '📊' },
               { id: 'competitors', label: 'Competitors', icon: '🏆' },
+              { id: 'api', label: 'API', icon: '🔌' },
             ].map((item) => (
               <button
                 key={item.id}

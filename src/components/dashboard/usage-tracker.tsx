@@ -1,193 +1,271 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Crown, 
-  Zap, 
-  Search, 
-  PenTool, 
-  Settings,
-  ExternalLink 
-} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { BarChart3, Zap, Target, Calendar, TrendingUp, AlertTriangle } from 'lucide-react';
 import { getUserProfile, getCurrentUsage } from '@/lib/user-management';
-import type { Database } from '@/integrations/supabase/types';
+import { useToast } from '@/hooks/use-toast';
 
-type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
-type UserUsage = Database['public']['Tables']['user_usage']['Row'];
+interface UsageStats {
+  scans: { used: number; limit: number; percentage: number };
+  ai_rewrites: { used: number; limit: number; percentage: number };
+  optimizations: { used: number; limit: number; percentage: number };
+  tier: string;
+  resetDate: string;
+}
 
 export function UsageTracker() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [usage, setUsage] = useState<UserUsage | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    loadUserData();
+    loadUsageStats();
   }, []);
 
-  const loadUserData = async () => {
-    setIsLoading(true);
+  const loadUsageStats = async () => {
     try {
-      const [profileData, usageData] = await Promise.all([
+      const [profile, usage] = await Promise.all([
         getUserProfile(),
         getCurrentUsage()
       ]);
-      
-      setProfile(profileData);
-      setUsage(usageData);
+
+      if (profile && usage) {
+        setUsageStats({
+          scans: {
+            used: usage.scans_used,
+            limit: profile.scans_limit,
+            percentage: (usage.scans_used / profile.scans_limit) * 100
+          },
+          ai_rewrites: {
+            used: usage.ai_rewrites_used,
+            limit: profile.ai_rewrites_limit,
+            percentage: (usage.ai_rewrites_used / profile.ai_rewrites_limit) * 100
+          },
+          optimizations: {
+            used: usage.optimizations_used,
+            limit: profile.optimizations_limit,
+            percentage: (usage.optimizations_used / profile.optimizations_limit) * 100
+          },
+          tier: profile.tier,
+          resetDate: usage.reset_date
+        });
+      }
     } catch (error) {
-      console.error('Error loading user data:', error);
+      console.error('Error loading usage stats:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load usage statistics",
+        variant: "destructive"
+      });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const getTierInfo = (tier: string) => {
+  const getStatusBadge = (percentage: number) => {
+    if (percentage >= 90) return { color: 'bg-red-500/20 text-red-400', text: 'Critical' };
+    if (percentage >= 70) return { color: 'bg-yellow-500/20 text-yellow-400', text: 'Warning' };
+    return { color: 'bg-green-500/20 text-green-400', text: 'Good' };
+  };
+
+  const formatResetDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const getTierBadgeColor = (tier: string) => {
     switch (tier) {
-      case 'pro':
-        return {
-          name: 'Pro',
-          color: 'bg-blue-500/20 border-blue-500/20 text-blue-400',
-          icon: <Crown className="h-4 w-4" />
-        };
-      case 'agency':
-        return {
-          name: 'Agency',
-          color: 'bg-purple-500/20 border-purple-500/20 text-purple-400',
-          icon: <Crown className="h-4 w-4" />
-        };
-      default:
-        return {
-          name: 'Free',
-          color: 'bg-gray-500/20 border-gray-500/20 text-gray-400',
-          icon: <Zap className="h-4 w-4" />
-        };
+      case 'free': return 'bg-gray-500/20 text-gray-400';
+      case 'pro': return 'bg-blue-500/20 text-blue-400';
+      case 'agency': return 'bg-purple-500/20 text-purple-400';
+      default: return 'bg-gray-500/20 text-gray-400';
     }
   };
 
-  const getUsagePercentage = (used: number, limit: number) => {
-    return Math.min((used / limit) * 100, 100);
-  };
-
-  const getUsageColor = (percentage: number) => {
-    if (percentage >= 90) return 'bg-red-500';
-    if (percentage >= 70) return 'bg-yellow-500';
-    return 'bg-green-500';
-  };
-
-  if (isLoading) {
+  if (loading) {
     return (
       <Card className="glass-card border-white/10">
-        <CardContent className="p-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-white/10 rounded w-1/3"></div>
-            <div className="h-4 bg-white/10 rounded w-1/2"></div>
-            <div className="h-4 bg-white/10 rounded w-2/3"></div>
-          </div>
+        <CardContent className="flex items-center justify-center h-32">
+          <div className="text-white">Loading usage data...</div>
         </CardContent>
       </Card>
     );
   }
 
-  if (!profile || !usage) {
+  if (!usageStats) {
     return (
       <Card className="glass-card border-white/10">
-        <CardContent className="p-6">
-          <p className="text-gray-400 text-center">Unable to load usage data</p>
+        <CardContent className="flex items-center justify-center h-32">
+          <div className="text-gray-400">No usage data available</div>
         </CardContent>
       </Card>
     );
   }
 
-  const tierInfo = getTierInfo(profile.tier);
+  const usageItems = [
+    {
+      name: 'Website Scans',
+      icon: BarChart3,
+      stats: usageStats.scans,
+      description: 'Analyze website SEO performance'
+    },
+    {
+      name: 'AI Content Rewrites', 
+      icon: Zap,
+      stats: usageStats.ai_rewrites,
+      description: 'AI-powered content optimization'
+    },
+    {
+      name: 'Website Optimizations',
+      icon: Target,
+      stats: usageStats.optimizations,
+      description: 'Automated SEO improvements'
+    }
+  ];
 
   return (
-    <Card className="glass-card border-white/10">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between text-white">
-          <div className="flex items-center gap-2">
-            <Settings className="h-5 w-5 text-blue-400" />
-            Usage & Plan
-          </div>
-          <Badge className={tierInfo.color}>
-            {tierInfo.icon}
-            <span className="ml-1">{tierInfo.name}</span>
-          </Badge>
-        </CardTitle>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {/* Scans Usage */}
-        <div className="space-y-2">
+    <div className="space-y-6">
+      {/* Header Card */}
+      <Card className="glass-card border-white/10">
+        <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Search className="h-4 w-4 text-green-400" />
-              <span className="text-white font-medium">Website Scans</span>
-            </div>
-            <span className="text-gray-400 text-sm">
-              {usage.scans_used} / {profile.scans_limit}
-            </span>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <TrendingUp className="h-5 w-5 text-blue-400" />
+              Usage Overview
+            </CardTitle>
+            <Badge className={`${getTierBadgeColor(usageStats.tier)} capitalize`}>
+              {usageStats.tier} Plan
+            </Badge>
           </div>
-          <Progress 
-            value={getUsagePercentage(usage.scans_used, profile.scans_limit)}
-            className="h-2"
-          />
-        </div>
-
-        {/* AI Rewrites Usage */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <PenTool className="h-4 w-4 text-purple-400" />
-              <span className="text-white font-medium">AI Rewrites</span>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
+            <div className="flex items-center gap-3">
+              <Calendar className="h-5 w-5 text-blue-400" />
+              <div>
+                <p className="text-white font-medium">Next Reset Date</p>
+                <p className="text-sm text-gray-400">{formatResetDate(usageStats.resetDate)}</p>
+              </div>
             </div>
-            <span className="text-gray-400 text-sm">
-              {usage.ai_rewrites_used} / {profile.ai_rewrites_limit}
-            </span>
-          </div>
-          <Progress 
-            value={getUsagePercentage(usage.ai_rewrites_used, profile.ai_rewrites_limit)}
-            className="h-2"
-          />
-        </div>
-
-        {/* Optimizations Usage */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4 text-yellow-400" />
-              <span className="text-white font-medium">Optimizations</span>
-            </div>
-            <span className="text-gray-400 text-sm">
-              {usage.optimizations_used} / {profile.optimizations_limit}
-            </span>
-          </div>
-          <Progress 
-            value={getUsagePercentage(usage.optimizations_used, profile.optimizations_limit)}
-            className="h-2"
-          />
-        </div>
-
-        {/* Reset Date */}
-        <div className="pt-4 border-t border-white/10">
-          <p className="text-sm text-gray-400 text-center">
-            Usage resets on: {new Date(usage.reset_date).toLocaleDateString()}
-          </p>
-        </div>
-
-        {/* Upgrade Button */}
-        {profile.tier === 'free' && (
-          <div className="pt-2">
-            <Button className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
-              <Crown className="h-4 w-4 mr-2" />
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-blue-500/20 text-blue-400 hover:bg-blue-500/10"
+            >
               Upgrade Plan
-              <ExternalLink className="h-4 w-4 ml-2" />
             </Button>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Usage Statistics */}
+      <div className="grid gap-6">
+        {usageItems.map((item) => {
+          const IconComponent = item.icon;
+          const status = getStatusBadge(item.stats.percentage);
+          
+          return (
+            <Card key={item.name} className="glass-card border-white/10">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
+                        <IconComponent className="h-5 w-5 text-blue-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold">{item.name}</h3>
+                        <p className="text-sm text-gray-400">{item.description}</p>
+                      </div>
+                    </div>
+                    <Badge className={status.color}>
+                      {status.text}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-300">Usage</span>
+                      <span className="text-white font-semibold">
+                        {item.stats.used} / {item.stats.limit}
+                      </span>
+                    </div>
+                    
+                    <Progress 
+                      value={item.stats.percentage} 
+                      className="h-3"
+                    />
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-400">
+                        {Math.round(item.stats.percentage)}% used
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {item.stats.limit - item.stats.used} remaining
+                      </span>
+                    </div>
+                  </div>
+
+                  {item.stats.percentage >= 80 && (
+                    <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                      <AlertTriangle className="h-4 w-4 text-yellow-400 flex-shrink-0" />
+                      <p className="text-sm text-yellow-300">
+                        You're approaching your {item.name.toLowerCase()} limit. Consider upgrading your plan.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Plan Comparison */}
+      <Card className="glass-card border-white/10">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-white">Plan Limits</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-700">
+                  <th className="text-left py-2 text-white">Feature</th>
+                  <th className="text-center py-2 text-white">Free</th>
+                  <th className="text-center py-2 text-white">Pro</th>
+                  <th className="text-center py-2 text-white">Agency</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-gray-800">
+                  <td className="py-3 text-gray-300">Website Scans</td>
+                  <td className="text-center py-3 text-gray-400">5/month</td>
+                  <td className="text-center py-3 text-blue-400">50/month</td>
+                  <td className="text-center py-3 text-purple-400">Unlimited</td>
+                </tr>
+                <tr className="border-b border-gray-800">
+                  <td className="py-3 text-gray-300">AI Rewrites</td>
+                  <td className="text-center py-3 text-gray-400">10/month</td>
+                  <td className="text-center py-3 text-blue-400">100/month</td>
+                  <td className="text-center py-3 text-purple-400">Unlimited</td>
+                </tr>
+                <tr className="border-b border-gray-800">
+                  <td className="py-3 text-gray-300">Optimizations</td>
+                  <td className="text-center py-3 text-gray-400">2/month</td>
+                  <td className="text-center py-3 text-blue-400">20/month</td>
+                  <td className="text-center py-3 text-purple-400">Unlimited</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

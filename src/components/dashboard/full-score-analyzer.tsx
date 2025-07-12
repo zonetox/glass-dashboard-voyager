@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { BarChart, Target, Loader2, TrendingUp } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface ScoreBreakdown {
@@ -46,61 +47,41 @@ export function FullScoreAnalyzer() {
     setIsAnalyzing(true);
     
     try {
-      // Simulate API call - in real implementation this would call the fullscore API
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      const mockResult: FullScoreResult = {
-        overall_score: Math.floor(Math.random() * 100),
-        grade: (['Critical', 'Average', 'Good', 'Excellent'] as const)[Math.floor(Math.random() * 4)],
-        color: '#22C55E',
-        emoji: '🟢',
-        breakdown: {
-          seo_traditional: Math.floor(Math.random() * 100),
-          ai_readability: Math.floor(Math.random() * 100),
-          semantic_depth: Math.floor(Math.random() * 100),
-          technical_performance: Math.floor(Math.random() * 100),
-          schema_structured_data: Math.floor(Math.random() * 100)
+      const { data, error } = await supabase.functions.invoke('api-fullscore', {
+        body: { 
+          url: websiteUrl.trim()
+        }
+      });
+
+      if (error) throw error;
+
+      const result: FullScoreResult = {
+        overall_score: data.overall_score || 0,
+        grade: data.grade || 'Critical',
+        color: data.color || '#EF4444',
+        emoji: data.emoji || '🔴',
+        breakdown: data.breakdown || {
+          seo_traditional: 0,
+          ai_readability: 0,
+          semantic_depth: 0,
+          technical_performance: 0,
+          schema_structured_data: 0
         },
-        recommendations: [
-          'Optimize page loading speed for better user experience',
-          'Add more structured data markup for rich snippets',
-          'Improve content depth with more comprehensive coverage',
-          'Enhance mobile responsiveness and Core Web Vitals',
-          'Add FAQ schema to improve AI citation potential'
-        ],
+        recommendations: data.recommendations || [],
         analysis_date: new Date().toISOString()
       };
 
-      // Adjust color and emoji based on score
-      if (mockResult.overall_score <= 40) {
-        mockResult.color = '#EF4444';
-        mockResult.emoji = '🔴';
-        mockResult.grade = 'Critical';
-      } else if (mockResult.overall_score <= 70) {
-        mockResult.color = '#EAB308';
-        mockResult.emoji = '🟡';
-        mockResult.grade = 'Average';
-      } else if (mockResult.overall_score <= 90) {
-        mockResult.color = '#22C55E';
-        mockResult.emoji = '🟢';
-        mockResult.grade = 'Good';
-      } else {
-        mockResult.color = '#8B5CF6';
-        mockResult.emoji = '⭐️';
-        mockResult.grade = 'Excellent';
-      }
-
-      setScoreResult(mockResult);
+      setScoreResult(result);
       toast({
         title: "Analysis Complete",
-        description: `Overall score: ${mockResult.overall_score}/100 (${mockResult.grade})`
+        description: `Overall score: ${result.overall_score}/100 (${result.grade})`
       });
 
     } catch (error) {
       console.error('Error analyzing full score:', error);
       toast({
         title: "Error",
-        description: "Failed to analyze website score",
+        description: "Failed to analyze website score. Please try again.",
         variant: "destructive"
       });
     } finally {
