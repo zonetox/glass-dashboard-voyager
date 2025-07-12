@@ -12,46 +12,56 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface AnalysisResult {
-  url: string;
-  title?: string;
-  metaDescription?: string;
-  headings: {
+  seo: {
+    title: string;
+    metaDescription: string;
     h1: string[];
     h2: string[];
     h3: string[];
+    images: Array<{
+      src: string;
+      alt: string;
+    }>;
+    totalImages: number;
+    imagesWithoutAlt: number;
+    canonical: string;
+    robotsMeta: string;
+    viewport: string;
+    wordCount: number;
   };
-  images: {
-    total: number;
-    missingAlt: number;
-    withAlt: number;
-  };
-  pageSpeedInsights?: {
-    desktop: {
-      score: number;
-      lcp: number;
-      fid: number;
-      cls: number;
-      fcp: number;
-    };
+  performance: {
     mobile: {
       score: number;
-      lcp: number;
-      fid: number;
-      cls: number;
-      fcp: number;
+      metrics: any;
+    } | null;
+    desktop: {
+      score: number;
+      metrics: any;
+    } | null;
+  };
+  aiAnalysis: {
+    searchIntent: string;
+    semanticTopics: string[];
+    contentGap: string[];
+    suggestions: {
+      newTitle: string;
+      improvedMeta: string;
+      extraHeadings: string[];
     };
-    opportunities: string[];
+    keywordDensity: Array<{
+      keyword: string;
+      count: number;
+    }>;
+    technicalSEO: {
+      hasCanonical: boolean;
+      robotsDirective: string;
+      headingStructure: string;
+      imageOptimization: string;
+    };
+    overallScore: number;
+    priorityIssues: string[];
   };
-  aiAnalysis?: {
-    citationPotential: string;
-    semanticGaps: string[];
-    faqSuggestions: string[];
-    improvementSuggestions: string[];
-  };
-  schemaMarkup?: {
-    type: string;
-    jsonLd: any;
-  };
+  scanId?: string;
   error?: string;
 }
 
@@ -254,7 +264,7 @@ export function WebsiteAnalyzer({ onAnalysisComplete }: WebsiteAnalyzerProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <CheckCircle className="h-5 w-5 text-green-400" />
-              Analysis Results for {analysisResult.url}
+              Analysis Results
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -274,11 +284,11 @@ export function WebsiteAnalyzer({ onAnalysisComplete }: WebsiteAnalyzerProps) {
                     <div className="space-y-2">
                       <div>
                         <Label className="text-gray-400">Title</Label>
-                        <p className="text-white">{analysisResult.title || 'No title found'}</p>
+                        <p className="text-white">{analysisResult.seo.title || 'No title found'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Meta Description</Label>
-                        <p className="text-white text-sm">{analysisResult.metaDescription || 'No description found'}</p>
+                        <p className="text-white text-sm">{analysisResult.seo.metaDescription || 'No description found'}</p>
                       </div>
                     </div>
                   </div>
@@ -287,19 +297,19 @@ export function WebsiteAnalyzer({ onAnalysisComplete }: WebsiteAnalyzerProps) {
                     <h3 className="text-lg font-semibold text-white">Quick Stats</h3>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-white/5 p-3 rounded-lg">
-                        <div className="text-2xl font-bold text-blue-400">{analysisResult.headings.h1.length}</div>
+                        <div className="text-2xl font-bold text-blue-400">{analysisResult.seo.h1.length}</div>
                         <div className="text-sm text-gray-400">H1 Tags</div>
                       </div>
                       <div className="bg-white/5 p-3 rounded-lg">
-                        <div className="text-2xl font-bold text-green-400">{analysisResult.images.total}</div>
+                        <div className="text-2xl font-bold text-green-400">{analysisResult.seo.totalImages}</div>
                         <div className="text-sm text-gray-400">Images</div>
                       </div>
                       <div className="bg-white/5 p-3 rounded-lg">
-                        <div className="text-2xl font-bold text-yellow-400">{analysisResult.images.missingAlt}</div>
+                        <div className="text-2xl font-bold text-yellow-400">{analysisResult.seo.imagesWithoutAlt}</div>
                         <div className="text-sm text-gray-400">Missing Alt</div>
                       </div>
                       <div className="bg-white/5 p-3 rounded-lg">
-                        <div className="text-2xl font-bold text-purple-400">{analysisResult.headings.h2.length + analysisResult.headings.h3.length}</div>
+                        <div className="text-2xl font-bold text-purple-400">{analysisResult.seo.h2.length + analysisResult.seo.h3.length}</div>
                         <div className="text-sm text-gray-400">H2-H3 Tags</div>
                       </div>
                     </div>
@@ -308,50 +318,54 @@ export function WebsiteAnalyzer({ onAnalysisComplete }: WebsiteAnalyzerProps) {
               </TabsContent>
               
               <TabsContent value="performance" className="space-y-4">
-                {analysisResult.pageSpeedInsights ? (
+                {(analysisResult.performance.desktop || analysisResult.performance.mobile) ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <Monitor className="h-5 w-5 text-blue-400" />
-                        <h3 className="text-lg font-semibold text-white">Desktop Performance</h3>
-                      </div>
-                      <div className="bg-white/5 p-4 rounded-lg">
-                        <div className="text-center">
-                          <div className={`text-3xl font-bold ${getScoreColor(analysisResult.pageSpeedInsights.desktop.score)}`}>
-                            {analysisResult.pageSpeedInsights.desktop.score}
+                    {analysisResult.performance.desktop && (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <Monitor className="h-5 w-5 text-blue-400" />
+                          <h3 className="text-lg font-semibold text-white">Desktop Performance</h3>
+                        </div>
+                        <div className="bg-white/5 p-4 rounded-lg">
+                          <div className="text-center">
+                            <div className={`text-3xl font-bold ${getScoreColor(Math.round(analysisResult.performance.desktop.score * 100))}`}>
+                              {Math.round(analysisResult.performance.desktop.score * 100)}
+                            </div>
+                            <div className="text-sm text-gray-400">Performance Score</div>
                           </div>
-                          <div className="text-sm text-gray-400">Performance Score</div>
                         </div>
                       </div>
-                    </div>
+                    )}
                     
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <Smartphone className="h-5 w-5 text-green-400" />
-                        <h3 className="text-lg font-semibold text-white">Mobile Performance</h3>
-                      </div>
-                      <div className="bg-white/5 p-4 rounded-lg">
-                        <div className="text-center">
-                          <div className={`text-3xl font-bold ${getScoreColor(analysisResult.pageSpeedInsights.mobile.score)}`}>
-                            {analysisResult.pageSpeedInsights.mobile.score}
+                    {analysisResult.performance.mobile && (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <Smartphone className="h-5 w-5 text-green-400" />
+                          <h3 className="text-lg font-semibold text-white">Mobile Performance</h3>
+                        </div>
+                        <div className="bg-white/5 p-4 rounded-lg">
+                          <div className="text-center">
+                            <div className={`text-3xl font-bold ${getScoreColor(Math.round(analysisResult.performance.mobile.score * 100))}`}>
+                              {Math.round(analysisResult.performance.mobile.score * 100)}
+                            </div>
+                            <div className="text-sm text-gray-400">Performance Score</div>
                           </div>
-                          <div className="text-sm text-gray-400">Performance Score</div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 ) : (
                   <p className="text-gray-400">Performance data not available</p>
                 )}
                 
-                {analysisResult.pageSpeedInsights?.opportunities && (
+                {analysisResult.aiAnalysis.priorityIssues && analysisResult.aiAnalysis.priorityIssues.length > 0 && (
                   <div className="space-y-3">
-                    <h3 className="text-lg font-semibold text-white">Optimization Opportunities</h3>
+                    <h3 className="text-lg font-semibold text-white">Priority Issues</h3>
                     <div className="space-y-2">
-                      {analysisResult.pageSpeedInsights.opportunities.map((opportunity, index) => (
+                      {analysisResult.aiAnalysis.priorityIssues.map((issue, index) => (
                         <div key={index} className="flex items-center gap-2 p-2 bg-white/5 rounded">
                           <Zap className="h-4 w-4 text-yellow-400" />
-                          <span className="text-gray-300">{opportunity}</span>
+                          <span className="text-gray-300">{issue}</span>
                         </div>
                       ))}
                     </div>
@@ -367,11 +381,11 @@ export function WebsiteAnalyzer({ onAnalysisComplete }: WebsiteAnalyzerProps) {
                     <div className="p-4 bg-white/5 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-medium text-white">H1 Headings</span>
-                        <Badge variant={analysisResult.headings.h1.length === 1 ? "default" : "destructive"}>
-                          {analysisResult.headings.h1.length} found
+                        <Badge variant={analysisResult.seo.h1.length === 1 ? "default" : "destructive"}>
+                          {analysisResult.seo.h1.length} found
                         </Badge>
                       </div>
-                      {analysisResult.headings.h1.map((h1, index) => (
+                      {analysisResult.seo.h1.map((h1, index) => (
                         <p key={index} className="text-sm text-gray-300">{h1}</p>
                       ))}
                     </div>
@@ -379,12 +393,12 @@ export function WebsiteAnalyzer({ onAnalysisComplete }: WebsiteAnalyzerProps) {
                     <div className="p-4 bg-white/5 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-medium text-white">Images</span>
-                        <Badge variant={analysisResult.images.missingAlt === 0 ? "default" : "destructive"}>
-                          {analysisResult.images.missingAlt} missing alt text
+                        <Badge variant={analysisResult.seo.imagesWithoutAlt === 0 ? "default" : "destructive"}>
+                          {analysisResult.seo.imagesWithoutAlt} missing alt text
                         </Badge>
                       </div>
                       <div className="text-sm text-gray-300">
-                        {analysisResult.images.total} total images, {analysisResult.images.withAlt} with alt text
+                        {analysisResult.seo.totalImages} total images, {analysisResult.seo.totalImages - analysisResult.seo.imagesWithoutAlt} with alt text
                       </div>
                     </div>
                   </div>
@@ -401,29 +415,29 @@ export function WebsiteAnalyzer({ onAnalysisComplete }: WebsiteAnalyzerProps) {
                     
                     <div className="space-y-4">
                       <div className="p-4 bg-white/5 rounded-lg">
-                        <h4 className="font-medium text-white mb-2">Citation Potential</h4>
-                        <p className="text-gray-300 text-sm">{analysisResult.aiAnalysis.citationPotential}</p>
+                        <h4 className="font-medium text-white mb-2">Search Intent</h4>
+                        <p className="text-gray-300 text-sm">{analysisResult.aiAnalysis.searchIntent}</p>
                       </div>
                       
                       <div className="p-4 bg-white/5 rounded-lg">
-                        <h4 className="font-medium text-white mb-2">Improvement Suggestions</h4>
+                        <h4 className="font-medium text-white mb-2">Content Suggestions</h4>
                         <ul className="space-y-1">
-                          {analysisResult.aiAnalysis.improvementSuggestions.map((suggestion, index) => (
+                          {analysisResult.aiAnalysis.suggestions.extraHeadings.map((heading, index) => (
                             <li key={index} className="text-gray-300 text-sm flex items-start gap-2">
                               <AlertCircle className="h-3 w-3 text-blue-400 mt-1 flex-shrink-0" />
-                              {suggestion}
+                              {heading}
                             </li>
                           ))}
                         </ul>
                       </div>
                       
                       <div className="p-4 bg-white/5 rounded-lg">
-                        <h4 className="font-medium text-white mb-2">FAQ Suggestions</h4>
-                        <ul className="space-y-1">
-                          {analysisResult.aiAnalysis.faqSuggestions.map((faq, index) => (
-                            <li key={index} className="text-gray-300 text-sm">{faq}</li>
-                          ))}
-                        </ul>
+                        <h4 className="font-medium text-white mb-2">Technical SEO Status</h4>
+                        <div className="space-y-2 text-sm text-gray-300">
+                          <div>Heading Structure: {analysisResult.aiAnalysis.technicalSEO.headingStructure}</div>
+                          <div>Image Optimization: {analysisResult.aiAnalysis.technicalSEO.imageOptimization}</div>
+                          <div>Overall Score: {analysisResult.aiAnalysis.overallScore}/100</div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -433,26 +447,33 @@ export function WebsiteAnalyzer({ onAnalysisComplete }: WebsiteAnalyzerProps) {
               </TabsContent>
               
               <TabsContent value="schema" className="space-y-4">
-                {analysisResult.schemaMarkup ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Code className="h-5 w-5 text-green-400" />
-                      <h3 className="text-lg font-semibold text-white">Schema.org Markup</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Code className="h-5 w-5 text-green-400" />
+                    <h3 className="text-lg font-semibold text-white">Technical SEO Details</h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-white/5 rounded-lg">
+                      <h4 className="font-medium text-white mb-2">Meta Information</h4>
+                      <div className="space-y-1 text-sm text-gray-300">
+                        <div>Canonical URL: {analysisResult.seo.canonical || 'Not set'}</div>
+                        <div>Robots Meta: {analysisResult.seo.robotsMeta || 'Not set'}</div>
+                        <div>Viewport: {analysisResult.seo.viewport || 'Not set'}</div>
+                      </div>
                     </div>
                     
                     <div className="p-4 bg-white/5 rounded-lg">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Badge variant="outline">{analysisResult.schemaMarkup.type}</Badge>
-                        <span className="text-sm text-gray-400">Schema Type</span>
+                      <h4 className="font-medium text-white mb-2">Content Statistics</h4>
+                      <div className="space-y-1 text-sm text-gray-300">
+                        <div>Word Count: {analysisResult.seo.wordCount}</div>
+                        <div>H1 Tags: {analysisResult.seo.h1.length}</div>
+                        <div>H2 Tags: {analysisResult.seo.h2.length}</div>
+                        <div>H3 Tags: {analysisResult.seo.h3.length}</div>
                       </div>
-                      <pre className="text-sm text-gray-300 bg-black/20 p-3 rounded overflow-x-auto">
-                        {JSON.stringify(analysisResult.schemaMarkup.jsonLd, null, 2)}
-                      </pre>
                     </div>
                   </div>
-                ) : (
-                  <p className="text-gray-400">Schema markup not generated</p>
-                )}
+                </div>
               </TabsContent>
             </Tabs>
           </CardContent>
