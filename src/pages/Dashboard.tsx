@@ -1,5 +1,6 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { SEODashboard } from '@/components/dashboard/seo-dashboard';
 import { WebsiteAnalyzer } from '@/components/dashboard/website-analyzer';
@@ -15,10 +16,29 @@ import { UsageTracker } from '@/components/dashboard/usage-tracker';
 import { ScheduledScans } from '@/components/dashboard/scheduled-scans';
 import { AdminSettings } from '@/components/dashboard/admin-settings';
 import { AdminTestRunner } from '@/components/dashboard/admin-test-runner';
+import { AdminOverview } from '@/components/dashboard/admin-overview';
 import { Website, SEOIssue, mockSEOIssues } from '@/lib/types';
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const searchParams = new URLSearchParams(location.search);
+  const tabFromUrl = searchParams.get('tab') || 'overview';
+  const [activeTab, setActiveTab] = useState(tabFromUrl);
+
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') || 'overview';
+    setActiveTab(tabFromUrl);
+  }, [location.search]);
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    if (tabId === 'overview') {
+      navigate('/dashboard');
+    } else {
+      navigate(`/dashboard?tab=${tabId}`);
+    }
+  };
   
 
   // Mock website data for demonstration
@@ -71,6 +91,8 @@ export default function Dashboard() {
         return <ScheduledScans />;
       case 'admin':
         return <AdminSettings />;
+      case 'admin-overview':
+        return <AdminOverview />;
       case 'test':
         return <AdminTestRunner />;
       default:
@@ -97,12 +119,13 @@ export default function Dashboard() {
               { id: 'competitors', label: 'Competitors', icon: '🏆' },
               { id: 'scheduled', label: 'Scheduled', icon: '⏰' },
               { id: 'admin', label: 'Admin', icon: '⚙️' },
+              { id: 'admin-overview', label: 'Admin Overview', icon: '👨‍💼' },
               { id: 'test', label: 'Test', icon: '🧪' },
               { id: 'api', label: 'API', icon: '🔌' },
             ].map((item) => (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => handleTabChange(item.id)}
                 className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                   activeTab === item.id
                     ? 'border-blue-500 text-blue-400'

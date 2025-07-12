@@ -2,7 +2,7 @@
 import { useAuth } from "../hooks/useAuth";
 import { AuthForm } from "../components/AuthForm";
 import { Button } from "@/components/ui/button";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { 
   BarChart3, 
   Search, 
@@ -15,6 +15,7 @@ import {
 
 const Index = () => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
 
   if (loading) {
     return (
@@ -92,6 +93,10 @@ const Index = () => {
                 <Button 
                   size="lg" 
                   className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg"
+                  onClick={() => {
+                    const authForm = document.getElementById('auth-form');
+                    authForm?.scrollIntoView({ behavior: 'smooth' });
+                  }}
                 >
                   Get Started Free
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -100,6 +105,7 @@ const Index = () => {
                   variant="outline" 
                   size="lg"
                   className="border-white/20 text-white hover:bg-white/10 px-8 py-3 text-lg"
+                  onClick={() => navigate('/dashboard')}
                 >
                   View Demo
                 </Button>
@@ -124,7 +130,7 @@ const Index = () => {
           </div>
 
           {/* Auth Form */}
-          <div className="lg:max-w-md lg:mx-auto">
+          <div className="lg:max-w-md lg:mx-auto" id="auth-form">
             <AuthForm />
           </div>
         </div>
@@ -182,6 +188,10 @@ const Index = () => {
           <Button 
             size="lg"
             className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 text-lg"
+            onClick={() => {
+              const authForm = document.getElementById('auth-form');
+              authForm?.scrollIntoView({ behavior: 'smooth' });
+            }}
           >
             Start Your Free Analysis
             <ArrowRight className="ml-2 h-5 w-5" />
