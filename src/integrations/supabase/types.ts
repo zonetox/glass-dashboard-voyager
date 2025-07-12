@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       api_tokens: {
         Row: {
           created_at: string | null
@@ -593,6 +620,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_usage: {
         Row: {
           ai_rewrites_used: number
@@ -635,6 +683,17 @@ export type Database = {
         Args: { _token_id: string; _endpoint: string; _rate_limit: number }
         Returns: boolean
       }
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
       record_api_usage: {
         Args: { _token_id: string; _user_id: string; _endpoint: string }
         Returns: undefined
@@ -645,6 +704,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "member"
       organization_role: "admin" | "editor" | "viewer"
       user_tier: "free" | "pro" | "agency"
     }
@@ -774,6 +834,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "member"],
       organization_role: ["admin", "editor", "viewer"],
       user_tier: ["free", "pro", "agency"],
     },
