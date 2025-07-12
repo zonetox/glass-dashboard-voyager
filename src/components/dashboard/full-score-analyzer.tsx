@@ -50,11 +50,8 @@ export function FullScoreAnalyzer() {
       console.log('Starting full score analysis for:', websiteUrl);
       
       const { data, error } = await supabase.functions.invoke('internal-fullscore', {
-        body: JSON.stringify({ 
+        body: { 
           url: websiteUrl.trim()
-        }),
-        headers: {
-          'Content-Type': 'application/json'
         }
       });
 
