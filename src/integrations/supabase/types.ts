@@ -462,6 +462,42 @@ export type Database = {
           },
         ]
       }
+      reports: {
+        Row: {
+          created_at: string
+          file_url: string
+          id: string
+          include_ai: boolean | null
+          report_type: string | null
+          scan_id: string | null
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_url: string
+          id?: string
+          include_ai?: boolean | null
+          report_type?: string | null
+          scan_id?: string | null
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_url?: string
+          id?: string
+          include_ai?: boolean | null
+          report_type?: string | null
+          scan_id?: string | null
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       scan_comparisons: {
         Row: {
           alert_sent: boolean | null
