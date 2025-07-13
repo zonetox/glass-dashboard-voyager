@@ -87,3 +87,6 @@ verify_jwt = true
 
 [functions.restore-site]
 verify_jwt = true
+
+[functions.rewrite-content]
+verify_jwt = true
