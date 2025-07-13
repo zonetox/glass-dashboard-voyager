@@ -25,6 +25,7 @@ import {
   Info
 } from 'lucide-react';
 import AutoFixStepper from '@/components/dashboard/AutoFixStepper';
+import { OneClickFix } from '@/components/dashboard/OneClickFix';
 import { Website, SEOIssue, mockSEOIssues } from '@/lib/types';
 
 export default function Dashboard() {
@@ -36,6 +37,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState(tabFromUrl);
   const [autoFixOpen, setAutoFixOpen] = useState(false);
   const [selectedIssues, setSelectedIssues] = useState<string[]>([]);
+  const [oneClickFixOpen, setOneClickFixOpen] = useState(false);
 
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') || 'overview';
@@ -149,7 +151,7 @@ export default function Dashboard() {
 
           {/* Main Tabs */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+            <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
                 <span className="hidden sm:inline">Tổng quan</span>
@@ -165,6 +167,10 @@ export default function Dashboard() {
               <TabsTrigger value="auto-fix" className="flex items-center gap-2">
                 <Wrench className="h-4 w-4" />
                 <span className="hidden sm:inline">Auto Fix</span>
+              </TabsTrigger>
+              <TabsTrigger value="one-click" className="flex items-center gap-2">
+                <Zap className="h-4 w-4" />
+                <span className="hidden sm:inline">Tối ưu 1 lần</span>
               </TabsTrigger>
             </TabsList>
 
@@ -400,17 +406,127 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              {/* One-Click SEO Tab */}
+              <TabsContent value="one-click" className="space-y-6">
+                <div className="max-w-4xl mx-auto space-y-6">
+                  {/* Hero Section */}
+                  <Card className="text-center">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="text-2xl">Tối ưu SEO một lần</CardTitle>
+                      <p className="text-muted-foreground">
+                        Hệ thống sẽ tự động phân tích, đề xuất, viết lại và tối ưu mọi lỗi SEO hiện tại bằng AI Semantic
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="lg"
+                            className="h-16 text-lg px-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                            onClick={() => setOneClickFixOpen(true)}
+                          >
+                            <Wrench className="h-6 w-6 mr-3" />
+                            🔧 Tối ưu toàn bộ bằng AI
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>Hệ thống sẽ tự động phân tích, đề xuất, viết lại và tối ưu mọi lỗi SEO hiện tại bằng AI Semantic</p>
+                        </TooltipContent>
+                      </Tooltip>
+
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <p>✅ Phân tích semantic và search intent</p>
+                        <p>✅ Tối ưu meta title, description, headings</p>
+                        <p>✅ Viết lại nội dung theo AI suggestions</p>
+                        <p>✅ Tự động backup trước khi thay đổi</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Optimization History */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Lịch sử tối ưu</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Xem lại các lần tối ưu trước đây và khôi phục nếu cần
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {/* Sample history items */}
+                        <div className="flex items-center justify-between p-4 rounded-lg border">
+                          <div className="flex items-center gap-3">
+                            <CheckCircle className="h-5 w-5 text-green-500" />
+                            <div>
+                              <div className="font-medium">Tối ưu hoàn tất - 15/01/2024</div>
+                              <div className="text-sm text-muted-foreground">
+                                Sửa 8 lỗi • SEO Score: 65 → 89 • Meta tags, Alt text, H1 structure
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm">
+                              Xem chi tiết
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <RotateCcw className="h-4 w-4 mr-1" />
+                              Khôi phục
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 rounded-lg border">
+                          <div className="flex items-center gap-3">
+                            <CheckCircle className="h-5 w-5 text-green-500" />
+                            <div>
+                              <div className="font-medium">Tối ưu hoàn tất - 10/01/2024</div>
+                              <div className="text-sm text-muted-foreground">
+                                Sửa 12 lỗi • SEO Score: 45 → 78 • Schema markup, Internal links
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm">
+                              Xem chi tiết
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <RotateCcw className="h-4 w-4 mr-1" />
+                              Khôi phục
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="text-center py-8 text-muted-foreground">
+                          <p>Chưa có lịch sử tối ưu nào khác</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
             </div>
           </Tabs>
-
-          {/* Auto Fix Stepper Modal */}
-          <AutoFixStepper
-            open={autoFixOpen}
-            onClose={() => setAutoFixOpen(false)}
-            websiteUrl={mockWebsite.url}
-            onComplete={handleAutoFixComplete}
-          />
         </div>
+
+        {/* Auto Fix Modal */}
+        <AutoFixStepper
+          open={autoFixOpen}
+          onClose={() => setAutoFixOpen(false)}
+          websiteUrl={mockWebsite.url}
+          onComplete={handleAutoFixComplete}
+        />
+
+        {/* One-Click Fix Modal */}
+        {oneClickFixOpen && (
+          <OneClickFix
+            url={mockWebsite.url}
+            onBackupCreated={() => {
+              console.log('Backup created');
+              setOneClickFixOpen(false);
+            }}
+          />
+        )}
       </div>
     </TooltipProvider>
   );
