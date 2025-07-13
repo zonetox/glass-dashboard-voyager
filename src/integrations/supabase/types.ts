@@ -612,6 +612,42 @@ export type Database = {
         }
         Relationships: []
       }
+      semantic_results: {
+        Row: {
+          created_at: string
+          entities: Json | null
+          id: string
+          main_topic: string | null
+          missing_topics: Json | null
+          search_intent: string | null
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entities?: Json | null
+          id?: string
+          main_topic?: string | null
+          missing_topics?: Json | null
+          search_intent?: string | null
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entities?: Json | null
+          id?: string
+          main_topic?: string | null
+          missing_topics?: Json | null
+          search_intent?: string | null
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       seo_analysis: {
         Row: {
           analysis_data: Json

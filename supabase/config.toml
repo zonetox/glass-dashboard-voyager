@@ -65,7 +65,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.semantic-analysis]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-scan-alert]
 verify_jwt = false

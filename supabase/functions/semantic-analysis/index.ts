@@ -1,140 +1,171 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { corsHeaders } from '../_shared/cors.ts'
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 interface SemanticAnalysisRequest {
+  url: string;
   content: string;
-  url?: string;
+  user_id?: string;
 }
 
 interface SemanticAnalysisResponse {
-  mainTopic: string;
-  subtopics: Array<{
-    title: string;
-    description: string;
-    priority: 'high' | 'medium' | 'low';
-  }>;
-  suggestedImprovements: string[];
-  contentOutline: Array<{
-    section: string;
-    subsections: string[];
-  }>;
-  semanticGaps: string[];
-  topicalDepthScore: number;
+  main_topic: string;
+  missing_topics: string[];
+  search_intent: string;
+  entities: string[];
 }
-
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  if (!openAIApiKey) {
+    console.error('OpenAI API key not configured');
+    return new Response(
+      JSON.stringify({ error: 'OpenAI API key not configured' }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 
   try {
-    if (!OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
+    const { url, content, user_id }: SemanticAnalysisRequest = await req.json();
+
+    if (!url || !content) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields: url, content' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
-    const { content, url }: SemanticAnalysisRequest = await req.json();
+    console.log(`Starting semantic analysis for URL: ${url}`);
 
-    if (!content || content.trim().length === 0) {
-      throw new Error('Content is required for semantic analysis');
-    }
+    const systemPrompt = `You are an expert SEO content analyst. Your task is to analyze web content and extract semantic information that will help with SEO optimization.
 
-    console.log('Starting semantic analysis for:', url || 'provided content');
+Analyze the provided content and respond with a JSON object containing:
+1. main_topic: A clear, concise description of the primary topic (1 line)
+2. missing_topics: An array of related subtopics or semantic gaps that could improve content completeness
+3. search_intent: One of "informational", "transactional", "navigational", or "commercial"
+4. entities: An array of important entities like products, locations, brands, or key terms
 
-    const prompt = `
-Analyze the following web page content for semantic SEO optimization. Provide a comprehensive analysis including:
+Provide accurate, actionable insights that can help improve the content's semantic relevance and search performance.`;
 
-1. Main topic identification
-2. Missing semantic subtopics that should be covered
-3. Content outline suggestions for better topical depth
-4. Semantic gaps that hurt Google rankings
+    const userPrompt = `Analyze the following web content from URL: ${url}
 
-Content to analyze:
-${content.substring(0, 5000)}${content.length > 5000 ? '...' : ''}
+Content:
+${content.substring(0, 4000)} ${content.length > 4000 ? '...' : ''}
 
-Respond with a JSON object containing:
-- mainTopic: The primary topic/theme of the content
-- subtopics: Array of 3-5 missing subtopics with title, description, and priority
-- suggestedImprovements: Array of specific improvements to make
-- contentOutline: Suggested article structure with sections and subsections
-- semanticGaps: Missing semantic elements that competitors likely cover
-- topicalDepthScore: Score from 1-100 on how comprehensively the topic is covered
+Please provide your analysis in the exact JSON format:
+{
+  "main_topic": "...",
+  "missing_topics": ["...", "..."],
+  "search_intent": "...",
+  "entities": ["...", "..."]
+}`;
 
-Focus on semantic SEO best practices and what Google's algorithms expect for comprehensive topic coverage.
-`;
+    console.log('Sending request to OpenAI for semantic analysis');
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
-          {
-            role: 'system',
-            content: 'You are an expert SEO analyst specializing in semantic search optimization and topic clusters. Provide detailed, actionable insights for improving content topical depth and semantic relevance.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
         temperature: 0.3,
-        max_tokens: 2000,
-        response_format: { type: "json_object" }
+        max_tokens: 1000,
       }),
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      console.error('OpenAI API error:', response.status, response.statusText);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const analysisResult = JSON.parse(data.choices[0].message.content);
+    const aiResponse = data.choices[0].message.content;
 
-    // Validate and structure the response
-    const semanticAnalysis: SemanticAnalysisResponse = {
-      mainTopic: analysisResult.mainTopic || 'Unknown Topic',
-      subtopics: Array.isArray(analysisResult.subtopics) ? analysisResult.subtopics : [],
-      suggestedImprovements: Array.isArray(analysisResult.suggestedImprovements) ? analysisResult.suggestedImprovements : [],
-      contentOutline: Array.isArray(analysisResult.contentOutline) ? analysisResult.contentOutline : [],
-      semanticGaps: Array.isArray(analysisResult.semanticGaps) ? analysisResult.semanticGaps : [],
-      topicalDepthScore: analysisResult.topicalDepthScore || 0
-    };
+    console.log('Received response from OpenAI');
 
-    console.log('Semantic analysis completed successfully');
+    // Parse the JSON response
+    let analysisResult: SemanticAnalysisResponse;
+    try {
+      // Clean the response in case it has markdown formatting
+      const cleanedResponse = aiResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      analysisResult = JSON.parse(cleanedResponse);
+    } catch (parseError) {
+      console.error('Failed to parse AI response:', parseError);
+      throw new Error('Invalid response format from AI');
+    }
+
+    // Save to database if user_id is provided
+    if (user_id) {
+      console.log('Saving semantic analysis to database');
+      
+      const { error: dbError } = await supabase
+        .from('semantic_results')
+        .insert({
+          url,
+          user_id,
+          main_topic: analysisResult.main_topic,
+          missing_topics: analysisResult.missing_topics,
+          search_intent: analysisResult.search_intent,
+          entities: analysisResult.entities,
+        });
+
+      if (dbError) {
+        console.error('Database error:', dbError);
+        // Don't fail the entire request for DB errors, just log it
+      } else {
+        console.log('Semantic analysis saved to database successfully');
+      }
+    }
+
+    // Log usage for monitoring
+    console.log(`Semantic analysis completed for user: ${user_id || 'anonymous'}, URL: ${url}`);
 
     return new Response(
-      JSON.stringify(semanticAnalysis),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
+      JSON.stringify(analysisResult),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
 
   } catch (error) {
-    console.error('Semantic analysis error:', error);
-    
+    console.error('Error in semantic-analysis function:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        details: 'Failed to perform semantic analysis'
+        error: 'Failed to perform semantic analysis',
+        details: error.message 
       }),
-      { 
+      {
         status: 500,
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
