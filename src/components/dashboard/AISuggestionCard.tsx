@@ -59,7 +59,7 @@ export const AISuggestionCard: React.FC<AISuggestionCardProps> = ({
           url: error.affectedUrl,
           type: error.type,
           original_content: error.originalContent,
-          context: error.description,
+          user_id: (await supabase.auth.getUser()).data.user?.id,
         }
       });
 
