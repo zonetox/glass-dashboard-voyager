@@ -12,6 +12,7 @@ import AIKeywords from "./pages/AIKeywords";
 import CompetitorAnalysis from "./pages/CompetitorAnalysis";
 import VoiceSearchOptimizer from "./pages/VoiceSearchOptimizer";
 import ContentTrendsPredictor from "./pages/ContentTrendsPredictor";
+import LocalBusinessOptimizer from "./pages/LocalBusinessOptimizer";
 import Admin from "./pages/Admin";
 import AdminPlans from "./pages/AdminPlans";
 import Auth from "./pages/Auth";
@@ -106,6 +107,14 @@ const App = () => (
               } 
             />
             <Route 
+              path="/local-business" 
+              element={
+                <ProtectedRoute>
+                  <LocalBusinessOptimizer />
+                </ProtectedRoute>
+              } 
+            />
+            <Route
               path="/admin" 
               element={
                 <ProtectedRoute>

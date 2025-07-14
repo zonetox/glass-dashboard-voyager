@@ -1027,8 +1027,18 @@ export type Database = {
       user_profiles: {
         Row: {
           ai_rewrites_limit: number
+          business_address: string | null
+          business_category: string | null
+          business_description: string | null
+          business_hours: Json | null
+          business_name: string | null
+          business_phone: string | null
+          business_type: string | null
+          business_website: string | null
+          coordinates: Json | null
           created_at: string | null
           email_verified: boolean | null
+          google_my_business_url: string | null
           id: string
           last_login_at: string | null
           optimizations_limit: number
@@ -1039,8 +1049,18 @@ export type Database = {
         }
         Insert: {
           ai_rewrites_limit?: number
+          business_address?: string | null
+          business_category?: string | null
+          business_description?: string | null
+          business_hours?: Json | null
+          business_name?: string | null
+          business_phone?: string | null
+          business_type?: string | null
+          business_website?: string | null
+          coordinates?: Json | null
           created_at?: string | null
           email_verified?: boolean | null
+          google_my_business_url?: string | null
           id?: string
           last_login_at?: string | null
           optimizations_limit?: number
@@ -1051,8 +1071,18 @@ export type Database = {
         }
         Update: {
           ai_rewrites_limit?: number
+          business_address?: string | null
+          business_category?: string | null
+          business_description?: string | null
+          business_hours?: Json | null
+          business_name?: string | null
+          business_phone?: string | null
+          business_type?: string | null
+          business_website?: string | null
+          coordinates?: Json | null
           created_at?: string | null
           email_verified?: boolean | null
+          google_my_business_url?: string | null
           id?: string
           last_login_at?: string | null
           optimizations_limit?: number

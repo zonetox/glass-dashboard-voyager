@@ -668,7 +668,7 @@ export default function Dashboard() {
 
               {/* Keywords Tab */}
               <TabsContent value="keywords" className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                   <Card className="glass-card">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -678,14 +678,14 @@ export default function Dashboard() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <p className="text-muted-foreground text-sm">
-                        Phân tích từ khóa thông minh với AI - tạo nhóm từ khóa semantic và gợi ý content strategy
+                        Phân tích từ khóa thông minh với AI
                       </p>
                       <Button
                         onClick={() => navigate('/ai-keywords')}
                         className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
                       >
                         <Hash className="h-4 w-4 mr-2" />
-                        Mở AI Keywords
+                        AI Keywords
                       </Button>
                     </CardContent>
                   </Card>
@@ -699,14 +699,14 @@ export default function Dashboard() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <p className="text-muted-foreground text-sm">
-                        Phân tích và so sánh domain của bạn với các đối thủ cạnh tranh về SEO, tốc độ và content
+                        Phân tích đối thủ cạnh tranh
                       </p>
                       <Button
                         onClick={() => navigate('/competitor-analysis')}
                         className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
                       >
                         <TrendingUp className="h-4 w-4 mr-2" />
-                        Bắt đầu so sánh
+                        So sánh
                       </Button>
                     </CardContent>
                   </Card>
@@ -715,19 +715,40 @@ export default function Dashboard() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <BarChart3 className="h-5 w-5 text-green-500" />
-                        Dự báo xu hướng
+                        Dự báo trends
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <p className="text-muted-foreground text-sm">
-                        Sử dụng AI để dự đoán content trends và gợi ý strategy tương lai
+                        AI dự đoán xu hướng content
                       </p>
                       <Button
                         onClick={() => navigate('/content-trends')}
                         className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
                       >
                         <BarChart3 className="h-4 w-4 mr-2" />
-                        Dự báo trends
+                        Trends
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="glass-card">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Globe className="h-5 w-5 text-orange-500" />
+                        Local Business
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-muted-foreground text-sm">
+                        Tối ưu doanh nghiệp địa phương
+                      </p>
+                      <Button
+                        onClick={() => navigate('/local-business')}
+                        className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
+                      >
+                        <Globe className="h-4 w-4 mr-2" />
+                        Local SEO
                       </Button>
                     </CardContent>
                   </Card>
