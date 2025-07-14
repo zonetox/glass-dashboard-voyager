@@ -29,7 +29,8 @@ import {
   Shield,
   Info,
   FileText,
-  Loader2
+  Loader2,
+  Hash
 } from 'lucide-react';
 import EnhancedAutoFixStepper from '@/components/dashboard/EnhancedAutoFixStepper';
 import { OneClickFix } from '@/components/dashboard/OneClickFix';
@@ -335,7 +336,7 @@ export default function Dashboard() {
 
           {/* Main Tabs */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-flex">
+            <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:inline-flex">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
                 <span className="hidden sm:inline">Tổng quan</span>
@@ -355,6 +356,10 @@ export default function Dashboard() {
               <TabsTrigger value="one-click" className="flex items-center gap-2">
                 <Zap className="h-4 w-4" />
                 <span className="hidden sm:inline">Tối ưu 1 lần</span>
+              </TabsTrigger>
+              <TabsTrigger value="keywords" className="flex items-center gap-2">
+                <Hash className="h-4 w-4" />
+                <span className="hidden sm:inline">AI Keywords</span>
               </TabsTrigger>
               <TabsTrigger value="reports" className="flex items-center gap-2 pdf-report-button">
                 <FileText className="h-4 w-4" />
@@ -658,6 +663,22 @@ export default function Dashboard() {
                       notifications.showBackupCreated(mockWebsite.url);
                     }}
                   />
+                </div>
+              </TabsContent>
+
+              {/* Keywords Tab */}
+              <TabsContent value="keywords" className="space-y-6">
+                <div className="text-center">
+                  <p className="text-muted-foreground mb-4">
+                    AI Keywords hiện có sẵn như một trang riêng biệt để tập trung vào phân tích từ khóa
+                  </p>
+                  <Button
+                    onClick={() => window.open('/ai-keywords', '_blank')}
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                  >
+                    <Hash className="h-4 w-4 mr-2" />
+                    Mở AI Keywords
+                  </Button>
                 </div>
               </TabsContent>
 

@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "./hooks/useAuth";
 import Index from "./pages/Index";
 import LandingPage from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
+import AIKeywords from "./pages/AIKeywords";
 import Admin from "./pages/Admin";
 import AdminPlans from "./pages/AdminPlans";
 import Auth from "./pages/Auth";
@@ -66,6 +67,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/ai-keywords" 
+              element={
+                <ProtectedRoute>
+                  <AIKeywords />
                 </ProtectedRoute>
               } 
             />
