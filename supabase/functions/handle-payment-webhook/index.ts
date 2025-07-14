@@ -187,6 +187,9 @@ serve(async (req) => {
     if (processResult.status === 'completed' && processResult.userId) {
       logStep("Upgrading user to Pro", { userId: processResult.userId });
       
+      // Get user details for email
+      const { data: userData, error: userError } = await supabaseClient.auth.admin.getUserById(processResult.userId);
+      
       // Update user plan to Pro
       const { error: planError } = await supabaseClient
         .from("user_plans")
@@ -221,6 +224,27 @@ serve(async (req) => {
         }
       } else {
         logStep("User upgraded to Pro successfully", { userId: processResult.userId });
+      }
+
+      // Send payment success email
+      if (userData?.user?.email) {
+        try {
+          await supabaseClient.functions.invoke('send-email-event', {
+            body: {
+              email: userData.user.email,
+              email_type: 'payment-success',
+              template_data: {
+                user_name: userData.user.email.split('@')[0],
+                plan_name: 'Pro',
+                amount: processResult.amount ? processResult.amount / 100 : 0,
+              },
+              user_id: processResult.userId,
+            }
+          });
+          logStep("Payment success email sent", { email: userData.user.email });
+        } catch (emailError) {
+          logStep("Failed to send payment success email", { error: emailError });
+        }
       }
     }
 

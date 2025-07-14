@@ -8,6 +8,8 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Download, Eye, FileText, Mail, Plus, Filter } from "lucide-react";
 import { format } from "date-fns";
+import { sendPDFReportEmail } from "@/lib/email-service";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Report {
   id: string;
@@ -27,6 +29,7 @@ export function ReportViewer() {
   const [creating, setCreating] = useState(false);
   const [domainFilter, setDomainFilter] = useState("");
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchReports();
@@ -83,9 +86,21 @@ export function ReportViewer() {
 
       if (error) throw error;
 
+      // Send PDF report email if user is logged in
+      if (user?.email && data?.file_url) {
+        sendPDFReportEmail(
+          user.email,
+          url,
+          data.file_url,
+          user.id
+        ).catch(emailError => {
+          console.error('Failed to send PDF report email:', emailError);
+        });
+      }
+
       toast({
         title: "Thành công",
-        description: "Báo cáo đã được tạo thành công",
+        description: "Báo cáo đã được tạo và link tải đã được gửi qua email",
       });
       
       fetchReports();
@@ -110,11 +125,21 @@ export function ReportViewer() {
     if (!email) return;
 
     try {
-      // This would call an email sending edge function
-      toast({
-        title: "Thông báo",
-        description: "Tính năng gửi email sẽ được triển khai trong phiên bản tiếp theo",
-      });
+      const result = await sendPDFReportEmail(
+        email,
+        report.url,
+        report.file_url,
+        user?.id
+      );
+
+      if (result.success) {
+        toast({
+          title: "Thành công",
+          description: "Email đã được gửi thành công",
+        });
+      } else {
+        throw new Error(result.error?.message || 'Unknown error');
+      }
     } catch (error) {
       toast({
         title: "Lỗi",

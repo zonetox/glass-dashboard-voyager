@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { sendWelcomeEmail } from '@/lib/email-service';
 
 export function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
@@ -31,6 +32,11 @@ export function AuthForm() {
           description: error.message,
         });
       } else if (!isLogin) {
+        // Send welcome email after successful signup
+        sendWelcomeEmail(email).catch(emailError => {
+          console.error('Failed to send welcome email:', emailError);
+        });
+        
         toast({
           title: "Account created",
           description: "Please check your email to verify your account.",
