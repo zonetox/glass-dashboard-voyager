@@ -11,7 +11,17 @@ import {
   ArrowRight,
   Mail,
   Phone,
-  MapPin
+  MapPin,
+  Search,
+  Bot,
+  Brain,
+  Image,
+  Target,
+  Clock,
+  Code,
+  Users,
+  TrendingUp,
+  X
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -53,6 +63,63 @@ export default function LandingPage() {
       icon: <CheckCircle className="w-12 h-12 text-primary" />,
       title: "Nhận bản sửa lỗi AI",
       description: "Nhận ngay các đề xuất cải thiện và có thể áp dụng tự động với 1 click"
+    }
+  ];
+
+  const comparisonData = [
+    {
+      label: "Tiêu đề trang (Meta Title)",
+      icon: <FileText className="w-5 h-5" />,
+      classic: "Có hoặc không, nhiều khi quá dài",
+      ai: "AI tự rút gọn, chèn từ khóa và CTA hiệu quả"
+    },
+    {
+      label: "Thẻ mô tả (Meta Description)",
+      icon: <Search className="w-5 h-5" />,
+      classic: "Không có mô tả hoặc không hấp dẫn",
+      ai: "AI viết lại để tăng tỷ lệ click"
+    },
+    {
+      label: "Thẻ H1 - H3",
+      icon: <BarChart3 className="w-5 h-5" />,
+      classic: "Sai cấu trúc, không rõ nội dung",
+      ai: "AI đề xuất cấu trúc heading chuẩn SEO"
+    },
+    {
+      label: "Ảnh không có alt text",
+      icon: <Image className="w-5 h-5" />,
+      classic: "Không hỗ trợ gì",
+      ai: "AI tự viết lại alt chứa từ khóa phù hợp"
+    },
+    {
+      label: "Liên kết nội bộ",
+      icon: <Link className="w-5 h-5" />,
+      classic: "Thường bị bỏ sót",
+      ai: "AI đề xuất thêm link nội bộ thông minh"
+    },
+    {
+      label: "Tốc độ tải trang",
+      icon: <Clock className="w-5 h-5" />,
+      classic: "Báo lỗi nhưng không biết sửa",
+      ai: "Gợi ý chi tiết từng lỗi + hướng xử lý"
+    },
+    {
+      label: "Schema Markup",
+      icon: <Code className="w-5 h-5" />,
+      classic: "Rất ít ai cài đặt hoặc sai",
+      ai: "AI sinh schema tự động: Article, FAQ..."
+    },
+    {
+      label: "Ý định tìm kiếm (Search Intent)",
+      icon: <Target className="w-5 h-5" />,
+      classic: "Không phân tích",
+      ai: "AI đoán mục đích người dùng và gợi ý nội dung"
+    },
+    {
+      label: "Điểm SEO tổng thể",
+      icon: <TrendingUp className="w-5 h-5" />,
+      classic: "Đánh giá cơ bản, máy móc",
+      ai: "Chấm lại điểm SEO sau khi AI fix lỗi giả lập"
     }
   ];
 
@@ -132,6 +199,115 @@ export default function LandingPage() {
                   </div>
                   <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
                   <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SEO Comparison Section */}
+      <section className="px-6 py-20">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              SEO AI mạnh hơn SEO thường như thế nào?
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Chúng tôi không chỉ phân tích – mà còn đề xuất, viết lại, và sửa lỗi giúp bạn!
+            </p>
+          </div>
+
+          {/* Desktop View */}
+          <div className="hidden md:block">
+            <Card className="relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm" />
+              <CardContent className="relative z-10 p-0">
+                {/* Header */}
+                <div className="grid grid-cols-3 border-b border-border/30">
+                  <div className="p-6">
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <div className="w-8 h-8 rounded-full bg-muted/30 flex items-center justify-center">
+                        <Users className="w-4 h-4" />
+                      </div>
+                      <span className="font-medium">Tiêu chí đánh giá</span>
+                    </div>
+                  </div>
+                  <div className="p-6 border-l border-border/30">
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                        <X className="w-4 h-4 text-red-600" />
+                      </div>
+                      <span className="font-medium">SEO Thường</span>
+                    </div>
+                  </div>
+                  <div className="p-6 border-l border-border/30">
+                    <div className="flex items-center gap-3 text-primary">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Bot className="w-4 h-4 text-primary" />
+                      </div>
+                      <span className="font-medium">SEO AI của chúng tôi</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rows */}
+                {comparisonData.map((row, index) => (
+                  <div key={index} className="grid grid-cols-3 border-b border-border/20 last:border-b-0 hover:bg-white/5 transition-colors">
+                    <div className="p-6">
+                      <div className="flex items-center gap-3">
+                        <div className="text-primary">
+                          {row.icon}
+                        </div>
+                        <span className="font-medium">{row.label}</span>
+                      </div>
+                    </div>
+                    <div className="p-6 border-l border-border/20">
+                      <p className="text-muted-foreground">{row.classic}</p>
+                    </div>
+                    <div className="p-6 border-l border-border/20">
+                      <p className="text-foreground">{row.ai}</p>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Mobile View */}
+          <div className="md:hidden space-y-4">
+            {comparisonData.map((row, index) => (
+              <Card key={index} className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-lg border border-white/20" />
+                <CardContent className="relative z-10 p-6 space-y-4">
+                  <div className="flex items-center gap-3 pb-4 border-b border-border/30">
+                    <div className="text-primary">
+                      {row.icon}
+                    </div>
+                    <span className="font-semibold">{row.label}</span>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center">
+                          <X className="w-3 h-3 text-red-600" />
+                        </div>
+                        <span className="text-sm font-medium text-muted-foreground">SEO Thường</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground pl-8">{row.classic}</p>
+                    </div>
+                    
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Bot className="w-3 h-3 text-primary" />
+                        </div>
+                        <span className="text-sm font-medium text-primary">SEO AI</span>
+                      </div>
+                      <p className="text-sm pl-8">{row.ai}</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             ))}
