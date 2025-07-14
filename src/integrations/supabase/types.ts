@@ -41,6 +41,57 @@ export type Database = {
         }
         Relationships: []
       }
+      api_logs: {
+        Row: {
+          api_name: string
+          created_at: string
+          domain: string | null
+          endpoint: string | null
+          error_message: string | null
+          id: string
+          method: string | null
+          request_payload: Json | null
+          response_data: Json | null
+          response_time_ms: number | null
+          status_code: number | null
+          success: boolean | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          api_name: string
+          created_at?: string
+          domain?: string | null
+          endpoint?: string | null
+          error_message?: string | null
+          id?: string
+          method?: string | null
+          request_payload?: Json | null
+          response_data?: Json | null
+          response_time_ms?: number | null
+          status_code?: number | null
+          success?: boolean | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          api_name?: string
+          created_at?: string
+          domain?: string | null
+          endpoint?: string | null
+          error_message?: string | null
+          id?: string
+          method?: string | null
+          request_payload?: Json | null
+          response_data?: Json | null
+          response_time_ms?: number | null
+          status_code?: number | null
+          success?: boolean | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       api_tokens: {
         Row: {
           created_at: string | null
