@@ -10,6 +10,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { OnboardingTour } from '@/components/OnboardingTour';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useNotifications } from '@/hooks/useNotifications';
+import StatusIndicator from '@/components/ui/status-indicator';
 import { 
   BarChart3, 
   Search, 
@@ -25,7 +28,8 @@ import {
   Zap,
   Shield,
   Info,
-  FileText
+  FileText,
+  Loader2
 } from 'lucide-react';
 import EnhancedAutoFixStepper from '@/components/dashboard/EnhancedAutoFixStepper';
 import { OneClickFix } from '@/components/dashboard/OneClickFix';
@@ -49,6 +53,13 @@ export default function Dashboard() {
   const [oneClickFixOpen, setOneClickFixOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isProcessingAI, setIsProcessingAI] = useState(false);
+  
+  const { toast } = useToast();
+  const notifications = useNotifications();
 
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') || 'overview';
@@ -129,7 +140,8 @@ export default function Dashboard() {
     mobileFriendlinessScore: 90,
     securityScore: 95,
     technologies: ['React', 'Tailwind CSS'],
-    status: 'completed'
+    status: 'completed',
+    content: '<html><head><title>Example</title></head><body><h1>Welcome</h1></body></html>'
   };
 
   const seoMetrics = {
@@ -196,9 +208,76 @@ export default function Dashboard() {
     }
   };
 
-  const handleAutoFixComplete = (success: boolean) => {
-    console.log('Auto fix completed:', success);
+  const handleAutoFixComplete = (result: any) => {
+    setAutoFixOpen(false);
+    setIsProcessingAI(false);
     setSelectedIssues([]);
+    
+    if (result?.success) {
+      const changesCount = result.changes?.length || 0;
+      notifications.showAIFixComplete(changesCount);
+    }
+  };
+
+  const handleAnalyze = async () => {
+    if (!mockWebsite.url) return;
+    
+    setIsAnalyzing(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        notifications.showError("Authentication required", "Please sign in to analyze websites");
+        return;
+      }
+
+      const response = await supabase.functions.invoke('analyze-website', {
+        body: { url: mockWebsite.url }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      setAnalysisResult(response.data);
+      notifications.showSEOAnalysisComplete(mockWebsite.url, response.data?.seo_score);
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      notifications.showError("Analysis Failed", error instanceof Error ? error.message : "Failed to analyze website");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleGeneratePDF = async () => {
+    if (!analysisResult) return;
+    
+    setIsGeneratingPDF(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        notifications.showError("Authentication required", "Please sign in to generate PDF reports");
+        return;
+      }
+
+      const response = await supabase.functions.invoke('generate-pdf-report', {
+        body: { 
+          url: mockWebsite.url,
+          analysisData: analysisResult,
+          includeAI: true
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      notifications.showPDFGenerationComplete(response.data?.downloadUrl);
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      notifications.showError("PDF Generation Failed", error instanceof Error ? error.message : "Failed to generate PDF report");
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   return (
@@ -318,14 +397,69 @@ export default function Dashboard() {
                     <CardTitle>Bắt đầu phân tích mới</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center gap-4">
-                      <Button onClick={() => handleTabChange('analyzer')} size="lg" className="analyze-button">
-                        <Play className="h-4 w-4 mr-2" />
-                        Bắt đầu phân tích
-                      </Button>
-                      <p className="text-sm text-muted-foreground">
-                        Quét toàn bộ website để phát hiện lỗi SEO mới nhất
-                      </p>
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center gap-4">
+                        <Button 
+                          onClick={handleAnalyze} 
+                          disabled={isAnalyzing}
+                          size="lg" 
+                          className="analyze-button"
+                        >
+                          {isAnalyzing ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Analyzing...
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-4 w-4 mr-2" />
+                              Bắt đầu phân tích
+                            </>
+                          )}
+                        </Button>
+                        <p className="text-sm text-muted-foreground">
+                          Quét toàn bộ website để phát hiện lỗi SEO mới nhất
+                        </p>
+                      </div>
+                      
+                      {isAnalyzing && (
+                        <StatusIndicator 
+                          status="loading" 
+                          message="Analyzing website SEO..." 
+                          size="sm"
+                        />
+                      )}
+
+                      {analysisResult && (
+                        <div className="flex gap-3">
+                          <Button
+                            onClick={handleGeneratePDF}
+                            disabled={isGeneratingPDF}
+                            variant="outline"
+                            className="border-green-500/20 text-green-400 hover:bg-green-500/10"
+                          >
+                            {isGeneratingPDF ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Generating PDF...
+                              </>
+                            ) : (
+                              <>
+                                <FileText className="mr-2 h-4 w-4" />
+                                Generate PDF Report
+                              </>
+                            )}
+                          </Button>
+                          
+                          {isGeneratingPDF && (
+                            <StatusIndicator 
+                              status="loading" 
+                              message="Generating PDF report..." 
+                              size="sm"
+                            />
+                          )}
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -378,19 +512,41 @@ export default function Dashboard() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Lỗi có thể sửa tự động</CardTitle>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleAutoFix}
-                        disabled={selectedIssues.length === 0}
-                        className="bg-primary ai-optimize-button"
-                      >
-                        <Wrench className="h-4 w-4 mr-2" />
-                        Fix tự động ({selectedIssues.length})
-                      </Button>
-                      <Button variant="outline">
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Khôi phục bản cũ
-                      </Button>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            handleAutoFix();
+                            setIsProcessingAI(true);
+                          }}
+                          disabled={selectedIssues.length === 0 || isProcessingAI}
+                          className="bg-primary ai-optimize-button"
+                        >
+                          {isProcessingAI ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <Wrench className="h-4 w-4 mr-2" />
+                              Fix tự động ({selectedIssues.length})
+                            </>
+                          )}
+                        </Button>
+                        <Button variant="outline">
+                          <RotateCcw className="h-4 w-4 mr-2" />
+                          Khôi phục bản cũ
+                        </Button>
+                      </div>
+                      
+                      {isProcessingAI && (
+                        <StatusIndicator 
+                          status="loading" 
+                          message="AI is processing optimizations..." 
+                          size="sm"
+                        />
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -466,10 +622,11 @@ export default function Dashboard() {
                   </Card>
 
                   <OneClickFix
-                    open={oneClickFixOpen}
-                    onOpenChange={setOneClickFixOpen}
-                    website={mockWebsite}
-                    seoIssues={mockSEOIssues}
+                    url={mockWebsite.url}
+                    content={mockWebsite.content}
+                    onBackupCreated={() => {
+                      notifications.showBackupCreated(mockWebsite.url);
+                    }}
                   />
                 </div>
               </TabsContent>
@@ -489,8 +646,9 @@ export default function Dashboard() {
           {/* Auto Fix Dialog */}
           <EnhancedAutoFixStepper
             open={autoFixOpen}
-            onOpenChange={setAutoFixOpen}
-            selectedIssues={selectedIssues}
+            onClose={() => setAutoFixOpen(false)}
+            websiteUrl={mockWebsite.url}
+            aiAnalysis={analysisResult}
             onComplete={handleAutoFixComplete}
           />
         </div>

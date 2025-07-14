@@ -3,16 +3,17 @@ export interface Website {
   id: string;
   url: string;
   name: string;
-  description: string;
-  category: string;
-  lastScanDate: string;
-  lastAnalyzed: string;
-  seoScore: number;
-  pageSpeedScore: number;
-  mobileFriendlinessScore: number;
-  securityScore: number;
-  technologies: string[];
+  description?: string;
+  category?: string;
+  lastScanDate?: string;
+  lastAnalyzed?: string;
+  seoScore?: number;
+  pageSpeedScore?: number;
+  mobileFriendlinessScore?: number;
+  securityScore?: number;
+  technologies?: string[];
   status: 'pending' | 'analyzing' | 'completed' | 'error';
+  content?: string;
 }
 
 export interface SEOIssue {
