@@ -13,6 +13,7 @@ import AdminPlans from "./pages/AdminPlans";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import SharedScanView from "./pages/SharedScanView";
+import Upgrade from "./pages/Upgrade";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/scan/:id" element={<SharedScanView />} />
+            <Route path="/upgrade" element={<Upgrade />} />
             <Route 
               path="/dashboard" 
               element={
