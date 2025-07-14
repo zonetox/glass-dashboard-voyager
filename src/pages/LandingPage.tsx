@@ -21,7 +21,11 @@ import {
   Code,
   Users,
   TrendingUp,
-  X
+  X,
+  Play,
+  SearchCheck,
+  Settings,
+  CheckCircle2
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -120,6 +124,27 @@ export default function LandingPage() {
       icon: <TrendingUp className="w-5 h-5" />,
       classic: "Đánh giá cơ bản, máy móc",
       ai: "Chấm lại điểm SEO sau khi AI fix lỗi giả lập"
+    }
+  ];
+
+  const demoSteps = [
+    {
+      icon: <SearchCheck className="w-8 h-8 text-primary" />,
+      title: "AI phân tích website",
+      description: "Phát hiện 7 lỗi SEO nghiêm trọng",
+      badge: "Bước 1"
+    },
+    {
+      icon: <Settings className="w-8 h-8 text-primary" />,
+      title: "AI đề xuất sửa lỗi", 
+      description: "Viết lại tiêu đề, tối ưu tốc độ, thêm alt text…",
+      badge: "Bước 2"
+    },
+    {
+      icon: <CheckCircle2 className="w-8 h-8 text-primary" />,
+      title: "Bạn nhấn 'Fix All'",
+      description: "Công cụ xử lý và nâng điểm SEO từ 45 → 89",
+      badge: "Bước 3"
     }
   ];
 
@@ -311,6 +336,104 @@ export default function LandingPage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* AI Demo Section */}
+      <section className="px-6 py-20 bg-gradient-to-r from-primary/5 via-transparent to-primary/5">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Thấy tận mắt: AI tự sửa lỗi SEO cho bạn
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Từ phân tích đến hành động – AI thực sự làm thay bạn mọi thứ.
+            </p>
+          </div>
+
+          {/* Main Demo Card */}
+          <div className="mb-16">
+            <Card className="relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm" />
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10 opacity-30" />
+              <div className="absolute inset-0 border border-primary/20 rounded-lg shadow-[0_0_30px_rgba(var(--primary-hsl),0.15)]" />
+              
+              <CardContent className="relative z-10 p-12">
+                <div className="aspect-video bg-gradient-to-br from-muted/20 to-muted/10 rounded-xl border border-border/20 flex items-center justify-center relative overflow-hidden group">
+                  {/* Demo Video Placeholder */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10" />
+                  
+                  {/* Play Button */}
+                  <div className="relative z-10 flex flex-col items-center gap-4 text-center">
+                    <div className="w-20 h-20 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform cursor-pointer">
+                      <Play className="w-8 h-8 text-primary ml-1" />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-semibold">Demo AI sửa lỗi SEO</h3>
+                      <p className="text-muted-foreground">Xem AI phân tích và tối ưu website trong 60 giây</p>
+                    </div>
+                  </div>
+
+                  {/* Animated Elements */}
+                  <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg animate-fade-in">
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                      <span className="font-medium">Đang phân tích...</span>
+                    </div>
+                  </div>
+
+                  <div className="absolute bottom-6 right-6 bg-white/90 backdrop-blur-sm px-4 py-3 rounded-lg shadow-lg">
+                    <div className="text-sm space-y-1">
+                      <div className="flex items-center justify-between gap-4">
+                        <span>SEO Score:</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-red-500 line-through">45</span>
+                          <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-green-500 font-bold">89</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Demo Steps */}
+          <div className="grid md:grid-cols-3 gap-8">
+            {demoSteps.map((step, index) => (
+              <Card key={index} className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-lg border border-white/20" />
+                <CardContent className="relative z-10 p-8 text-center space-y-6">
+                  <div className="relative">
+                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                      {step.icon}
+                    </div>
+                    <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground px-2 py-1 rounded-full text-xs font-semibold">
+                      {step.badge}
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-semibold">{step.title}</h3>
+                  <p className="text-muted-foreground leading-relaxed">{step.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* CTA Below Demo */}
+          <div className="text-center mt-12">
+            <Button 
+              size="lg" 
+              className="h-14 px-8 text-lg font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+              onClick={() => navigate('/dashboard')}
+            >
+              Thử ngay miễn phí
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+            <p className="text-sm text-muted-foreground mt-3">
+              Không cần đăng ký • Kết quả ngay lập tức
+            </p>
           </div>
         </div>
       </section>
