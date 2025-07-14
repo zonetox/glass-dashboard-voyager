@@ -10,6 +10,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.33.0";
+import { checkUserPlanLimit, incrementUserUsage, getUserIdFromRequest } from "../_shared/plan-utils.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,6 +34,28 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         }
       );
+    }
+
+    // Check user plan limits
+    const userId = await getUserIdFromRequest(req);
+    if (userId) {
+      console.log(`Checking plan limits for user: ${userId}`);
+      const planCheck = await checkUserPlanLimit(userId);
+      
+      if (!planCheck.allowed) {
+        return new Response(
+          JSON.stringify({ 
+            error: planCheck.error,
+            plan: planCheck.plan,
+            limitExceeded: true 
+          }), 
+          { 
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      }
+      console.log(`Plan check passed for user: ${userId}, remaining: ${planCheck.plan?.remaining_count}`);
     }
 
     console.log(`Analyzing website: ${url}`);
@@ -225,23 +248,6 @@ Nội dung chính: ${content}`
       console.log("Saving analysis results to database...");
       try {
         const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
-        
-        // Extract user_id from Authorization header if present
-        const authHeader = req.headers.get('authorization');
-        let userId = null;
-        
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-          try {
-            // Verify the JWT token to get user_id
-            const token = authHeader.replace('Bearer ', '');
-            const { data: { user }, error } = await supabaseClient.auth.getUser(token);
-            if (user && !error) {
-              userId = user.id;
-            }
-          } catch (authError) {
-            console.log("Could not verify user token:", authError.message);
-          }
-        }
 
         const { data, error } = await supabaseClient.from("scans").insert({
           url,
@@ -264,6 +270,16 @@ Nội dung chính: ${content}`
       }
     } else {
       console.log("Supabase credentials not configured - skipping database save");
+    }
+
+    // Increment usage count for authenticated users
+    if (userId) {
+      const usageIncremented = await incrementUserUsage(userId);
+      if (usageIncremented) {
+        console.log(`Usage incremented for user: ${userId}`);
+      } else {
+        console.error(`Failed to increment usage for user: ${userId}`);
+      }
     }
 
     console.log(`Analysis completed successfully for ${url}`);

@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { checkUserPlanLimit, incrementUserUsage, getUserIdFromRequest } from "../_shared/plan-utils.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
@@ -48,6 +49,29 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
+    }
+
+    // Check user plan limits for AI rewrite feature
+    const actualUserId = user_id || await getUserIdFromRequest(req);
+    if (actualUserId) {
+      console.log(`Checking AI rewrite plan limits for user: ${actualUserId}`);
+      const planCheck = await checkUserPlanLimit(actualUserId, 'ai');
+      
+      if (!planCheck.allowed) {
+        return new Response(
+          JSON.stringify({ 
+            error: planCheck.error,
+            plan: planCheck.plan,
+            limitExceeded: true,
+            featureRequired: 'ai'
+          }), 
+          { 
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      }
+      console.log(`AI plan check passed for user: ${actualUserId}, remaining: ${planCheck.plan?.remaining_count}`);
     }
 
     // Create type-specific prompts
@@ -120,6 +144,16 @@ Format your response as JSON with "suggestion" and "reasoning" fields.`;
         suggestion: aiResponse.split('\n')[0] || aiResponse,
         reasoning: "Content rewritten for improved SEO and user engagement"
       };
+    }
+
+    // Increment usage count after successful AI rewrite
+    if (actualUserId) {
+      const usageIncremented = await incrementUserUsage(actualUserId);
+      if (usageIncremented) {
+        console.log(`Usage incremented for AI rewrite, user: ${actualUserId}`);
+      } else {
+        console.error(`Failed to increment usage for AI rewrite, user: ${actualUserId}`);
+      }
     }
 
     // Log usage for monitoring

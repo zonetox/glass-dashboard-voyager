@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 import { PDFDocument, rgb, StandardFonts } from 'https://esm.sh/pdf-lib@1.17.1';
+import { checkUserPlanLimit, incrementUserUsage, getUserIdFromRequest } from "../_shared/plan-utils.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,6 +30,26 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Check user plan limits for PDF feature
+    console.log(`Checking PDF plan limits for user: ${user_id}`);
+    const planCheck = await checkUserPlanLimit(user_id, 'pdf');
+    
+    if (!planCheck.allowed) {
+      return new Response(
+        JSON.stringify({ 
+          error: planCheck.error,
+          plan: planCheck.plan,
+          limitExceeded: true,
+          featureRequired: 'pdf'
+        }), 
+        { 
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      );
+    }
+    console.log(`PDF plan check passed for user: ${user_id}, remaining: ${planCheck.plan?.remaining_count}`);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -401,6 +422,14 @@ serve(async (req) => {
     }
 
     console.log('PDF report generated successfully:', { fileName, fileUrl });
+
+    // Increment usage count after successful PDF generation
+    const usageIncremented = await incrementUserUsage(user_id);
+    if (usageIncremented) {
+      console.log(`Usage incremented for PDF generation, user: ${user_id}`);
+    } else {
+      console.error(`Failed to increment usage for PDF generation, user: ${user_id}`);
+    }
 
     return new Response(
       JSON.stringify({
