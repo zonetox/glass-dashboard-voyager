@@ -38,6 +38,7 @@ import { ReportViewer } from '@/components/dashboard/ReportViewer';
 import { AccountPage } from '@/pages/AccountPage';
 import { APIHealthPanel } from '@/components/dashboard/api-health-panel';
 import { QuickDomainInput } from '@/components/QuickDomainInput';
+import { QuickActions } from '@/components/dashboard/QuickActions';
 import { Website, SEOIssue, mockSEOIssues } from '@/lib/types';
 
 export default function Dashboard() {
@@ -57,6 +58,7 @@ export default function Dashboard() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isProcessingAI, setIsProcessingAI] = useState(false);
+  const [selectedWebsite, setSelectedWebsite] = useState<string>('');
   
   const { toast } = useToast();
   const notifications = useNotifications();
@@ -220,7 +222,8 @@ export default function Dashboard() {
   };
 
   const handleAnalyze = async () => {
-    if (!mockWebsite.url) return;
+    const targetUrl = selectedWebsite || mockWebsite.url;
+    if (!targetUrl) return;
     
     setIsAnalyzing(true);
     try {
@@ -231,7 +234,7 @@ export default function Dashboard() {
       }
 
       const response = await supabase.functions.invoke('analyze-website', {
-        body: { url: mockWebsite.url }
+        body: { url: targetUrl }
       });
 
       if (response.error) {
@@ -239,7 +242,7 @@ export default function Dashboard() {
       }
 
       setAnalysisResult(response.data);
-      notifications.showSEOAnalysisComplete(mockWebsite.url, response.data?.seo_score);
+      notifications.showSEOAnalysisComplete(targetUrl, response.data?.seo_score);
     } catch (error) {
       console.error('Analysis failed:', error);
       notifications.showError("Analysis Failed", error instanceof Error ? error.message : "Failed to analyze website");
@@ -251,6 +254,7 @@ export default function Dashboard() {
   const handleGeneratePDF = async () => {
     if (!analysisResult) return;
     
+    const targetUrl = selectedWebsite || mockWebsite.url;
     setIsGeneratingPDF(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -261,7 +265,7 @@ export default function Dashboard() {
 
       const response = await supabase.functions.invoke('generate-pdf-report', {
         body: { 
-          url: mockWebsite.url,
+          url: targetUrl,
           analysisData: analysisResult,
           includeAI: true
         }
@@ -299,8 +303,34 @@ export default function Dashboard() {
           </div>
 
           {/* Quick Domain Input */}
+          <div className="mb-6">
+            <QuickDomainInput 
+              onAnalyze={(url) => {
+                setSelectedWebsite(url);
+                handleAnalyze();
+              }}
+              size="lg"
+            />
+          </div>
+
+          {/* Quick Actions Panel */}
           <div className="mb-8">
-            <QuickDomainInput />
+            <QuickActions
+              currentDomain={selectedWebsite || mockWebsite.url}
+              seoScore={seoMetrics.overview.totalScore}
+              totalIssues={seoMetrics.overview.totalIssues}
+              criticalIssues={seoMetrics.overview.criticalIssues}
+              fixedIssues={seoMetrics.overview.fixedIssues}
+              onQuickScan={handleAnalyze}
+              onGeneratePDF={handleGeneratePDF}
+              onQuickOptimize={() => {
+                setAutoFixOpen(true);
+                setIsProcessingAI(true);
+              }}
+              isAnalyzing={isAnalyzing}
+              isGeneratingPDF={isGeneratingPDF}
+              isOptimizing={isProcessingAI}
+            />
           </div>
 
           {/* Main Tabs */}
@@ -384,7 +414,7 @@ export default function Dashboard() {
                       <Globe className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-sm font-medium truncate">{mockWebsite.url}</div>
+                      <div className="text-sm font-medium truncate">{selectedWebsite || mockWebsite.url}</div>
                       <Badge variant="outline" className="mt-2">
                         {mockWebsite.status}
                       </Badge>
