@@ -10,8 +10,9 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate, Link } from 'react-router-dom';
-import { Settings, Users, Key, Database, Activity, Package, Info } from 'lucide-react';
+import { Settings, Users, Key, Database, Activity, Package, Info, BarChart3 } from 'lucide-react';
 import { APIHealthPanel } from '@/components/dashboard/api-health-panel';
+import { AdminDashboard } from '@/components/dashboard/AdminDashboard';
 
 interface AdminSetting {
   id: string;
@@ -206,8 +207,12 @@ export default function Admin() {
         </div>
 
         <TooltipProvider>
-          <Tabs defaultValue="settings" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5 bg-white/10">
+          <Tabs defaultValue="dashboard" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-6 bg-white/10">
+              <TabsTrigger value="dashboard" className="data-[state=active]:bg-white/20">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Dashboard
+              </TabsTrigger>
               <TabsTrigger value="settings" className="data-[state=active]:bg-white/20">
                 <Key className="h-4 w-4 mr-2" />
                 API Settings
@@ -229,6 +234,11 @@ export default function Admin() {
                 Hệ thống API
               </TabsTrigger>
             </TabsList>
+
+          {/* Admin Dashboard Tab */}
+          <TabsContent value="dashboard">
+            <AdminDashboard />
+          </TabsContent>
 
           {/* API Settings */}
           <TabsContent value="settings">
