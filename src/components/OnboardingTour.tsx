@@ -1,175 +1,248 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, X, Search, Brain, FileText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import Joyride, { CallBackProps, STATUS, Step } from 'react-joyride';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
-interface OnboardingStep {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
+interface OnboardingTourProps {
+  runTour: boolean;
+  onTourEnd: () => void;
 }
 
-const onboardingSteps: OnboardingStep[] = [
+const tourSteps: Step[] = [
   {
-    title: "Dán URL website để bắt đầu",
-    description: "Chỉ cần nhập địa chỉ website của bạn vào ô tìm kiếm, hệ thống sẽ bắt đầu quá trình phân tích toàn diện.",
-    icon: <Search className="h-12 w-12 text-primary" />
+    target: '.domain-input',
+    content: (
+      <div className="space-y-3">
+        <h3 className="text-lg font-bold text-gray-900">🌐 Nhập Domain</h3>
+        <p className="text-gray-700">
+          Bắt đầu bằng cách nhập URL website bạn muốn phân tích SEO. 
+          Hệ thống sẽ quét toàn bộ trang web để tìm ra các vấn đề SEO.
+        </p>
+        <div className="bg-blue-50 p-3 rounded-lg">
+          <p className="text-sm text-blue-800">
+            💡 <strong>Mẹo:</strong> Nhập URL đầy đủ như https://example.com
+          </p>
+        </div>
+      </div>
+    ),
+    placement: 'bottom',
+    disableBeacon: true,
   },
   {
-    title: "AI sẽ phân tích và đề xuất sửa lỗi",
-    description: "Công nghệ AI tiên tiến sẽ quét toàn bộ website, phát hiện các vấn đề SEO và đưa ra gợi ý cải thiện chi tiết.",
-    icon: <Brain className="h-12 w-12 text-primary" />
+    target: '.analyze-button',
+    content: (
+      <div className="space-y-3">
+        <h3 className="text-lg font-bold text-gray-900">🔍 Phân Tích SEO</h3>
+        <p className="text-gray-700">
+          Nhấn nút này để bắt đầu quá trình phân tích SEO chi tiết. 
+          Hệ thống AI sẽ kiểm tra hơn 50+ yếu tố SEO quan trọng.
+        </p>
+        <div className="bg-green-50 p-3 rounded-lg">
+          <p className="text-sm text-green-800">
+            ⚡ <strong>Thời gian:</strong> Quá trình phân tích mất 30-60 giây
+          </p>
+        </div>
+      </div>
+    ),
+    placement: 'bottom',
   },
   {
-    title: "Bạn có thể xuất báo cáo PDF và tối ưu toàn bộ",
-    description: "Nhận báo cáo chi tiết dạng PDF và sử dụng tính năng tối ưu tự động để cải thiện website ngay lập tức.",
-    icon: <FileText className="h-12 w-12 text-primary" />
+    target: '.seo-comparison',
+    content: (
+      <div className="space-y-3">
+        <h3 className="text-lg font-bold text-gray-900">📊 Bảng So Sánh SEO</h3>
+        <p className="text-gray-700">
+          Xem chi tiết các vấn đề SEO được phát hiện và gợi ý cải thiện từ AI. 
+          Bảng này so sánh trạng thái hiện tại với phiên bản được tối ưu.
+        </p>
+        <div className="bg-purple-50 p-3 rounded-lg">
+          <p className="text-sm text-purple-800">
+            🎯 <strong>Điểm SEO:</strong> Mục tiêu đạt từ 80+ điểm
+          </p>
+        </div>
+      </div>
+    ),
+    placement: 'top',
+  },
+  {
+    target: '.ai-optimize-button',
+    content: (
+      <div className="space-y-3">
+        <h3 className="text-lg font-bold text-gray-900">🤖 Tối Ưu AI</h3>
+        <p className="text-gray-700">
+          Sử dụng AI để tự động sửa các lỗi SEO. AI sẽ viết lại title, 
+          meta description, heading và cải thiện nội dung.
+        </p>
+        <div className="bg-orange-50 p-3 rounded-lg">
+          <p className="text-sm text-orange-800">
+            🛡️ <strong>An toàn:</strong> Luôn tạo backup trước khi thay đổi
+          </p>
+        </div>
+      </div>
+    ),
+    placement: 'top',
+  },
+  {
+    target: '.pdf-report-button',
+    content: (
+      <div className="space-y-3">
+        <h3 className="text-lg font-bold text-gray-900">📄 Báo Cáo PDF</h3>
+        <p className="text-gray-700">
+          Tạo báo cáo SEO chuyên nghiệp định dạng PDF để chia sẻ với khách hàng 
+          hoặc đồng nghiệp. Báo cáo bao gồm tất cả phân tích và gợi ý.
+        </p>
+        <div className="bg-red-50 p-3 rounded-lg">
+          <p className="text-sm text-red-800">
+            📈 <strong>Chuyên nghiệp:</strong> Báo cáo chi tiết với biểu đồ
+          </p>
+        </div>
+      </div>
+    ),
+    placement: 'top',
+  },
+  {
+    target: '.account-menu',
+    content: (
+      <div className="space-y-3">
+        <h3 className="text-lg font-bold text-gray-900">👤 Tài Khoản</h3>
+        <p className="text-gray-700">
+          Quản lý gói dịch vụ, xem lịch sử phân tích và theo dõi số lượt sử dụng còn lại. 
+          Bạn có thể xem lại hướng dẫn này bất cứ lúc nào.
+        </p>
+        <div className="bg-gray-50 p-3 rounded-lg">
+          <p className="text-sm text-gray-800">
+            🔄 <strong>Mẹo:</strong> Có thể xem lại tour này từ trang Tài khoản
+          </p>
+        </div>
+      </div>
+    ),
+    placement: 'bottom-start',
   }
 ];
 
-interface OnboardingTourProps {
-  onComplete: () => void;
-}
-
-export function OnboardingTour({ onComplete }: OnboardingTourProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
+export function OnboardingTour({ runTour, onTourEnd }: OnboardingTourProps) {
+  const [stepIndex, setStepIndex] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      const hasSeenOnboarding = localStorage.getItem(`onboarding-completed-${user.id}`);
-      if (!hasSeenOnboarding) {
-        setIsVisible(true);
+    if (runTour) {
+      setIsRunning(true);
+      setStepIndex(0);
+    }
+  }, [runTour]);
+
+  const handleJoyrideCallback = async (data: CallBackProps) => {
+    const { status, type, index } = data;
+
+    if (([STATUS.FINISHED, STATUS.SKIPPED] as string[]).includes(status)) {
+      setIsRunning(false);
+      
+      // Mark onboarding as completed for this user
+      if (user) {
+        try {
+          await supabase
+            .from('user_profiles')
+            .update({ 
+              last_login_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', user.id);
+        } catch (error) {
+          console.error('Error updating onboarding status:', error);
+        }
       }
-    }
-  }, [user]);
-
-  const handleNext = () => {
-    if (currentStep < onboardingSteps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      handleComplete();
+      
+      onTourEnd();
+    } else if (type === 'step:after') {
+      setStepIndex(index + 1);
     }
   };
 
-  const handlePrev = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const handleComplete = () => {
-    if (user) {
-      localStorage.setItem(`onboarding-completed-${user.id}`, 'true');
-    }
-    setIsVisible(false);
-    onComplete();
-  };
-
-  const handleSkip = () => {
-    handleComplete();
-  };
-
-  if (!isVisible) {
-    return null;
-  }
-
-  const currentStepData = onboardingSteps[currentStep];
-  const isLastStep = currentStep === onboardingSteps.length - 1;
+  if (!isRunning) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md mx-auto">
-        <CardContent className="p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">
-                Bước {currentStep + 1} / {onboardingSteps.length}
-              </span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSkip}
-              className="h-8 w-8 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Progress bar */}
-          <div className="w-full bg-muted rounded-full h-2 mb-6">
-            <div 
-              className="bg-primary h-2 rounded-full transition-all duration-300 ease-out"
-              style={{ width: `${((currentStep + 1) / onboardingSteps.length) * 100}%` }}
-            />
-          </div>
-
-          {/* Content */}
-          <div className="text-center mb-8">
-            <div className="flex justify-center mb-4">
-              {currentStepData.icon}
-            </div>
-            <h3 className="text-xl font-semibold mb-3">
-              {currentStepData.title}
-            </h3>
-            <p className="text-muted-foreground leading-relaxed">
-              {currentStepData.description}
-            </p>
-          </div>
-
-          {/* Navigation */}
-          <div className="flex items-center justify-between">
-            <Button
-              variant="outline"
-              onClick={handlePrev}
-              disabled={currentStep === 0}
-              className="flex items-center gap-2"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Quay lại
-            </Button>
-
-            <div className="flex gap-2">
-              {onboardingSteps.map((_, index) => (
-                <div
-                  key={index}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    index === currentStep ? 'bg-primary' : 'bg-muted'
-                  }`}
-                />
-              ))}
-            </div>
-
-            <Button
-              onClick={handleNext}
-              className="flex items-center gap-2"
-            >
-              {isLastStep ? 'Bắt đầu' : 'Tiếp theo'}
-              {!isLastStep && <ChevronRight className="h-4 w-4" />}
-            </Button>
-          </div>
-
-          {/* Skip option */}
-          {!isLastStep && (
-            <div className="text-center mt-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSkip}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Bỏ qua hướng dẫn
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+    <Joyride
+      steps={tourSteps}
+      run={isRunning}
+      stepIndex={stepIndex}
+      continuous
+      showProgress
+      showSkipButton
+      styles={{
+        options: {
+          primaryColor: '#6366f1', // Indigo color
+          textColor: '#374151',
+          backgroundColor: '#ffffff',
+          overlayColor: 'rgba(0, 0, 0, 0.4)',
+          spotlightShadow: '0 0 15px rgba(0, 0, 0, 0.5)',
+          zIndex: 10000,
+        },
+        tooltip: {
+          fontSize: '14px',
+          borderRadius: '12px',
+          padding: '16px',
+          minWidth: '320px',
+          maxWidth: '400px',
+        },
+        tooltipContainer: {
+          textAlign: 'left',
+        },
+        tooltipTitle: {
+          fontSize: '18px',
+          fontWeight: 'bold',
+          marginBottom: '8px',
+        },
+        buttonNext: {
+          backgroundColor: '#6366f1',
+          color: '#ffffff',
+          fontSize: '14px',
+          fontWeight: '600',
+          padding: '8px 16px',
+          borderRadius: '6px',
+          border: 'none',
+        },
+        buttonBack: {
+          color: '#6b7280',
+          fontSize: '14px',
+          fontWeight: '600',
+          padding: '8px 16px',
+          borderRadius: '6px',
+          border: '1px solid #d1d5db',
+          backgroundColor: '#ffffff',
+        },
+        buttonSkip: {
+          color: '#6b7280',
+          fontSize: '14px',
+          fontWeight: '600',
+          padding: '8px 16px',
+        },
+        buttonClose: {
+          color: '#6b7280',
+          fontSize: '18px',
+          fontWeight: 'bold',
+          width: '24px',
+          height: '24px',
+          right: '8px',
+          top: '8px',
+        },
+        spotlight: {
+          borderRadius: '8px',
+        }
+      }}
+      locale={{
+        back: 'Quay lại',
+        close: 'Đóng',
+        last: 'Hoàn thành',
+        next: 'Tiếp theo',
+        skip: 'Bỏ qua',
+        open: 'Mở hộp thoại',
+      }}
+      callback={handleJoyrideCallback}
+      disableOverlayClose
+      hideCloseButton={false}
+      scrollToFirstStep
+      spotlightClicks
+    />
   );
 }
-
-export default OnboardingTour;

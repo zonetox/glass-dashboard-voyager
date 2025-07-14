@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { OnboardingTour } from '@/components/OnboardingTour';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,12 +23,14 @@ import {
   CreditCard,
   Shield,
   Bell,
-  CheckCircle2
+  CheckCircle2,
+  HelpCircle
 } from 'lucide-react';
 
 export function AccountPage() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const [showOnboarding, setShowOnboarding] = useState(false);
   
   // Mock data - trong thực tế sẽ lấy từ API
   const [profile] = useState({
@@ -102,6 +105,14 @@ export function AccountPage() {
 
   const tierInfo = getTierInfo(profile.tier);
 
+  const handleStartOnboarding = () => {
+    setShowOnboarding(true);
+  };
+
+  const handleOnboardingEnd = () => {
+    setShowOnboarding(false);
+  };
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -110,13 +121,23 @@ export function AccountPage() {
           <h1 className="text-3xl font-bold text-white">Tài khoản của tôi</h1>
           <p className="text-gray-400 mt-1">Quản lý thông tin tài khoản và gói dịch vụ</p>
         </div>
-        <Button 
-          variant="outline" 
-          className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
-        >
-          <Crown className="h-4 w-4 mr-2" />
-          Nâng cấp gói
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            variant="outline" 
+            onClick={handleStartOnboarding}
+            className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+          >
+            <HelpCircle className="h-4 w-4 mr-2" />
+            Xem hướng dẫn
+          </Button>
+          <Button 
+            variant="outline" 
+            className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+          >
+            <Crown className="h-4 w-4 mr-2" />
+            Nâng cấp gói
+          </Button>
+        </div>
       </div>
 
       {/* Profile Overview Card */}
@@ -379,6 +400,11 @@ export function AccountPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      <OnboardingTour 
+        runTour={showOnboarding}
+        onTourEnd={handleOnboardingEnd}
+      />
     </div>
   );
 }

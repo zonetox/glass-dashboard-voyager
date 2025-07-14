@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,6 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { OnboardingTour } from '@/components/OnboardingTour';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   BarChart3, 
   Search, 
@@ -37,6 +39,7 @@ import { Website, SEOIssue, mockSEOIssues } from '@/lib/types';
 export default function Dashboard() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const searchParams = new URLSearchParams(location.search);
   const tabFromUrl = searchParams.get('tab') || 'overview';
   
@@ -44,11 +47,56 @@ export default function Dashboard() {
   const [autoFixOpen, setAutoFixOpen] = useState(false);
   const [selectedIssues, setSelectedIssues] = useState<string[]>([]);
   const [oneClickFixOpen, setOneClickFixOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
 
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') || 'overview';
     setActiveTab(tabFromUrl);
   }, [location.search]);
+
+  // Check if user needs onboarding
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      if (!user) return;
+
+      try {
+        const { data: profile, error } = await supabase
+          .from('user_profiles')
+          .select('last_login_at, created_at')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error checking onboarding status:', error);
+          return;
+        }
+
+        // Check if this is a new user (created within last 5 minutes and no previous login)
+        if (profile) {
+          const createdAt = new Date(profile.created_at);
+          const now = new Date();
+          const timeDiff = now.getTime() - createdAt.getTime();
+          const minutesDiff = timeDiff / (1000 * 60);
+
+          const isRecentSignup = minutesDiff < 5;
+          const hasNeverLoggedIn = !profile.last_login_at;
+
+          if (isRecentSignup && hasNeverLoggedIn) {
+            setIsNewUser(true);
+            // Small delay to ensure page is rendered
+            setTimeout(() => {
+              setShowOnboarding(true);
+            }, 1500);
+          }
+        }
+      } catch (error) {
+        console.error('Error in onboarding check:', error);
+      }
+    };
+
+    checkOnboardingStatus();
+  }, [user]);
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
@@ -57,6 +105,14 @@ export default function Dashboard() {
     } else {
       navigate(`/dashboard?tab=${tabId}`);
     }
+  };
+
+  const handleOnboardingEnd = () => {
+    setShowOnboarding(false);
+  };
+
+  const restartOnboarding = () => {
+    setShowOnboarding(true);
   };
 
   // Mock data
@@ -153,6 +209,19 @@ export default function Dashboard() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">SEO Dashboard</h1>
             <p className="text-muted-foreground">Quản lý và tối ưu SEO cho website của bạn</p>
+            {isNewUser && (
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 max-w-md mt-4">
+                <p className="text-blue-300 text-sm">
+                  🎉 Chào mừng bạn đến với SEO AI Tool! 
+                  Hướng dẫn sẽ bắt đầu trong giây lát...
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Quick Domain Input */}
+          <div className="mb-8">
+            <QuickDomainInput />
           </div>
 
           {/* Main Tabs */}
@@ -166,7 +235,7 @@ export default function Dashboard() {
                 <Search className="h-4 w-4" />
                 <span className="hidden sm:inline">Phân tích SEO</span>
               </TabsTrigger>
-              <TabsTrigger value="ai-seo" className="flex items-center gap-2">
+              <TabsTrigger value="ai-seo" className="flex items-center gap-2 seo-comparison">
                 <Sparkles className="h-4 w-4" />
                 <span className="hidden sm:inline">AI Intelligence</span>
               </TabsTrigger>
@@ -178,7 +247,7 @@ export default function Dashboard() {
                 <Zap className="h-4 w-4" />
                 <span className="hidden sm:inline">Tối ưu 1 lần</span>
               </TabsTrigger>
-              <TabsTrigger value="reports" className="flex items-center gap-2">
+              <TabsTrigger value="reports" className="flex items-center gap-2 pdf-report-button">
                 <FileText className="h-4 w-4" />
                 <span className="hidden sm:inline">Báo cáo PDF</span>
               </TabsTrigger>
@@ -250,7 +319,7 @@ export default function Dashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center gap-4">
-                      <Button onClick={() => handleTabChange('analyzer')} size="lg">
+                      <Button onClick={() => handleTabChange('analyzer')} size="lg" className="analyze-button">
                         <Play className="h-4 w-4 mr-2" />
                         Bắt đầu phân tích
                       </Button>
@@ -313,7 +382,7 @@ export default function Dashboard() {
                       <Button
                         onClick={handleAutoFix}
                         disabled={selectedIssues.length === 0}
-                        className="bg-primary"
+                        className="bg-primary ai-optimize-button"
                       >
                         <Wrench className="h-4 w-4 mr-2" />
                         Fix tự động ({selectedIssues.length})
@@ -375,7 +444,7 @@ export default function Dashboard() {
                         <TooltipTrigger asChild>
                           <Button
                             size="lg"
-                            className="h-16 text-lg px-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                            className="h-16 text-lg px-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 ai-optimize-button"
                             onClick={() => setOneClickFixOpen(true)}
                           >
                             <Wrench className="h-6 w-6 mr-3" />
@@ -396,69 +465,16 @@ export default function Dashboard() {
                     </CardContent>
                   </Card>
 
-                  {/* Optimization History */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Lịch sử tối ưu</CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        Xem lại các lần tối ưu trước đây và khôi phục nếu cần
-                      </p>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {/* Sample history items */}
-                        <div className="flex items-center justify-between p-4 rounded-lg border">
-                          <div className="flex items-center gap-3">
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                            <div>
-                              <div className="font-medium">Tối ưu hoàn tất - 15/01/2024</div>
-                              <div className="text-sm text-muted-foreground">
-                                Sửa 8 lỗi • SEO Score: 65 → 89 • Meta tags, Alt text, H1 structure
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
-                              Xem chi tiết
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <RotateCcw className="h-4 w-4 mr-1" />
-                              Khôi phục
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between p-4 rounded-lg border">
-                          <div className="flex items-center gap-3">
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                            <div>
-                              <div className="font-medium">Tối ưu hoàn tất - 10/01/2024</div>
-                              <div className="text-sm text-muted-foreground">
-                                Sửa 12 lỗi • SEO Score: 45 → 78 • Schema markup, Internal links
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
-                              Xem chi tiết
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <RotateCcw className="h-4 w-4 mr-1" />
-                              Khôi phục
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="text-center py-8 text-muted-foreground">
-                          <p>Chưa có lịch sử tối ưu nào khác</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <OneClickFix
+                    open={oneClickFixOpen}
+                    onOpenChange={setOneClickFixOpen}
+                    website={mockWebsite}
+                    seoIssues={mockSEOIssues}
+                  />
                 </div>
               </TabsContent>
 
-              {/* PDF Reports Tab */}
+              {/* Reports Tab */}
               <TabsContent value="reports" className="space-y-6">
                 <ReportViewer />
               </TabsContent>
@@ -467,45 +483,23 @@ export default function Dashboard() {
               <TabsContent value="account" className="space-y-6">
                 <AccountPage />
               </TabsContent>
-
-              {/* API Logs Tab */}
-              <TabsContent value="api-logs" className="space-y-6">
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <h2 className="text-2xl font-bold text-foreground">API & Lỗi hệ thống</h2>
-                    <QuickDomainInput 
-                      size="sm" 
-                      placeholder="Test domain"
-                      onAnalyze={(url) => console.log('Testing:', url)}
-                    />
-                  </div>
-                  <APIHealthPanel />
-                </div>
-              </TabsContent>
             </div>
           </Tabs>
-        </div>
 
-        {/* Auto Fix Modal */}
-        <EnhancedAutoFixStepper
-          open={autoFixOpen}
-          onClose={() => setAutoFixOpen(false)}
-          websiteUrl={mockWebsite.url}
-          aiAnalysis={mockWebsite}
-          onComplete={handleAutoFixComplete}
-        />
-
-        {/* One-Click Fix Modal */}
-        {oneClickFixOpen && (
-          <OneClickFix
-            url={mockWebsite.url}
-            onBackupCreated={() => {
-              console.log('Backup created');
-              setOneClickFixOpen(false);
-            }}
+          {/* Auto Fix Dialog */}
+          <EnhancedAutoFixStepper
+            open={autoFixOpen}
+            onOpenChange={setAutoFixOpen}
+            selectedIssues={selectedIssues}
+            onComplete={handleAutoFixComplete}
           />
-        )}
+        </div>
       </div>
+      
+      <OnboardingTour 
+        runTour={showOnboarding}
+        onTourEnd={handleOnboardingEnd}
+      />
     </TooltipProvider>
   );
 }
