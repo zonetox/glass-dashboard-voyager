@@ -167,16 +167,15 @@ serve(async (req) => {
       .from("transactions")
       .insert({
         user_id: processResult.userId || null,
-        payment_provider: provider,
-        external_transaction_id: processResult.transactionId,
-        session_id: processResult.sessionId,
-        amount: processResult.amount,
+        gateway: provider,
+        status: processResult.status === 'completed' ? 'success' : 'failed',
+        amount: processResult.amount || 0,
         currency: 'vnd',
-        status: processResult.status,
-        payment_data: webhookData
+        plan_id: 'pro',
+        raw_data: webhookData
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (transactionError) {
       logStep("Transaction logging failed", { error: transactionError });
