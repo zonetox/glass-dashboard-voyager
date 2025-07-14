@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import AIKeywords from "./pages/AIKeywords";
 import CompetitorAnalysis from "./pages/CompetitorAnalysis";
 import VoiceSearchOptimizer from "./pages/VoiceSearchOptimizer";
+import ContentTrendsPredictor from "./pages/ContentTrendsPredictor";
 import Admin from "./pages/Admin";
 import AdminPlans from "./pages/AdminPlans";
 import Auth from "./pages/Auth";
@@ -93,6 +94,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <VoiceSearchOptimizer />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/content-trends" 
+              element={
+                <ProtectedRoute>
+                  <ContentTrendsPredictor />
                 </ProtectedRoute>
               } 
             />

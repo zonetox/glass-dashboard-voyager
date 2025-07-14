@@ -668,7 +668,7 @@ export default function Dashboard() {
 
               {/* Keywords Tab */}
               <TabsContent value="keywords" className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   <Card className="glass-card">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -707,6 +707,27 @@ export default function Dashboard() {
                       >
                         <TrendingUp className="h-4 w-4 mr-2" />
                         Bắt đầu so sánh
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="glass-card">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5 text-green-500" />
+                        Dự báo xu hướng
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-muted-foreground text-sm">
+                        Sử dụng AI để dự đoán content trends và gợi ý strategy tương lai
+                      </p>
+                      <Button
+                        onClick={() => navigate('/content-trends')}
+                        className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+                      >
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Dự báo trends
                       </Button>
                     </CardContent>
                   </Card>
