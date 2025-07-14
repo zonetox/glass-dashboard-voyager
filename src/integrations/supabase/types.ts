@@ -199,6 +199,45 @@ export type Database = {
         }
         Relationships: []
       }
+      email_logs: {
+        Row: {
+          content: string | null
+          created_at: string
+          email: string
+          error_message: string | null
+          id: string
+          sent_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          email: string
+          error_message?: string | null
+          id?: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          email?: string
+          error_message?: string | null
+          id?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       fullscan_results: {
         Row: {
           completed_pages: number | null
