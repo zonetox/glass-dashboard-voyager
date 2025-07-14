@@ -238,6 +238,48 @@ export type Database = {
         }
         Relationships: []
       }
+      email_queue: {
+        Row: {
+          body: string
+          created_at: string
+          email: string
+          error_message: string | null
+          id: string
+          send_at: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["email_status"] | null
+          subject: string
+          type: Database["public"]["Enums"]["email_type"] | null
+          user_id: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          email: string
+          error_message?: string | null
+          id?: string
+          send_at: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["email_status"] | null
+          subject: string
+          type?: Database["public"]["Enums"]["email_type"] | null
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          email?: string
+          error_message?: string | null
+          id?: string
+          send_at?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["email_status"] | null
+          subject?: string
+          type?: Database["public"]["Enums"]["email_type"] | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       event_logs: {
         Row: {
           created_at: string
@@ -1039,6 +1081,8 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "member"
+      email_status: "queued" | "sent" | "failed"
+      email_type: "onboarding" | "reminder" | "promo"
       organization_role: "admin" | "editor" | "viewer"
       user_tier: "free" | "pro" | "agency"
     }
@@ -1169,6 +1213,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "member"],
+      email_status: ["queued", "sent", "failed"],
+      email_type: ["onboarding", "reminder", "promo"],
       organization_role: ["admin", "editor", "viewer"],
       user_tier: ["free", "pro", "agency"],
     },

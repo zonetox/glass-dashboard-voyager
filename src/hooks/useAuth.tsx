@@ -51,6 +51,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Fetch role when user logs in
         if (session?.user) {
           fetchUserRole(session.user.id);
+          
+          // If this is a new user sign up, schedule onboarding emails
+          if (event === 'SIGNED_IN') {
+            // Check if this is a new user by checking user metadata or creation time
+            const isNewUser = session.user.created_at && 
+              (new Date().getTime() - new Date(session.user.created_at).getTime()) < 60000; // Within 1 minute
+            
+            if (isNewUser) {
+              try {
+                await supabase.functions.invoke('schedule-onboarding-emails', {
+                  body: {
+                    user_id: session.user.id,
+                    email: session.user.email,
+                    user_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0]
+                  }
+                });
+                console.log('Onboarding emails scheduled successfully');
+              } catch (error) {
+                console.error('Error scheduling onboarding emails:', error);
+              }
+            }
+          }
         } else {
           setUserRole(null);
         }
