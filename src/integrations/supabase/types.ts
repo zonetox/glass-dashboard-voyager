@@ -953,6 +953,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_activity_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: unknown | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_plans: {
         Row: {
           created_at: string | null
@@ -998,7 +1028,9 @@ export type Database = {
         Row: {
           ai_rewrites_limit: number
           created_at: string | null
+          email_verified: boolean | null
           id: string
+          last_login_at: string | null
           optimizations_limit: number
           scans_limit: number
           tier: Database["public"]["Enums"]["user_tier"]
@@ -1008,7 +1040,9 @@ export type Database = {
         Insert: {
           ai_rewrites_limit?: number
           created_at?: string | null
+          email_verified?: boolean | null
           id?: string
+          last_login_at?: string | null
           optimizations_limit?: number
           scans_limit?: number
           tier?: Database["public"]["Enums"]["user_tier"]
@@ -1018,7 +1052,9 @@ export type Database = {
         Update: {
           ai_rewrites_limit?: number
           created_at?: string | null
+          email_verified?: boolean | null
           id?: string
+          last_login_at?: string | null
           optimizations_limit?: number
           scans_limit?: number
           tier?: Database["public"]["Enums"]["user_tier"]
@@ -1044,6 +1080,51 @@ export type Database = {
           created_at?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          payment_method: string | null
+          plan_id: string | null
+          status: string
+          transaction_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_method?: string | null
+          plan_id?: string | null
+          status: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_method?: string | null
+          plan_id?: string | null
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -1102,6 +1183,17 @@ export type Database = {
           remaining_count: number
         }[]
       }
+      get_user_plan_summary: {
+        Args: { _user_id: string }
+        Returns: {
+          plan_name: string
+          scans_used: number
+          scans_limit: number
+          scans_remaining: number
+          reset_date: string
+          is_premium: boolean
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1116,6 +1208,16 @@ export type Database = {
       increment_user_usage: {
         Args: { _user_id: string }
         Returns: boolean
+      }
+      log_user_activity: {
+        Args: {
+          _user_id: string
+          _action: string
+          _details?: Json
+          _ip_address?: unknown
+          _user_agent?: string
+        }
+        Returns: undefined
       }
       promote_to_admin: {
         Args: { _user_email: string }
