@@ -25,7 +25,7 @@ import {
   Info,
   FileText
 } from 'lucide-react';
-import AutoFixStepper from '@/components/dashboard/AutoFixStepper';
+import EnhancedAutoFixStepper from '@/components/dashboard/EnhancedAutoFixStepper';
 import { OneClickFix } from '@/components/dashboard/OneClickFix';
 import { ReportViewer } from '@/components/dashboard/ReportViewer';
 import { AccountPage } from '@/pages/AccountPage';
@@ -548,10 +548,11 @@ export default function Dashboard() {
         </div>
 
         {/* Auto Fix Modal */}
-        <AutoFixStepper
+        <EnhancedAutoFixStepper
           open={autoFixOpen}
           onClose={() => setAutoFixOpen(false)}
           websiteUrl={mockWebsite.url}
+          aiAnalysis={mockWebsite}
           onComplete={handleAutoFixComplete}
         />
 

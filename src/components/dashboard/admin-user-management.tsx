@@ -109,10 +109,10 @@ export function AdminUserManagement() {
       if (authError) throw authError;
 
       // Combine data
-      const combinedUsers = usersData?.map(profile => {
-        const authUser = authUsers.users.find(u => u.id === profile.user_id);
-        const plan = profile.user_plans?.[0]?.plans;
-        const usage = profile.user_usage?.[0];
+      const combinedUsers = usersData?.map((profile: any) => {
+        const authUser = authUsers?.users?.find((u: any) => u.id === profile.user_id);
+        const planInfo = profile.user_plans?.[0];
+        const usageInfo = profile.user_usage?.[0];
         
         return {
           id: profile.user_id,
@@ -120,8 +120,8 @@ export function AdminUserManagement() {
           email_confirmed_at: authUser?.email_confirmed_at,
           created_at: authUser?.created_at || profile.created_at,
           last_sign_in_at: authUser?.last_sign_in_at,
-          plan_name: plan?.name || 'Free Plan',
-          scans_used: usage?.scans_used || 0,
+          plan_name: planInfo?.plan_id || 'free',
+          scans_used: usageInfo?.scans_used || 0,
           scans_limit: profile.scans_limit,
           tier: profile.tier,
           email_verified: profile.email_verified || false
