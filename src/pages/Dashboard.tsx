@@ -28,6 +28,9 @@ import {
 import AutoFixStepper from '@/components/dashboard/AutoFixStepper';
 import { OneClickFix } from '@/components/dashboard/OneClickFix';
 import { ReportViewer } from '@/components/dashboard/ReportViewer';
+import { AccountPage } from '@/pages/AccountPage';
+import { APIHealthPanel } from '@/components/dashboard/api-health-panel';
+import { QuickDomainInput } from '@/components/QuickDomainInput';
 import { Website, SEOIssue, mockSEOIssues } from '@/lib/types';
 
 export default function Dashboard() {
@@ -153,7 +156,7 @@ export default function Dashboard() {
 
           {/* Main Tabs */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
+            <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-flex">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
                 <span className="hidden sm:inline">Tổng quan</span>
@@ -176,7 +179,11 @@ export default function Dashboard() {
               </TabsTrigger>
               <TabsTrigger value="reports" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">📄 Báo cáo PDF</span>
+                <span className="hidden sm:inline">Báo cáo PDF</span>
+              </TabsTrigger>
+              <TabsTrigger value="account" className="flex items-center gap-2">
+                <Search className="h-4 w-4" />
+                <span className="hidden sm:inline">Tài khoản</span>
               </TabsTrigger>
             </TabsList>
 
@@ -515,6 +522,26 @@ export default function Dashboard() {
               {/* PDF Reports Tab */}
               <TabsContent value="reports" className="space-y-6">
                 <ReportViewer />
+              </TabsContent>
+
+              {/* Account Tab */}
+              <TabsContent value="account" className="space-y-6">
+                <AccountPage />
+              </TabsContent>
+
+              {/* API Logs Tab */}
+              <TabsContent value="api-logs" className="space-y-6">
+                <div className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <h2 className="text-2xl font-bold text-foreground">API & Lỗi hệ thống</h2>
+                    <QuickDomainInput 
+                      size="sm" 
+                      placeholder="Test domain"
+                      onAnalyze={(url) => console.log('Testing:', url)}
+                    />
+                  </div>
+                  <APIHealthPanel />
+                </div>
               </TabsContent>
             </div>
           </Tabs>
