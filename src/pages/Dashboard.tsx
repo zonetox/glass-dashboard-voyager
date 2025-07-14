@@ -668,17 +668,48 @@ export default function Dashboard() {
 
               {/* Keywords Tab */}
               <TabsContent value="keywords" className="space-y-6">
-                <div className="text-center">
-                  <p className="text-muted-foreground mb-4">
-                    AI Keywords hiện có sẵn như một trang riêng biệt để tập trung vào phân tích từ khóa
-                  </p>
-                  <Button
-                    onClick={() => window.open('/ai-keywords', '_blank')}
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-                  >
-                    <Hash className="h-4 w-4 mr-2" />
-                    Mở AI Keywords
-                  </Button>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Card className="glass-card">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Hash className="h-5 w-5 text-purple-500" />
+                        AI Keywords
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-muted-foreground text-sm">
+                        Phân tích từ khóa thông minh với AI - tạo nhóm từ khóa semantic và gợi ý content strategy
+                      </p>
+                      <Button
+                        onClick={() => navigate('/ai-keywords')}
+                        className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                      >
+                        <Hash className="h-4 w-4 mr-2" />
+                        Mở AI Keywords
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="glass-card">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-blue-500" />
+                        So sánh đối thủ
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-muted-foreground text-sm">
+                        Phân tích và so sánh domain của bạn với các đối thủ cạnh tranh về SEO, tốc độ và content
+                      </p>
+                      <Button
+                        onClick={() => navigate('/competitor-analysis')}
+                        className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
+                      >
+                        <TrendingUp className="h-4 w-4 mr-2" />
+                        Bắt đầu so sánh
+                      </Button>
+                    </CardContent>
+                  </Card>
                 </div>
               </TabsContent>
 
