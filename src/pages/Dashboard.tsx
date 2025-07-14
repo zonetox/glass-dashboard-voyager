@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import EnhancedAutoFixStepper from '@/components/dashboard/EnhancedAutoFixStepper';
 import { OneClickFix } from '@/components/dashboard/OneClickFix';
+import AIIntelligence from '@/components/dashboard/AIIntelligence';
 import { ReportViewer } from '@/components/dashboard/ReportViewer';
 import { AccountPage } from '@/pages/AccountPage';
 import { APIHealthPanel } from '@/components/dashboard/api-health-panel';
@@ -300,69 +301,7 @@ export default function Dashboard() {
 
               {/* AI Intelligence Tab */}
               <TabsContent value="ai-seo" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>So sánh SEO thường vs AI SEO</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <h3 className="font-semibold text-muted-foreground">SEO Thường</h3>
-                        <div className="space-y-3">
-                          <div className="flex justify-between">
-                            <span>Điểm tổng thể:</span>
-                            <Badge variant="secondary">{aiComparison.traditional.score}/100</Badge>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>E-E-A-T Score:</span>
-                            <Badge variant="secondary">{aiComparison.traditional.eeat}/100</Badge>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Search Intent:</span>
-                            <Badge variant="secondary">{aiComparison.traditional.searchIntent}/100</Badge>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium">Content Gap:</span>
-                            <p className="text-sm text-muted-foreground mt-1">{aiComparison.traditional.contentGap}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <h3 className="font-semibold text-primary">AI SEO</h3>
-                        <div className="space-y-3">
-                          <div className="flex justify-between">
-                            <span>Điểm tổng thể:</span>
-                            <Badge>{aiComparison.ai.score}/100</Badge>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>E-E-A-T Score:</span>
-                            <Badge>{aiComparison.ai.eeat}/100</Badge>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Search Intent:</span>
-                            <Badge>{aiComparison.ai.searchIntent}/100</Badge>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium">Content Gap:</span>
-                            <p className="text-sm text-muted-foreground mt-1">{aiComparison.ai.contentGap}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3 mt-6 pt-6 border-t">
-                      <Button>
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Tạo gợi ý viết lại
-                      </Button>
-                      <Button variant="outline">
-                        <Zap className="h-4 w-4 mr-2" />
-                        Sinh Schema
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <AIIntelligence />
               </TabsContent>
 
               {/* Auto Fix Tab */}
