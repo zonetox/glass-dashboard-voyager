@@ -10,6 +10,7 @@ import LandingPage from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import AIKeywords from "./pages/AIKeywords";
 import CompetitorAnalysis from "./pages/CompetitorAnalysis";
+import VoiceSearchOptimizer from "./pages/VoiceSearchOptimizer";
 import Admin from "./pages/Admin";
 import AdminPlans from "./pages/AdminPlans";
 import Auth from "./pages/Auth";
@@ -84,6 +85,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <CompetitorAnalysis />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/voice-search" 
+              element={
+                <ProtectedRoute>
+                  <VoiceSearchOptimizer />
                 </ProtectedRoute>
               } 
             />
