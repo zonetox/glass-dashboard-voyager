@@ -22,10 +22,12 @@ import {
   Globe,
   Zap,
   Shield,
-  Info
+  Info,
+  FileText
 } from 'lucide-react';
 import AutoFixStepper from '@/components/dashboard/AutoFixStepper';
 import { OneClickFix } from '@/components/dashboard/OneClickFix';
+import { ReportViewer } from '@/components/dashboard/ReportViewer';
 import { Website, SEOIssue, mockSEOIssues } from '@/lib/types';
 
 export default function Dashboard() {
@@ -151,7 +153,7 @@ export default function Dashboard() {
 
           {/* Main Tabs */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
+            <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
                 <span className="hidden sm:inline">Tổng quan</span>
@@ -171,6 +173,10 @@ export default function Dashboard() {
               <TabsTrigger value="one-click" className="flex items-center gap-2">
                 <Zap className="h-4 w-4" />
                 <span className="hidden sm:inline">Tối ưu 1 lần</span>
+              </TabsTrigger>
+              <TabsTrigger value="reports" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">📄 Báo cáo PDF</span>
               </TabsTrigger>
             </TabsList>
 
@@ -504,6 +510,11 @@ export default function Dashboard() {
                     </CardContent>
                   </Card>
                 </div>
+              </TabsContent>
+
+              {/* PDF Reports Tab */}
+              <TabsContent value="reports" className="space-y-6">
+                <ReportViewer />
               </TabsContent>
             </div>
           </Tabs>
