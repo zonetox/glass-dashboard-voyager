@@ -421,6 +421,39 @@ export type Database = {
         }
         Relationships: []
       }
+      plans: {
+        Row: {
+          ai_enabled: boolean
+          created_at: string | null
+          id: string
+          monthly_limit: number
+          name: string
+          pdf_enabled: boolean
+          price_vnd: number
+          updated_at: string | null
+        }
+        Insert: {
+          ai_enabled?: boolean
+          created_at?: string | null
+          id: string
+          monthly_limit?: number
+          name: string
+          pdf_enabled?: boolean
+          price_vnd?: number
+          updated_at?: string | null
+        }
+        Update: {
+          ai_enabled?: boolean
+          created_at?: string | null
+          id?: string
+          monthly_limit?: number
+          name?: string
+          pdf_enabled?: boolean
+          price_vnd?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           created_at: string | null
@@ -719,6 +752,47 @@ export type Database = {
           },
         ]
       }
+      user_plans: {
+        Row: {
+          created_at: string | null
+          end_date: string | null
+          id: string
+          plan_id: string
+          start_date: string
+          updated_at: string | null
+          used_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          plan_id: string
+          start_date?: string
+          updated_at?: string | null
+          used_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          plan_id?: string
+          start_date?: string
+          updated_at?: string | null
+          used_count?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_plans_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_profiles: {
         Row: {
           ai_rewrites_limit: number
@@ -815,6 +889,18 @@ export type Database = {
         Args: { _token_id: string; _endpoint: string; _rate_limit: number }
         Returns: boolean
       }
+      get_user_current_plan: {
+        Args: { _user_id: string }
+        Returns: {
+          plan_id: string
+          plan_name: string
+          monthly_limit: number
+          pdf_enabled: boolean
+          ai_enabled: boolean
+          used_count: number
+          remaining_count: number
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -824,6 +910,10 @@ export type Database = {
           _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
         }
+        Returns: boolean
+      }
+      increment_user_usage: {
+        Args: { _user_id: string }
         Returns: boolean
       }
       promote_to_admin: {
