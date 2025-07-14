@@ -752,6 +752,48 @@ export type Database = {
           },
         ]
       }
+      transactions: {
+        Row: {
+          amount: number | null
+          created_at: string
+          currency: string | null
+          external_transaction_id: string | null
+          id: string
+          payment_data: Json | null
+          payment_provider: string
+          session_id: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          currency?: string | null
+          external_transaction_id?: string | null
+          id?: string
+          payment_data?: Json | null
+          payment_provider: string
+          session_id?: string | null
+          status: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          currency?: string | null
+          external_transaction_id?: string | null
+          id?: string
+          payment_data?: Json | null
+          payment_provider?: string
+          session_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_plans: {
         Row: {
           created_at: string | null
