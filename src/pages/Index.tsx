@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { PricingSection } from "@/components/PricingSection";
 import { useAuth } from '@/hooks/useAuth';
+import { trackPageView } from '@/lib/tracking';
 import { Search, Zap, BarChart3, Globe, CheckCircle, Star, Users, TrendingUp, Shield, LogIn, Settings, ArrowRight } from "lucide-react";
 
 export default function Index() {
@@ -12,14 +13,18 @@ export default function Index() {
   const { user, userRole, loading } = useAuth();
   const [showPricing, setShowPricing] = useState(false);
 
-  // Redirect based on user role
+  // Track page view and redirect based on user role
   useEffect(() => {
-    if (!loading && user) {
-      if (userRole === 'admin') {
-        navigate('/admin');
-      } else if (userRole === 'member' && !showPricing) {
-        // For members, show dashboard directly or pricing if needed
-        navigate('/dashboard');
+    if (!loading) {
+      trackPageView('Landing Page');
+      
+      if (user) {
+        if (userRole === 'admin') {
+          navigate('/admin');
+        } else if (userRole === 'member' && !showPricing) {
+          // For members, show dashboard directly or pricing if needed
+          navigate('/dashboard');
+        }
       }
     }
   }, [user, userRole, loading, navigate, showPricing]);

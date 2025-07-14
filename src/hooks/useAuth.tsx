@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { trackUserLogin, trackUserRegistration } from '@/lib/tracking';
 
 interface AuthContextType {
   user: User | null;
@@ -78,6 +79,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
     });
+    
+    if (!error) {
+      trackUserLogin('email');
+    }
+    
     return { error };
   };
 
@@ -91,6 +97,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         emailRedirectTo: redirectUrl
       }
     });
+    
+    if (!error) {
+      trackUserRegistration('email');
+    }
+    
     return { error };
   };
 
