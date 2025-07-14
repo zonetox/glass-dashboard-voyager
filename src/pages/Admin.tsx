@@ -5,11 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate, Link } from 'react-router-dom';
-import { Settings, Users, Key, Database, Activity, Package } from 'lucide-react';
+import { Settings, Users, Key, Database, Activity, Package, Info } from 'lucide-react';
+import { APIHealthPanel } from '@/components/dashboard/api-health-panel';
 
 interface AdminSetting {
   id: string;
@@ -203,25 +205,30 @@ export default function Admin() {
           </Card>
         </div>
 
-        <Tabs defaultValue="settings" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white/10">
-            <TabsTrigger value="settings" className="data-[state=active]:bg-white/20">
-              <Key className="h-4 w-4 mr-2" />
-              API Settings
-            </TabsTrigger>
-            <TabsTrigger value="users" className="data-[state=active]:bg-white/20">
-              <Users className="h-4 w-4 mr-2" />
-              Users
-            </TabsTrigger>
-            <TabsTrigger value="database" className="data-[state=active]:bg-white/20">
-              <Database className="h-4 w-4 mr-2" />
-              Database
-            </TabsTrigger>
-            <TabsTrigger value="monitoring" className="data-[state=active]:bg-white/20">
-              <Activity className="h-4 w-4 mr-2" />
-              Monitoring
-            </TabsTrigger>
-          </TabsList>
+        <TooltipProvider>
+          <Tabs defaultValue="settings" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-5 bg-white/10">
+              <TabsTrigger value="settings" className="data-[state=active]:bg-white/20">
+                <Key className="h-4 w-4 mr-2" />
+                API Settings
+              </TabsTrigger>
+              <TabsTrigger value="users" className="data-[state=active]:bg-white/20">
+                <Users className="h-4 w-4 mr-2" />
+                Users
+              </TabsTrigger>
+              <TabsTrigger value="database" className="data-[state=active]:bg-white/20">
+                <Database className="h-4 w-4 mr-2" />
+                Database
+              </TabsTrigger>
+              <TabsTrigger value="monitoring" className="data-[state=active]:bg-white/20">
+                <Activity className="h-4 w-4 mr-2" />
+                Monitoring
+              </TabsTrigger>
+              <TabsTrigger value="api-health" className="data-[state=active]:bg-white/20">
+                <Activity className="h-4 w-4 mr-2" />
+                Hệ thống API
+              </TabsTrigger>
+            </TabsList>
 
           {/* API Settings */}
           <TabsContent value="settings">
@@ -319,7 +326,57 @@ export default function Admin() {
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
+
+          {/* API Health Tab */}
+          <TabsContent value="api-health">
+            <div className="space-y-6">
+              {/* Help Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="glass-card border-white/10">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Info className="h-5 w-5 text-blue-400 mt-0.5" />
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-xs">
+                          <p>Dữ liệu AI không có không có nghĩa là function aiAnalysis đang lỗi. Có thể do user chưa bật AI analysis hoặc API key chưa được cấu hình.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <div>
+                        <h3 className="text-white font-medium">💡 AI Analysis</h3>
+                        <p className="text-sm text-gray-400">Dữ liệu AI trống ≠ lỗi function</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="glass-card border-white/10">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Info className="h-5 w-5 text-yellow-400 mt-0.5" />
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="max-w-xs">
+                          <p>Nếu không có bản ghi scans, có nghĩa function analyze-site chưa được gọi hoặc chưa hoạt động đúng cách trong 24h qua.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <div>
+                        <h3 className="text-white font-medium">📊 Scan Records</h3>
+                        <p className="text-sm text-gray-400">Không có records = chưa hoạt động</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* API Health Panel */}
+              <APIHealthPanel />
+            </div>
+          </TabsContent>
+          </Tabs>
+        </TooltipProvider>
       </div>
     </div>
   );
