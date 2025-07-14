@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import LandingPage from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
+import AdminPlans from "./pages/AdminPlans";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import SharedScanView from "./pages/SharedScanView";
@@ -69,6 +70,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Admin />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/plans" 
+              element={
+                <ProtectedRoute>
+                  <AdminPlans />
                 </ProtectedRoute>
               } 
             />
