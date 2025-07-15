@@ -62,7 +62,7 @@ export function AIContentStudio() {
       const { data, error } = await supabase.functions.invoke('generate-content-from-keyword', {
         body: {
           keyword: keyword.trim(),
-          contentIntent,
+          intent: contentIntent,
           additionalTopic: topic.trim()
         }
       });

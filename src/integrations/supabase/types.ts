@@ -41,6 +41,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_content_logs: {
+        Row: {
+          article_length: number | null
+          created_at: string
+          error_message: string | null
+          id: string
+          intent: string
+          keyword: string
+          meta_description: string | null
+          success: boolean
+          title: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          article_length?: number | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          intent: string
+          keyword: string
+          meta_description?: string | null
+          success?: boolean
+          title?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          article_length?: number | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          intent?: string
+          keyword?: string
+          meta_description?: string | null
+          success?: boolean
+          title?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       api_logs: {
         Row: {
           api_name: string
