@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PenLine, FileText, Calendar, Search, Sparkles, TrendingUp, BarChart3, Lightbulb, Target, Clock, Copy, Save, Download, CheckCircle } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { PenLine, FileText, Calendar, Search, Sparkles, TrendingUp, BarChart3, Lightbulb, Target, Clock, Copy, Save, Download, CheckCircle, ExternalLink, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -28,6 +29,13 @@ export function AIContentStudio() {
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [contentPlan, setContentPlan] = useState<any[]>([]);
   const [isSavingPlan, setIsSavingPlan] = useState(false);
+  
+  // Content Gap Finder state
+  const [gapUrl, setGapUrl] = useState('');
+  const [isAnalyzingGaps, setIsAnalyzingGaps] = useState(false);
+  const [contentGaps, setContentGaps] = useState<any[]>([]);
+  const [mainKeywordFromUrl, setMainKeywordFromUrl] = useState('');
+  const [generatingGapContent, setGeneratingGapContent] = useState<string | null>(null);
   
   
   const handleGenerateContent = async () => {
@@ -221,11 +229,88 @@ export function AIContentStudio() {
     }
   };
   
-  const handleFindGaps = () => {
-    toast({
-      title: "Phân tích content gap",
-      description: "AI đang quét để tìm những chủ đề bị thiếu...",
-    });
+  const handleAnalyzeGaps = async () => {
+    if (!gapUrl.trim()) {
+      toast({
+        title: "Thiếu URL",
+        description: "Vui lòng nhập URL để phân tích content gap.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsAnalyzingGaps(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('content-gap-analysis', {
+        body: {
+          userUrl: gapUrl.trim()
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setContentGaps(data.gaps || []);
+      setMainKeywordFromUrl(data.mainKeyword || '');
+      toast({
+        title: "Phân tích hoàn thành!",
+        description: `Tìm thấy ${data.gaps?.length || 0} content gap cần bổ sung.`,
+      });
+    } catch (error) {
+      console.error('Content gap analysis failed:', error);
+      toast({
+        title: "Lỗi phân tích",
+        description: error instanceof Error ? error.message : "Không thể phân tích content gap. Vui lòng thử lại.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnalyzingGaps(false);
+    }
+  };
+
+  const handleGenerateGapContent = async (gap: any) => {
+    setGeneratingGapContent(gap.topic);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-gap-content', {
+        body: {
+          topic: gap.topic,
+          heading: gap.heading,
+          keywords: gap.keywords,
+          mainKeyword: mainKeywordFromUrl,
+          description: gap.description
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Copy generated content to clipboard
+      navigator.clipboard.writeText(data.content);
+      toast({
+        title: "Nội dung đã tạo!",
+        description: `Đoạn viết cho "${gap.topic}" đã được sao chép vào clipboard.`,
+      });
+    } catch (error) {
+      console.error('Gap content generation failed:', error);
+      toast({
+        title: "Lỗi tạo nội dung",
+        description: error instanceof Error ? error.message : "Không thể tạo nội dung. Vui lòng thử lại.",
+        variant: "destructive"
+      });
+    } finally {
+      setGeneratingGapContent(null);
+    }
+  };
+
+  const getPriorityBadgeColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'bg-red-500/20 text-red-700 dark:text-red-300';
+      case 'medium': return 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-300';
+      case 'low': return 'bg-green-500/20 text-green-700 dark:text-green-300';
+      default: return 'bg-gray-500/20 text-gray-700 dark:text-gray-300';
+    }
   };
 
   return (
@@ -680,7 +765,7 @@ export function AIContentStudio() {
         </Card>
 
         {/* Content Gap Finder */}
-        <Card className="glass-card hover:shadow-lg transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm">
+        <Card className="glass-card hover:shadow-lg transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Search className="h-5 w-5 text-purple-500" />
@@ -688,78 +773,165 @@ export function AIContentStudio() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Tìm nội dung bị thiếu so với đối thủ
-              </p>
-              
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-3 bg-muted/30 rounded-lg">
-                    <div className="text-lg font-bold text-red-600">12</div>
-                    <div className="text-xs text-muted-foreground">Gap phát hiện</div>
-                  </div>
-                  <div className="text-center p-3 bg-muted/30 rounded-lg">
-                    <div className="text-lg font-bold text-orange-600">8.7K</div>
-                    <div className="text-xs text-muted-foreground">Traffic tiềm năng</div>
+            {!contentGaps.length ? (
+              // Input Form
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    AI phân tích URL và tìm nội dung bị thiếu so với đối thủ
+                  </p>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">URL của bạn *</label>
+                    <Input
+                      placeholder="VD: https://yoursite.com/bai-viet-ve-skincare"
+                      value={gapUrl}
+                      onChange={(e) => setGapUrl(e.target.value)}
+                    />
                   </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Cơ hội phát hiện:</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-start gap-2 p-2 bg-muted/20 rounded">
-                      <Target className="h-3 w-3 text-red-500 mt-0.5 flex-shrink-0" />
-                      <div className="text-xs">
-                        <div className="font-medium">Product comparison</div>
-                        <div className="text-muted-foreground">2.1K searches/month</div>
-                      </div>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 bg-muted/30 rounded-lg">
+                      <div className="text-lg font-bold text-red-600">10+</div>
+                      <div className="text-xs text-muted-foreground">Gap tiềm năng</div>
                     </div>
-                    <div className="flex items-start gap-2 p-2 bg-muted/20 rounded">
-                      <Lightbulb className="h-3 w-3 text-yellow-500 mt-0.5 flex-shrink-0" />
-                      <div className="text-xs">
-                        <div className="font-medium">Tutorial videos</div>
-                        <div className="text-muted-foreground">1.8K searches/month</div>
-                      </div>
+                    <div className="text-center p-3 bg-muted/30 rounded-lg">
+                      <div className="text-lg font-bold text-orange-600">5-8K</div>
+                      <div className="text-xs text-muted-foreground">Traffic cơ hội</div>
                     </div>
-                    <div className="flex items-start gap-2 p-2 bg-muted/20 rounded">
-                      <TrendingUp className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
-                      <div className="text-xs">
-                        <div className="font-medium">Industry news</div>
-                        <div className="text-muted-foreground">3.2K searches/month</div>
-                      </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex gap-2 flex-wrap">
+                      <Badge variant="outline" className="text-xs">Competitor Analysis</Badge>
+                      <Badge variant="outline" className="text-xs">SERP Gap</Badge>
+                      <Badge variant="outline" className="text-xs">Topic Missing</Badge>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium">Tính năng:</h4>
+                      <ul className="text-xs text-muted-foreground space-y-1">
+                        <li>• Fetch nội dung từ URL của bạn</li>
+                        <li>• So sánh với top 10 kết quả Google</li>
+                        <li>• Tìm topic, heading, keyword bị thiếu</li>
+                        <li>• Gợi ý nội dung cần thêm</li>
+                        <li>• Viết từng đoạn với AI</li>
+                      </ul>
                     </div>
                   </div>
                 </div>
+                
+                <Button 
+                  className="w-full" 
+                  onClick={handleAnalyzeGaps}
+                  disabled={isAnalyzingGaps}
+                >
+                  {isAnalyzingGaps ? (
+                    <>
+                      <Search className="h-4 w-4 mr-2 animate-spin" />
+                      Đang phân tích...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="h-4 w-4 mr-2" />
+                      Phân tích Content Gap
+                    </>
+                  )}
+                </Button>
               </div>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex gap-2 flex-wrap">
-                <Badge variant="outline" className="text-xs">Competitor Analysis</Badge>
-                <Badge variant="outline" className="text-xs">SERP Gap</Badge>
-                <Badge variant="outline" className="text-xs">Topic Clusters</Badge>
+            ) : (
+              // Content Gaps Display
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-medium">Content Gaps tìm thấy</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Từ khóa: <Badge variant="outline" className="text-xs ml-1">{mainKeywordFromUrl}</Badge>
+                      • {contentGaps.length} gaps cần bổ sung
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setContentGaps([]);
+                        setGapUrl('');
+                        setMainKeywordFromUrl('');
+                      }}
+                    >
+                      Phân tích mới
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <Accordion type="single" collapsible className="w-full">
+                    {contentGaps.map((gap, index) => (
+                      <AccordionItem key={index} value={`gap-${index}`}>
+                        <AccordionTrigger className="text-left">
+                          <div className="flex items-center gap-2">
+                            <Badge className={`text-xs ${getPriorityBadgeColor(gap.priority)}`}>
+                              {gap.priority}
+                            </Badge>
+                            <span className="text-sm font-medium">{gap.topic}</span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="space-y-3 pt-2">
+                            <div>
+                              <h5 className="text-sm font-medium mb-1">Heading đề xuất:</h5>
+                              <p className="text-sm text-muted-foreground">{gap.heading}</p>
+                            </div>
+                            
+                            <div>
+                              <h5 className="text-sm font-medium mb-1">Keywords liên quan:</h5>
+                              <div className="flex gap-1 flex-wrap">
+                                {gap.keywords?.map((keyword: string, i: number) => (
+                                  <Badge key={i} variant="outline" className="text-xs">
+                                    {keyword}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <h5 className="text-sm font-medium mb-1">Tại sao cần bổ sung:</h5>
+                              <p className="text-sm text-muted-foreground">{gap.description}</p>
+                            </div>
+                            
+                            <div>
+                              <h5 className="text-sm font-medium mb-1">Gợi ý nội dung:</h5>
+                              <p className="text-sm text-muted-foreground">{gap.suggestedContent}</p>
+                            </div>
+                            
+                            <Button
+                              size="sm"
+                              onClick={() => handleGenerateGapContent(gap)}
+                              disabled={generatingGapContent === gap.topic}
+                              className="w-full"
+                            >
+                              {generatingGapContent === gap.topic ? (
+                                <>
+                                  <Zap className="h-3 w-3 mr-2 animate-spin" />
+                                  Đang viết...
+                                </>
+                              ) : (
+                                <>
+                                  <Zap className="h-3 w-3 mr-2" />
+                                  Viết đoạn này với AI
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </div>
               </div>
-              
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium">Tính năng:</h4>
-                <ul className="text-xs text-muted-foreground space-y-1">
-                  <li>• So sánh với top 10 đối thủ</li>
-                  <li>• Phân tích SERP features</li>
-                  <li>• Đề xuất topic clusters</li>
-                  <li>• Ước tính traffic tiềm năng</li>
-                </ul>
-              </div>
-            </div>
-            
-            <Button 
-              className="w-full" 
-              variant="outline"
-              onClick={handleFindGaps}
-            >
-              <Search className="h-4 w-4 mr-2" />
-              Quét content gaps
-            </Button>
+            )}
           </CardContent>
         </Card>
       </div>

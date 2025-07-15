@@ -108,3 +108,9 @@ verify_jwt = true
 
 [functions.generate-content-plan]
 verify_jwt = true
+
+[functions.content-gap-analysis]
+verify_jwt = true
+
+[functions.generate-gap-content]
+verify_jwt = true
