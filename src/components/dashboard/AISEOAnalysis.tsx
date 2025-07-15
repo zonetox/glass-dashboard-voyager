@@ -1,10 +1,73 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Bot, Brain, Target, Search, Sparkles, TrendingUp } from 'lucide-react';
+import { Bot, Brain, Target, Search, Sparkles, TrendingUp, MessagesSquare, RotateCcw, Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export function AISEOAnalysis() {
+  const { toast } = useToast();
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<'google' | 'perplexity' | 'chatgpt'>('google');
+  
+  // Mock data from last scan
+  const mockScanData = {
+    h1: "AI-Powered SEO Analysis Tool - Optimize Your Website Rankings",
+    paragraphs: [
+      "Our advanced SEO analysis tool uses artificial intelligence to identify optimization opportunities and improve your website's search engine visibility.",
+      "With real-time scanning and automated recommendations, you can fix SEO issues faster than ever before."
+    ],
+    faqs: [
+      {
+        question: "How does AI SEO analysis work?",
+        answer: "Our tool crawls your website, analyzes content structure, and uses machine learning to identify SEO improvements."
+      },
+      {
+        question: "What makes this different from other SEO tools?",
+        answer: "We provide AI-generated content suggestions and automated optimization workflows that save time."
+      }
+    ]
+  };
+
+  const aiAnswerVariations = {
+    google: {
+      text: "Dựa trên **AI-Powered SEO Analysis Tool**, đây là công cụ phân tích SEO sử dụng trí tuệ nhân tạo để **tối ưu hóa thứ hạng website**. Công cụ này hoạt động bằng cách **quét website, phân tích cấu trúc nội dung** và sử dụng machine learning để xác định cơ hội cải thiện SEO. Điểm khác biệt là khả năng **đưa ra gợi ý nội dung tự động** và quy trình tối ưu hóa tiết kiệm thời gian.",
+      source: "seoautotool.com",
+      confidence: "89%"
+    },
+    perplexity: {
+      text: "**AI-Powered SEO Analysis Tool** là giải pháp tối ưu hóa website sử dụng AI để **cải thiện thứ hạng tìm kiếm**. Công cụ này thực hiện **quét thời gian thực và đưa ra khuyến nghị tự động**, giúp sửa lỗi SEO nhanh hơn bao giờ hết. Tính năng nổi bật là **machine learning phân tích cấu trúc nội dung** và tạo ra quy trình tối ưu hóa tự động.",
+      source: "Từ phân tích website",
+      confidence: "92%"
+    },
+    chatgpt: {
+      text: "Công cụ **AI-Powered SEO Analysis** sử dụng trí tuệ nhân tạo để **tối ưu hóa thứ hạng website**. Hệ thống hoạt động bằng cách **quét và phân tích cấu trúc nội dung**, sau đó áp dụng machine learning để **xác định cơ hội cải thiện SEO**. Điểm mạnh là khả năng **tự động hóa quy trình tối ưu** và đưa ra gợi ý nội dung thông minh.",
+      source: "Dựa trên dữ liệu đã huấn luyện",
+      confidence: "87%"
+    }
+  };
+
+  const handleRegenerate = async () => {
+    setIsRegenerating(true);
+    // Simulate AI regeneration
+    setTimeout(() => {
+      setIsRegenerating(false);
+      toast({
+        title: "Đã tạo lại câu trả lời",
+        description: "AI đã phân tích và tạo ra phiên bản mới.",
+      });
+    }, 2000);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Đã sao chép",
+      description: "Nội dung đã được sao chép vào clipboard.",
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -20,30 +83,101 @@ export function AISEOAnalysis() {
       {/* Feature Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         
-        {/* AI Answer Simulation */}
-        <Card className="glass-card hover:shadow-lg transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm">
+        {/* AI Answer Simulation - Enhanced */}
+        <Card className="glass-card hover:shadow-lg transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Bot className="h-5 w-5 text-blue-500" />
+              <MessagesSquare className="h-5 w-5 text-blue-500" />
               AI Answer Simulation
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Platform Selector */}
+            <div className="flex gap-2 mb-4">
+              {(['google', 'perplexity', 'chatgpt'] as const).map((platform) => (
+                <Button
+                  key={platform}
+                  variant={selectedPlatform === platform ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedPlatform(platform)}
+                  className="text-xs"
+                >
+                  {platform === 'google' && 'Google SGE'}
+                  {platform === 'perplexity' && 'Perplexity'}
+                  {platform === 'chatgpt' && 'ChatGPT'}
+                </Button>
+              ))}
+            </div>
+
+            {/* AI Answer Preview */}
             <div className="p-4 bg-muted/30 rounded-lg border border-border/30">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
-                  <Bot className="h-4 w-4 text-blue-500" />
+                <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <MessagesSquare className="h-4 w-4 text-blue-500" />
                 </div>
-                <div className="flex-1 space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    Preview câu trả lời AI:
-                  </p>
-                  <div className="bg-background/80 p-3 rounded border text-sm">
-                    "Theo <strong>website của bạn</strong>, tính năng này giúp tối ưu nội dung để AI có thể trích dẫn chính xác..."
+                <div className="flex-1 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      {selectedPlatform === 'google' && 'Google SGE trả lời:'}
+                      {selectedPlatform === 'perplexity' && 'Perplexity AI:'}
+                      {selectedPlatform === 'chatgpt' && 'ChatGPT phản hồi:'}
+                    </p>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(aiAnswerVariations[selectedPlatform].text)}
+                        className="h-6 w-6 p-0"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRegenerate}
+                        disabled={isRegenerating}
+                        className="h-6 w-6 p-0"
+                      >
+                        <RotateCcw className={`h-3 w-3 ${isRegenerating ? 'animate-spin' : ''}`} />
+                      </Button>
+                    </div>
                   </div>
-                  <Badge variant="secondary" className="text-xs">
-                    SGE Ready
-                  </Badge>
+                  
+                  <div className="bg-background/80 p-3 rounded border text-sm leading-relaxed">
+                    <div 
+                      className="ai-answer-text"
+                      dangerouslySetInnerHTML={{ 
+                        __html: aiAnswerVariations[selectedPlatform].text.replace(/\*\*(.*?)\*\*/g, '<mark class="bg-yellow-200/50 dark:bg-yellow-500/20 px-1 rounded">$1</mark>')
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        Nguồn: {aiAnswerVariations[selectedPlatform].source}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        Độ tin cậy: {aiAnswerVariations[selectedPlatform].confidence}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Source Content Analysis */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium">Nội dung gốc được trích xuất:</h4>
+              <div className="grid grid-cols-1 gap-2 text-xs">
+                <div className="p-2 bg-muted/20 rounded border-l-2 border-blue-500">
+                  <span className="text-muted-foreground">H1:</span> {mockScanData.h1}
+                </div>
+                <div className="p-2 bg-muted/20 rounded border-l-2 border-green-500">
+                  <span className="text-muted-foreground">Đoạn văn:</span> {mockScanData.paragraphs[0]}
+                </div>
+                <div className="p-2 bg-muted/20 rounded border-l-2 border-purple-500">
+                  <span className="text-muted-foreground">FAQ:</span> {mockScanData.faqs[0].answer}
                 </div>
               </div>
             </div>
@@ -52,16 +186,27 @@ export function AISEOAnalysis() {
               <p className="text-sm text-muted-foreground">
                 Khả năng được trích dẫn
               </p>
-              <Progress value={75} className="h-2" />
+              <Progress value={parseInt(aiAnswerVariations[selectedPlatform].confidence)} className="h-2" />
               <p className="text-xs text-muted-foreground">
-                75% - Cần cải thiện cấu trúc dữ liệu
+                {aiAnswerVariations[selectedPlatform].confidence} - Tối ưu cho {selectedPlatform.toUpperCase()}
               </p>
             </div>
 
-            <Button className="w-full" variant="outline">
-              <Search className="h-4 w-4 mr-2" />
-              Phân tích nội dung
-            </Button>
+            <div className="flex gap-2">
+              <Button className="flex-1" variant="outline">
+                <Search className="h-4 w-4 mr-2" />
+                Phân tích nội dung
+              </Button>
+              <Button 
+                className="flex-1" 
+                variant="outline"
+                onClick={handleRegenerate}
+                disabled={isRegenerating}
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                {isRegenerating ? 'Đang tạo...' : 'Tạo biến thể'}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
