@@ -121,5 +121,8 @@ verify_jwt = false
 [functions.trend-momentum]
 verify_jwt = false
 
+[functions.run-autopilot-cycle]
+verify_jwt = false
+
 [functions.seo-risk-alert]
 verify_jwt = false
