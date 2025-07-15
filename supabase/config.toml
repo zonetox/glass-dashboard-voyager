@@ -102,3 +102,6 @@ verify_jwt = false
 
 [functions.check-api-health]
 verify_jwt = false
+
+[functions.generate-content-from-keyword]
+verify_jwt = true

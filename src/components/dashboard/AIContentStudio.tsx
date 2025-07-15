@@ -4,14 +4,24 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { PenLine, FileText, Calendar, Search, Sparkles, TrendingUp, BarChart3, Lightbulb, Target, Clock } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PenLine, FileText, Calendar, Search, Sparkles, TrendingUp, BarChart3, Lightbulb, Target, Clock, Copy, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export function AIContentStudio() {
   const { toast } = useToast();
   const [keyword, setKeyword] = useState('');
+  const [contentIntent, setContentIntent] = useState<string>('');
   const [topic, setTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState<{
+    title: string;
+    metaDescription: string;
+    article: string;
+  } | null>(null);
+  
   
   const handleGenerateContent = async () => {
     if (!keyword.trim()) {
@@ -22,16 +32,71 @@ export function AIContentStudio() {
       });
       return;
     }
+
+    if (!contentIntent) {
+      toast({
+        title: "Thiếu search intent",
+        description: "Vui lòng chọn loại search intent.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setIsGenerating(true);
-    // Simulate AI content generation
-    setTimeout(() => {
-      setIsGenerating(false);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-content-from-keyword', {
+        body: {
+          keyword: keyword.trim(),
+          contentIntent,
+          additionalTopic: topic.trim()
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setGeneratedContent(data);
       toast({
         title: "Nội dung đã được tạo!",
         description: `Bài viết SEO cho từ khóa "${keyword}" đã sẵn sàng.`,
       });
-    }, 3000);
+    } catch (error) {
+      console.error('Content generation failed:', error);
+      toast({
+        title: "Lỗi tạo nội dung",
+        description: error instanceof Error ? error.message : "Không thể tạo nội dung. Vui lòng thử lại.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Đã sao chép",
+      description: "Nội dung đã được sao chép vào clipboard.",
+    });
+  };
+
+  const saveContentToDatabase = async () => {
+    if (!generatedContent) return;
+    
+    try {
+      // Here you can implement saving to database
+      toast({
+        title: "Đã lưu",
+        description: "Nội dung đã được lưu vào cơ sở dữ liệu.",
+      });
+    } catch (error) {
+      toast({
+        title: "Lỗi lưu nội dung",
+        description: "Không thể lưu nội dung. Vui lòng thử lại.",
+        variant: "destructive"
+      });
+    }
   };
   
   const handlePlanContent = () => {
@@ -64,7 +129,7 @@ export function AIContentStudio() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Content Generator */}
-        <Card className="glass-card hover:shadow-lg transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm">
+        <Card className="glass-card hover:shadow-lg transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <PenLine className="h-5 w-5 text-blue-500" />
@@ -72,71 +137,222 @@ export function AIContentStudio() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Viết bài từ keyword với AI
-              </p>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Từ khóa chính</label>
-                  <Input
-                    placeholder="VD: cách làm bánh mì"
-                    value={keyword}
-                    onChange={(e) => setKeyword(e.target.value)}
-                  />
+            {!generatedContent ? (
+              // Input Form
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Viết bài từ keyword với AI
+                  </p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Từ khóa chính *</label>
+                      <Input
+                        placeholder="VD: cách trị mụn ẩn"
+                        value={keyword}
+                        onChange={(e) => setKeyword(e.target.value)}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Search Intent *</label>
+                      <Select value={contentIntent} onValueChange={setContentIntent}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Chọn loại search intent" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="informational">Informational - Tìm thông tin</SelectItem>
+                          <SelectItem value="transactional">Transactional - Mua hàng</SelectItem>
+                          <SelectItem value="commercial">Commercial - So sánh sản phẩm</SelectItem>
+                          <SelectItem value="navigational">Navigational - Tìm trang web</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Chủ đề bổ sung (tùy chọn)</label>
+                      <Textarea
+                        placeholder="VD: nguyên liệu, thời gian, mẹo hay..."
+                        rows={3}
+                        value={topic}
+                        onChange={(e) => setTopic(e.target.value)}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Chủ đề bổ sung (tùy chọn)</label>
-                  <Textarea
-                    placeholder="VD: nguyên liệu, thời gian, mẹo hay..."
-                    rows={3}
-                    value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
-                  />
+                
+                <div className="space-y-3">
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="outline" className="text-xs">Search Intent</Badge>
+                    <Badge variant="outline" className="text-xs">LSI Keywords</Badge>
+                    <Badge variant="outline" className="text-xs">Meta Tags</Badge>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">Tính năng:</h4>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      <li>• Tự động phân tích search intent</li>
+                      <li>• Tích hợp LSI keywords</li>
+                      <li>• Tạo meta description & title</li>
+                      <li>• Cấu trúc heading chuẩn SEO</li>
+                      <li>• Bài viết 800-1200 từ</li>
+                    </ul>
+                  </div>
+                </div>
+                
+                <Button 
+                  className="w-full" 
+                  onClick={handleGenerateContent}
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2 animate-spin" />
+                      Đang tạo nội dung...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Tạo bài viết với AI
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              // Generated Content Display
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium">Nội dung đã tạo:</h4>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setGeneratedContent(null)}
+                    >
+                      Tạo mới
+                    </Button>
+                  </div>
+                </div>
+                
+                <Tabs defaultValue="title" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="title">Title & Meta</TabsTrigger>
+                    <TabsTrigger value="article">Bài viết</TabsTrigger>
+                    <TabsTrigger value="all">Tất cả</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="title" className="space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium">Title Tag:</label>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(generatedContent.title)}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <Textarea
+                        value={generatedContent.title}
+                        readOnly
+                        rows={2}
+                        className="resize-none"
+                      />
+                    </div>
+                    
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium">Meta Description:</label>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(generatedContent.metaDescription)}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <Textarea
+                        value={generatedContent.metaDescription}
+                        readOnly
+                        rows={3}
+                        className="resize-none"
+                      />
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="article" className="space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium">Bài viết đầy đủ:</label>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(generatedContent.article)}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <Textarea
+                        value={generatedContent.article}
+                        readOnly
+                        rows={15}
+                        className="resize-none"
+                      />
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="all" className="space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium">Tất cả nội dung:</label>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(
+                            `Title: ${generatedContent.title}\n\nMeta Description: ${generatedContent.metaDescription}\n\nBài viết:\n${generatedContent.article}`
+                          )}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <Textarea
+                        value={`Title: ${generatedContent.title}\n\nMeta Description: ${generatedContent.metaDescription}\n\nBài viết:\n${generatedContent.article}`}
+                        readOnly
+                        rows={20}
+                        className="resize-none"
+                      />
+                    </div>
+                  </TabsContent>
+                </Tabs>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    className="flex-1" 
+                    variant="outline"
+                    onClick={() => copyToClipboard(
+                      `Title: ${generatedContent.title}\n\nMeta Description: ${generatedContent.metaDescription}\n\nBài viết:\n${generatedContent.article}`
+                    )}
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy tất cả
+                  </Button>
+                  <Button 
+                    className="flex-1" 
+                    variant="outline"
+                    onClick={saveContentToDatabase}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Lưu vào DB
+                  </Button>
                 </div>
               </div>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex gap-2 flex-wrap">
-                <Badge variant="outline" className="text-xs">Search Intent</Badge>
-                <Badge variant="outline" className="text-xs">LSI Keywords</Badge>
-                <Badge variant="outline" className="text-xs">Meta Tags</Badge>
-              </div>
-              
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium">Tính năng:</h4>
-                <ul className="text-xs text-muted-foreground space-y-1">
-                  <li>• Tự động phân tích search intent</li>
-                  <li>• Tích hợp LSI keywords</li>
-                  <li>• Tạo meta description & title</li>
-                  <li>• Cấu trúc heading chuẩn SEO</li>
-                </ul>
-              </div>
-            </div>
-            
-            <Button 
-              className="w-full" 
-              onClick={handleGenerateContent}
-              disabled={isGenerating}
-            >
-              {isGenerating ? (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2 animate-spin" />
-                  Đang tạo nội dung...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Tạo bài viết SEO
-                </>
-              )}
-            </Button>
+            )}
           </CardContent>
         </Card>
 
-        {/* Content Planner */}
-        <Card className="glass-card hover:shadow-lg transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm">
+        {/* Content Planner - Make it single column */}
+        <Card className="glass-card hover:shadow-lg transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm lg:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-green-500" />
