@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Bot, Brain, Target, Search, Sparkles, TrendingUp, MessagesSquare, RotateCcw, Copy, Info } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Bot, Brain, Target, Search, Sparkles, TrendingUp, MessagesSquare, RotateCcw, Copy, Info, Link, Settings, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Cell, PieChart, Pie, ResponsiveContainer } from 'recharts';
 
@@ -39,7 +40,52 @@ export function AISEOAnalysis() {
     return { score, metrics };
   };
   
+  
   const { score: aiVisibilityScore, metrics } = calculateAIVisibilityScore();
+  
+  // Mock entity data from last scan
+  const mockEntities = [
+    {
+      id: 1,
+      name: "SEO Analysis Tool",
+      type: "Product",
+      importance: 9,
+      context: "Main product offering",
+      suggestions: ["Add Product schema", "Create internal linking hub"]
+    },
+    {
+      id: 2,
+      name: "Artificial Intelligence",
+      type: "Technology",
+      importance: 8,
+      context: "Core technology",
+      suggestions: ["Add Technology schema", "Link to AI-related pages"]
+    },
+    {
+      id: 3,
+      name: "Website Optimization",
+      type: "Service",
+      importance: 7,
+      context: "Primary service",
+      suggestions: ["Add Service schema", "Create service landing pages"]
+    },
+    {
+      id: 4,
+      name: "Google",
+      type: "Organization",
+      importance: 6,
+      context: "Search engine focus",
+      suggestions: ["Add Organization context", "Reference in authority content"]
+    },
+    {
+      id: 5,
+      name: "Machine Learning",
+      type: "Technology",
+      importance: 5,
+      context: "Supporting technology",
+      suggestions: ["Add Technology schema", "Create ML content cluster"]
+    }
+  ];
   
   // Mock data from last scan
   const mockScanData = {
@@ -351,66 +397,180 @@ export function AISEOAnalysis() {
         </Card>
 
         {/* Entity Optimization */}
-        <Card className="glass-card hover:shadow-lg transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm">
+        <Card className="glass-card hover:shadow-lg transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm lg:col-span-3">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-purple-500" />
-              Entity Optimization
+            <CardTitle className="flex items-center gap-2 justify-between">
+              <div className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-purple-500" />
+                Entity Optimization
+              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-64">
+                    <p className="text-sm">
+                      Entities được AI nhận diện trong nội dung và gợi ý tối ưu hóa 
+                      để tăng khả năng hiển thị trong kết quả tìm kiếm AI
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Semantic Map Simulation */}
-            <div className="relative h-32 bg-muted/20 rounded-lg border border-border/30 overflow-hidden">
-              <div className="absolute inset-0 p-3">
-                <div className="grid grid-cols-3 gap-2 h-full">
-                  <div className="space-y-2">
-                    <div className="h-4 bg-primary/30 rounded animate-pulse"></div>
-                    <div className="h-3 bg-blue-500/20 rounded"></div>
-                    <div className="h-3 bg-green-500/20 rounded"></div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="h-6 bg-purple-500/30 rounded"></div>
-                    <div className="h-2 bg-orange-500/20 rounded"></div>
-                    <div className="h-4 bg-pink-500/20 rounded"></div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="h-3 bg-cyan-500/20 rounded"></div>
-                    <div className="h-5 bg-red-500/20 rounded"></div>
-                    <div className="h-2 bg-yellow-500/20 rounded"></div>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute bottom-2 right-2">
-                <Badge variant="outline" className="text-xs bg-background/80">
-                  Entity Map
-                </Badge>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium">Entities được phát hiện:</h4>
-              <div className="flex flex-wrap gap-1">
-                <Badge variant="secondary" className="text-xs">SEO Tool</Badge>
-                <Badge variant="secondary" className="text-xs">AI Analysis</Badge>
-                <Badge variant="secondary" className="text-xs">Web Optimization</Badge>
-                <Badge variant="outline" className="text-xs">+12 more</Badge>
-              </div>
-            </div>
-
-            <div className="space-y-2">
+            <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Semantic completeness
+                Đã phát hiện {mockEntities.length} entities chính trong nội dung của bạn
               </p>
-              <Progress value={82} className="h-2" />
-              <p className="text-xs text-muted-foreground">
-                82% - Entities được kết nối tốt
-              </p>
+              <Badge variant="secondary" className="text-xs">
+                NLP Analysis
+              </Badge>
             </div>
 
-            <Button className="w-full" variant="outline">
-              <Sparkles className="h-4 w-4 mr-2" />
-              Tối ưu entities
-            </Button>
+            {/* Entities Table */}
+            <div className="border rounded-lg bg-background/50">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/50">
+                    <TableHead className="w-[200px]">Entity</TableHead>
+                    <TableHead className="w-[120px]">Type</TableHead>
+                    <TableHead className="w-[100px] text-center">Score</TableHead>
+                    <TableHead>Optimization Suggestions</TableHead>
+                    <TableHead className="w-[100px] text-center">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mockEntities.map((entity) => (
+                    <TableRow key={entity.id} className="border-border/30 hover:bg-muted/30">
+                      <TableCell className="font-medium">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
+                            {entity.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {entity.context}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant="outline" 
+                          className={`text-xs ${
+                            entity.type === 'Product' ? 'border-blue-500/50 text-blue-600' :
+                            entity.type === 'Technology' ? 'border-purple-500/50 text-purple-600' :
+                            entity.type === 'Service' ? 'border-green-500/50 text-green-600' :
+                            'border-orange-500/50 text-orange-600'
+                          }`}
+                        >
+                          {entity.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="text-sm font-medium">{entity.importance}</div>
+                          <div className="w-8">
+                            <Progress 
+                              value={entity.importance * 10} 
+                              className="h-1"
+                            />
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {entity.suggestions.map((suggestion, index) => (
+                            <div key={index} className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <div className="w-1 h-1 bg-muted-foreground rounded-full flex-shrink-0"></div>
+                              {suggestion}
+                            </div>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => toast({
+                                    title: "AI Fix",
+                                    description: `Đang tối ưu entity "${entity.name}"...`,
+                                  })}
+                                >
+                                  <Wand2 className="h-3 w-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs">Fix with AI</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => toast({
+                                    title: "Schema Generated",
+                                    description: `Schema markup cho "${entity.name}" đã được tạo.`,
+                                  })}
+                                >
+                                  <Link className="h-3 w-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs">Generate Schema</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Summary Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-border/30">
+              <div className="text-center space-y-1">
+                <div className="text-lg font-bold text-blue-600">2</div>
+                <div className="text-xs text-muted-foreground">Products</div>
+              </div>
+              <div className="text-center space-y-1">
+                <div className="text-lg font-bold text-purple-600">2</div>
+                <div className="text-xs text-muted-foreground">Technologies</div>
+              </div>
+              <div className="text-center space-y-1">
+                <div className="text-lg font-bold text-green-600">1</div>
+                <div className="text-xs text-muted-foreground">Services</div>
+              </div>
+              <div className="text-center space-y-1">
+                <div className="text-lg font-bold text-orange-600">1</div>
+                <div className="text-xs text-muted-foreground">Organizations</div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-2">
+              <Button className="flex-1" variant="outline">
+                <Settings className="h-4 w-4 mr-2" />
+                Cấu hình entities
+              </Button>
+              <Button className="flex-1" variant="outline">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Tối ưu tất cả
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
