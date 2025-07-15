@@ -1070,6 +1070,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_autopilot: {
+        Row: {
+          auto_fix_seo: boolean
+          auto_generate_schema: boolean
+          auto_update_content: boolean
+          backup_before_fix: boolean
+          created_at: string
+          enabled: boolean
+          frequency_days: number
+          id: string
+          send_reports: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_fix_seo?: boolean
+          auto_generate_schema?: boolean
+          auto_update_content?: boolean
+          backup_before_fix?: boolean
+          created_at?: string
+          enabled?: boolean
+          frequency_days?: number
+          id?: string
+          send_reports?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_fix_seo?: boolean
+          auto_generate_schema?: boolean
+          auto_update_content?: boolean
+          backup_before_fix?: boolean
+          created_at?: string
+          enabled?: boolean
+          frequency_days?: number
+          id?: string
+          send_reports?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_plans: {
         Row: {
           created_at: string | null

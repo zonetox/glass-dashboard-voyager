@@ -26,6 +26,7 @@ import {
   CheckCircle2,
   HelpCircle
 } from 'lucide-react';
+import { AutoPilotSettings } from '@/components/AutoPilotSettings';
 
 export function AccountPage() {
   const { user, signOut } = useAuth();
@@ -352,6 +353,9 @@ export function AccountPage() {
 
         {/* Settings Tab */}
         <TabsContent value="settings" className="space-y-6">
+          {/* Auto-Pilot SEO Mode */}
+          <AutoPilotSettings />
+
           <Card className="glass-card border-white/10">
             <CardHeader>
               <CardTitle className="text-white flex items-center">
