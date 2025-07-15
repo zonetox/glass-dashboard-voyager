@@ -32,7 +32,8 @@ import {
   Loader2,
   Hash,
   Bot,
-  PenLine
+  PenLine,
+  LineChart
 } from 'lucide-react';
 import EnhancedAutoFixStepper from '@/components/dashboard/EnhancedAutoFixStepper';
 import { OneClickFix } from '@/components/dashboard/OneClickFix';
@@ -42,6 +43,7 @@ import { AccountPage } from '@/pages/AccountPage';
 import { APIHealthPanel } from '@/components/dashboard/api-health-panel';
 import { AISEOAnalysis } from '@/components/dashboard/AISEOAnalysis';
 import { AIContentStudio } from '@/components/dashboard/AIContentStudio';
+import { PredictiveDashboard } from '@/components/dashboard/PredictiveDashboard';
 import { QuickDomainInput } from '@/components/QuickDomainInput';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { Website, SEOIssue, mockSEOIssues } from '@/lib/types';
@@ -340,7 +342,7 @@ export default function Dashboard() {
 
           {/* Main Tabs */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-10 lg:w-auto lg:inline-flex">{/* Changed from grid-cols-9 to grid-cols-10 */}
+            <TabsList className="grid w-full grid-cols-11 lg:w-auto lg:inline-flex">{/* Changed from grid-cols-10 to grid-cols-11 */}
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
                 <span className="hidden sm:inline">Tổng quan</span>
@@ -376,6 +378,10 @@ export default function Dashboard() {
               <TabsTrigger value="reports" className="flex items-center gap-2 pdf-report-button">
                 <FileText className="h-4 w-4" />
                 <span className="hidden sm:inline">Báo cáo PDF</span>
+              </TabsTrigger>
+              <TabsTrigger value="predictive" className="flex items-center gap-2">
+                <LineChart className="h-4 w-4" />
+                <span className="hidden sm:inline">Predictive SEO</span>
               </TabsTrigger>
               <TabsTrigger value="account" className="flex items-center gap-2">
                 <Search className="h-4 w-4" />
@@ -780,6 +786,11 @@ export default function Dashboard() {
               {/* Reports Tab */}
               <TabsContent value="reports" className="space-y-6">
                 <ReportViewer />
+              </TabsContent>
+
+              {/* Predictive SEO Tab */}
+              <TabsContent value="predictive" className="space-y-6">
+                <PredictiveDashboard />
               </TabsContent>
 
               {/* Account Tab */}
