@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { TrendingUp, AlertTriangle, Target, LineChart, Sparkles, Shield, Plus, X, Loader2, Search } from "lucide-react";
+import { TrendingUp, AlertTriangle, Target, LineChart, Sparkles, Shield, Plus, X, Loader2, Search, AlertCircle, CheckCircle, Clock } from "lucide-react";
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +40,32 @@ interface TrendAnalysis {
   insights: string;
 }
 
+interface SEORiskAnalysis {
+  domain: string;
+  keywords: string[];
+  riskLevel: 'low' | 'medium' | 'high';
+  riskScore: number;
+  confidence: number;
+  riskFactors: Array<{
+    factor: string;
+    category: string;
+    status: 'good' | 'warning' | 'critical';
+    details: any;
+    impact: 'low' | 'medium' | 'high';
+    description: string;
+  }>;
+  recommendations: Array<{
+    factor: string;
+    action: string;
+    priority: 'low' | 'medium' | 'high';
+    timeline: string;
+    autoFixAvailable: boolean;
+    category: string;
+  }>;
+  insights: string;
+  autoFixAvailable: boolean;
+}
+
 export function PredictiveDashboard() {
   const [keywords, setKeywords] = useState<string[]>(['']);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,6 +76,12 @@ export function PredictiveDashboard() {
   const [trendTopic, setTrendTopic] = useState<string>('');
   const [isTrendLoading, setIsTrendLoading] = useState(false);
   const [trendAnalysis, setTrendAnalysis] = useState<TrendAnalysis | null>(null);
+  
+  // SEO Risk Alert state
+  const [riskDomain, setRiskDomain] = useState<string>('');
+  const [riskKeywords, setRiskKeywords] = useState<string>('');
+  const [isRiskLoading, setIsRiskLoading] = useState(false);
+  const [riskAnalysis, setRiskAnalysis] = useState<SEORiskAnalysis | null>(null);
   
   const { toast } = useToast();
 
@@ -142,6 +174,85 @@ export function PredictiveDashboard() {
       });
     } finally {
       setIsTrendLoading(false);
+    }
+  };
+
+  const handleRiskAnalysis = async () => {
+    if (!riskDomain.trim() || !riskKeywords.trim()) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập domain và keywords",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const keywords = riskKeywords.split(',').map(k => k.trim()).filter(k => k);
+    if (keywords.length === 0) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập ít nhất 1 keyword",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsRiskLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('seo-risk-alert', {
+        body: { domain: riskDomain.trim(), keywords }
+      });
+
+      if (error) throw error;
+
+      setRiskAnalysis(data);
+      
+      toast({
+        title: "Thành công",
+        description: `Phân tích rủi ro SEO cho ${riskDomain} thành công!`
+      });
+    } catch (error) {
+      console.error('Error analyzing SEO risks:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể phân tích rủi ro SEO. Vui lòng thử lại.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRiskLoading(false);
+    }
+  };
+
+  const getRiskLevelBadge = (level: 'low' | 'medium' | 'high') => {
+    switch (level) {
+      case 'high':
+        return <Badge className="bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20">🔴 Cao</Badge>;
+      case 'medium':
+        return <Badge className="bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20">🟡 Trung bình</Badge>;
+      case 'low':
+        return <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">🟢 Thấp</Badge>;
+    }
+  };
+
+  const getStatusIcon = (status: 'good' | 'warning' | 'critical') => {
+    switch (status) {
+      case 'critical':
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      case 'warning':
+        return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+      case 'good':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+    }
+  };
+
+  const getRiskAlertBg = (level: 'low' | 'medium' | 'high') => {
+    switch (level) {
+      case 'high':
+        return 'bg-red-500/10 border-red-500/20';
+      case 'medium':
+        return 'bg-yellow-500/10 border-yellow-500/20';
+      case 'low':
+        return 'bg-green-500/10 border-green-500/20';
     }
   };
 
@@ -474,50 +585,137 @@ export function PredictiveDashboard() {
           </CardContent>
         </Card>
 
-        {/* Risk Warning System */}
+        {/* SEO Risk Alert - New */}
         <Card className="lg:col-span-1 hover:shadow-lg transition-shadow">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Shield className="h-5 w-5 text-red-500" />
-              Risk Warning System
+              SEO Risk Alert
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-sm text-muted-foreground">
               Cảnh báo sớm về rủi ro SEO và biến động thuật toán
             </div>
-            
+
+            {/* Input Section */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-red-500/10 rounded-lg">
-                <div>
-                  <div className="font-medium text-red-700 dark:text-red-400">High Risk</div>
-                  <div className="text-xs text-muted-foreground">2 từ khóa có nguy cơ giảm rank</div>
-                </div>
-                <AlertTriangle className="h-4 w-4 text-red-600" />
-              </div>
-              
-              <div className="flex items-center justify-between p-3 bg-orange-500/10 rounded-lg">
-                <div>
-                  <div className="font-medium text-orange-700 dark:text-orange-400">Medium Risk</div>
-                  <div className="text-xs text-muted-foreground">6 từ khóa cần theo dõi</div>
-                </div>
-                <AlertTriangle className="h-4 w-4 text-orange-600" />
-              </div>
-              
-              <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-lg">
-                <div>
-                  <div className="font-medium text-green-700 dark:text-green-400">Safe Zone</div>
-                  <div className="text-xs text-muted-foreground">16 từ khóa an toàn</div>
-                </div>
-                <Shield className="h-4 w-4 text-green-600" />
-              </div>
-            </div>
-            
-            <div className="pt-2">
-              <Button className="w-full text-sm bg-red-500 text-white hover:bg-red-600">
-                Xem cảnh báo chi tiết
+              <Input
+                placeholder="Nhập domain (vd: example.com)"
+                value={riskDomain}
+                onChange={(e) => setRiskDomain(e.target.value)}
+              />
+              <Input
+                placeholder="Keywords theo dõi (phân cách bởi dấu phẩy)"
+                value={riskKeywords}
+                onChange={(e) => setRiskKeywords(e.target.value)}
+              />
+              <Button 
+                onClick={handleRiskAnalysis}
+                disabled={isRiskLoading}
+                className="w-full"
+              >
+                {isRiskLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Đang phân tích...
+                  </>
+                ) : (
+                  <>
+                    <Shield className="h-4 w-4 mr-2" />
+                    Phân tích rủi ro
+                  </>
+                )}
               </Button>
             </div>
+
+            {/* Results */}
+            {riskAnalysis && (
+              <div className="space-y-4 animate-fade-in">
+                {/* Risk Level Alert */}
+                <div className={`p-4 rounded-lg border ${getRiskAlertBg(riskAnalysis.riskLevel)}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-medium">{riskAnalysis.domain}</div>
+                    {getRiskLevelBadge(riskAnalysis.riskLevel)}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Điểm rủi ro: {riskAnalysis.riskScore}/100 ({riskAnalysis.confidence}% confidence)
+                  </div>
+                </div>
+
+                {/* Risk Factors */}
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Yếu tố rủi ro</div>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {riskAnalysis.riskFactors.map((factor, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 text-xs bg-secondary/20 rounded">
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(factor.status)}
+                          <span className="flex-1">{factor.factor}</span>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {factor.impact === 'high' ? 'Cao' : factor.impact === 'medium' ? 'TB' : 'Thấp'}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Recommendations */}
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Khuyến nghị</div>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {riskAnalysis.recommendations.slice(0, 3).map((rec, index) => (
+                      <div key={index} className="p-2 text-xs bg-secondary/20 rounded">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1">
+                            {getPriorityBadge(rec.priority)}
+                            {rec.autoFixAvailable && (
+                              <Badge variant="outline" className="text-xs bg-blue-500/10">
+                                Auto Fix
+                              </Badge>
+                            )}
+                          </div>
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                        </div>
+                        <div className="text-muted-foreground">{rec.action}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Auto Fix Button */}
+                {riskAnalysis.autoFixAvailable && (
+                  <Button 
+                    variant="outline" 
+                    className="w-full text-xs bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20"
+                  >
+                    <Shield className="h-3 w-3 mr-1" />
+                    Tự động sửa một số vấn đề
+                  </Button>
+                )}
+
+                {/* AI Insights */}
+                {riskAnalysis.insights && (
+                  <div className="p-3 bg-red-500/10 rounded-lg">
+                    <div className="text-sm font-medium mb-1 flex items-center gap-2">
+                      <Sparkles className="h-3 w-3" />
+                      AI Risk Analysis
+                    </div>
+                    <div className="text-xs text-muted-foreground line-clamp-3">
+                      {riskAnalysis.insights}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!riskAnalysis && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Shield className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <div className="text-sm">Nhập domain và keywords để phân tích rủi ro</div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
