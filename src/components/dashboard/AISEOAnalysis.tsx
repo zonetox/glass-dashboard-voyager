@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Bot, Brain, Target, Search, Sparkles, TrendingUp, MessagesSquare, RotateCcw, Copy, Info, Link, Settings, Wand2 } from 'lucide-react';
+import { Bot, Brain, Target, Search, Sparkles, TrendingUp, MessagesSquare, RotateCcw, Copy, Info, Link, Settings, Wand2, Code2, ClipboardCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Cell, PieChart, Pie, ResponsiveContainer } from 'recharts';
 
@@ -142,6 +142,126 @@ export function AISEOAnalysis() {
       title: "Đã sao chép",
       description: "Nội dung đã được sao chép vào clipboard.",
     });
+  };
+
+  // Generate schema snippets based on scanned content
+  const generateSchemaSnippet = (type: string) => {
+    const baseUrl = "https://example.com";
+    
+    const schemas: Record<string, object> = {
+      faq: {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": mockScanData.faqs.map(faq => ({
+          "@type": "Question",
+          "name": faq.question,
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": faq.answer
+          }
+        }))
+      },
+      article: {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": mockScanData.h1,
+        "description": mockScanData.paragraphs[0],
+        "author": {
+          "@type": "Organization",
+          "name": "SEO Auto Tool"
+        },
+        "datePublished": new Date().toISOString(),
+        "dateModified": new Date().toISOString()
+      },
+      product: {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": "AI-Powered SEO Analysis Tool",
+        "description": mockScanData.paragraphs[0],
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock"
+        }
+      },
+      howto: {
+        "@context": "https://schema.org",
+        "@type": "HowTo",
+        "name": "How to Use AI SEO Analysis",
+        "description": mockScanData.paragraphs[1],
+        "step": [
+          {
+            "@type": "HowToStep",
+            "name": "Scan Your Website",
+            "text": "Enter your website URL to start the AI analysis process"
+          },
+          {
+            "@type": "HowToStep", 
+            "name": "Review Results",
+            "text": "Analyze the AI-generated recommendations and insights"
+          }
+        ]
+      },
+      event: {
+        "@context": "https://schema.org",
+        "@type": "Event",
+        "name": "SEO Optimization Workshop",
+        "description": "Learn how to optimize your website with AI tools",
+        "startDate": new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        "location": {
+          "@type": "VirtualLocation",
+          "url": baseUrl
+        }
+      }
+    };
+    
+    return schemas[type] || schemas.faq;
+  };
+
+  const [selectedSchemaType, setSelectedSchemaType] = useState<string>('faq');
+  const [editableSchema, setEditableSchema] = useState<string>('');
+
+  // Initialize editable schema
+  useState(() => {
+    setEditableSchema(JSON.stringify(generateSchemaSnippet(selectedSchemaType), null, 2));
+  });
+
+  const schemaOptions = [
+    { 
+      type: 'faq', 
+      label: 'FAQ Schema', 
+      justification: 'Vì website có nhiều câu hỏi-đáp, phù hợp để AI trích xuất thông tin trực tiếp' 
+    },
+    { 
+      type: 'article', 
+      label: 'Article Schema', 
+      justification: 'Nội dung mang tính thông tin, giúp AI hiểu bối cảnh và chủ đề chính' 
+    },
+    { 
+      type: 'product', 
+      label: 'Product Schema', 
+      justification: 'Giới thiệu sản phẩm/dịch vụ, tăng khả năng hiển thị trong kết quả tìm kiếm sản phẩm' 
+    },
+    { 
+      type: 'howto', 
+      label: 'HowTo Schema', 
+      justification: 'Hướng dẫn sử dụng, phù hợp với câu hỏi "how to" từ người dùng' 
+    },
+    { 
+      type: 'event', 
+      label: 'Event Schema', 
+      justification: 'Sự kiện hoặc workshop, tăng khả năng hiển thị trong tìm kiếm sự kiện' 
+    }
+  ];
+
+  const handleSchemaTypeChange = (type: string) => {
+    setSelectedSchemaType(type);
+    setEditableSchema(JSON.stringify(generateSchemaSnippet(type), null, 2));
+  };
+
+  const copySchema = () => {
+    copyToClipboard(editableSchema);
   };
 
   return (
@@ -570,6 +690,100 @@ export function AISEOAnalysis() {
                 <Sparkles className="h-4 w-4 mr-2" />
                 Tối ưu tất cả
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Schema Snippet Optimizer */}
+        <Card className="glass-card hover:shadow-lg transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm lg:col-span-3">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Code2 className="h-5 w-5 text-purple-500" />
+              Schema Snippet Optimizer
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Schema Type Selector */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium">Chọn loại Schema phù hợp:</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {schemaOptions.map((option) => (
+                  <div
+                    key={option.type}
+                    className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                      selectedSchemaType === option.type 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                    onClick={() => handleSchemaTypeChange(option.type)}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Code2 className="h-4 w-4 text-purple-500" />
+                        <span className="font-medium text-sm">{option.label}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {option.justification}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Schema Preview */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium">JSON-LD Schema Generated:</h4>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copySchema}
+                    className="flex items-center gap-2"
+                  >
+                    <ClipboardCheck className="h-4 w-4" />
+                    Copy schema
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Áp dụng ngay
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="relative">
+                <textarea
+                  value={editableSchema}
+                  onChange={(e) => setEditableSchema(e.target.value)}
+                  className="w-full h-64 p-4 bg-muted/30 border border-border/30 rounded-lg font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="Schema JSON-LD sẽ được tạo tự động..."
+                />
+                <div className="absolute top-2 right-2">
+                  <Badge variant="secondary" className="text-xs">
+                    JSON-LD
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            {/* Implementation Note */}
+            <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                    Cách sử dụng Schema
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                    Thêm đoạn mã JSON-LD này vào &lt;head&gt; của website để giúp AI và search engines hiểu nội dung tốt hơn.
+                  </p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
