@@ -3,13 +3,43 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Bot, Brain, Target, Search, Sparkles, TrendingUp, MessagesSquare, RotateCcw, Copy } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Bot, Brain, Target, Search, Sparkles, TrendingUp, MessagesSquare, RotateCcw, Copy, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Cell, PieChart, Pie, ResponsiveContainer } from 'recharts';
 
 export function AISEOAnalysis() {
   const { toast } = useToast();
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<'google' | 'perplexity' | 'chatgpt'>('google');
+  
+  // Calculate AI Visibility Score
+  const calculateAIVisibilityScore = () => {
+    const metrics = {
+      structuredData: 85, // FAQ, HowTo, Article structured data
+      directAnswers: 72,  // Plain, direct answers
+      nlpKeywords: 68,    // NLP keyword coverage  
+      semanticDensity: 74 // Semantic density
+    };
+    
+    const weights = {
+      structuredData: 0.3,
+      directAnswers: 0.25,
+      nlpKeywords: 0.25,
+      semanticDensity: 0.2
+    };
+    
+    const score = Math.round(
+      metrics.structuredData * weights.structuredData +
+      metrics.directAnswers * weights.directAnswers +
+      metrics.nlpKeywords * weights.nlpKeywords +
+      metrics.semanticDensity * weights.semanticDensity
+    );
+    
+    return { score, metrics };
+  };
+  
+  const { score: aiVisibilityScore, metrics } = calculateAIVisibilityScore();
   
   // Mock data from last scan
   const mockScanData = {
@@ -213,56 +243,103 @@ export function AISEOAnalysis() {
         {/* AI Visibility Score */}
         <Card className="glass-card hover:shadow-lg transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-green-500" />
-              AI Visibility Score
+            <CardTitle className="flex items-center gap-2 justify-between">
+              <div className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-green-500" />
+                AI Visibility Score
+              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-64">
+                    <p className="text-sm">
+                      Điểm số dựa trên: Structured data (30%), Câu trả lời trực tiếp (25%), 
+                      Từ khóa NLP (25%), Mật độ semantic (20%)
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Gauge Chart Simulation */}
+            {/* Gauge Chart */}
             <div className="relative w-32 h-32 mx-auto">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
-                <circle
-                  cx="60"
-                  cy="60"
-                  r="45"
-                  fill="none"
-                  stroke="hsl(var(--muted))"
-                  strokeWidth="8"
-                  className="opacity-20"
-                />
-                <circle
-                  cx="60"
-                  cy="60"
-                  r="45"
-                  fill="none"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth="8"
-                  strokeDasharray={`${68 * 2.83} ${282.74 - 68 * 2.83}`}
-                  strokeLinecap="round"
-                  className="transition-all duration-1000"
-                />
-              </svg>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={[
+                      { value: aiVisibilityScore, fill: 'hsl(var(--primary))' },
+                      { value: 100 - aiVisibilityScore, fill: 'hsl(var(--muted))' }
+                    ]}
+                    cx="50%"
+                    cy="50%"
+                    startAngle={90}
+                    endAngle={-270}
+                    innerRadius={35}
+                    outerRadius={45}
+                    dataKey="value"
+                  >
+                    <Cell fill="hsl(var(--primary))" />
+                    <Cell fill="hsl(var(--muted))" opacity={0.2} />
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
-                  <div className="text-2xl font-bold">68</div>
+                  <div className="text-2xl font-bold">{aiVisibilityScore}</div>
                   <div className="text-xs text-muted-foreground">Score</div>
                 </div>
               </div>
             </div>
 
+            <div className="text-center space-y-2">
+              <p className="text-sm font-medium">
+                Cơ hội nội dung của bạn được AI hiển thị trong câu trả lời: 
+                <span className="text-primary font-bold"> {aiVisibilityScore}%</span>
+              </p>
+              <div className="flex justify-center">
+                <Badge 
+                  variant={aiVisibilityScore >= 80 ? "default" : aiVisibilityScore >= 60 ? "secondary" : "destructive"}
+                  className="text-xs"
+                >
+                  {aiVisibilityScore >= 80 ? "Xuất sắc" : aiVisibilityScore >= 60 ? "Tốt" : "Cần cải thiện"}
+                </Badge>
+              </div>
+            </div>
+
             <div className="space-y-3">
-              <div className="flex justify-between items-center text-sm">
-                <span>ChatGPT Readiness</span>
-                <Badge variant="secondary">72%</Badge>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span>SGE Compatibility</span>
-                <Badge variant="secondary">65%</Badge>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span>Perplexity Index</span>
-                <Badge variant="secondary">71%</Badge>
+              <h4 className="text-sm font-medium">Chi tiết điểm số:</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-sm">
+                  <span>Structured Data</span>
+                  <div className="flex items-center gap-2">
+                    <Progress value={metrics.structuredData} className="w-16 h-2" />
+                    <Badge variant="outline" className="text-xs">{metrics.structuredData}%</Badge>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span>Direct Answers</span>
+                  <div className="flex items-center gap-2">
+                    <Progress value={metrics.directAnswers} className="w-16 h-2" />
+                    <Badge variant="outline" className="text-xs">{metrics.directAnswers}%</Badge>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span>NLP Keywords</span>
+                  <div className="flex items-center gap-2">
+                    <Progress value={metrics.nlpKeywords} className="w-16 h-2" />
+                    <Badge variant="outline" className="text-xs">{metrics.nlpKeywords}%</Badge>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span>Semantic Density</span>
+                  <div className="flex items-center gap-2">
+                    <Progress value={metrics.semanticDensity} className="w-16 h-2" />
+                    <Badge variant="outline" className="text-xs">{metrics.semanticDensity}%</Badge>
+                  </div>
+                </div>
               </div>
             </div>
 
