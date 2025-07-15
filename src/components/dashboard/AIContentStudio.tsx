@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PenLine, FileText, Calendar, Search, Sparkles, TrendingUp, BarChart3, Lightbulb, Target, Clock, Copy, Save } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { PenLine, FileText, Calendar, Search, Sparkles, TrendingUp, BarChart3, Lightbulb, Target, Clock, Copy, Save, Download, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -21,6 +22,12 @@ export function AIContentStudio() {
     metaDescription: string;
     article: string;
   } | null>(null);
+  
+  // Content Planner state
+  const [mainTopic, setMainTopic] = useState('');
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [contentPlan, setContentPlan] = useState<any[]>([]);
+  const [isSavingPlan, setIsSavingPlan] = useState(false);
   
   
   const handleGenerateContent = async () => {
@@ -98,12 +105,120 @@ export function AIContentStudio() {
       });
     }
   };
-  
-  const handlePlanContent = () => {
-    toast({
-      title: "Kế hoạch nội dung",
-      description: "AI đang tạo lịch đăng bài tối ưu cho 30 ngày tới...",
-    });
+
+  const handleGeneratePlan = async () => {
+    if (!mainTopic.trim()) {
+      toast({
+        title: "Thiếu chủ đề",
+        description: "Vui lòng nhập chủ đề lớn để tạo kế hoạch nội dung.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsGeneratingPlan(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-content-plan', {
+        body: {
+          mainTopic: mainTopic.trim()
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setContentPlan(data.contentPlan || []);
+      toast({
+        title: "Kế hoạch đã được tạo!",
+        description: `30 ý tưởng bài viết cho chủ đề "${mainTopic}" đã sẵn sàng.`,
+      });
+    } catch (error) {
+      console.error('Content plan generation failed:', error);
+      toast({
+        title: "Lỗi tạo kế hoạch",
+        description: error instanceof Error ? error.message : "Không thể tạo kế hoạch nội dung. Vui lòng thử lại.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingPlan(false);
+    }
+  };
+
+  const handleSavePlanToDatabase = async () => {
+    if (!contentPlan.length) return;
+    
+    setIsSavingPlan(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Cần đăng nhập",
+          description: "Vui lòng đăng nhập để lưu kế hoạch nội dung.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Prepare data for database
+      const planData = contentPlan.map((item, index) => {
+        const planDate = new Date();
+        planDate.setDate(planDate.getDate() + index); // Each day +1
+
+        return {
+          user_id: user.id,
+          main_topic: mainTopic,
+          plan_date: planDate.toISOString().split('T')[0], // YYYY-MM-DD format
+          title: item.title,
+          main_keyword: item.mainKeyword,
+          secondary_keywords: item.secondaryKeywords,
+          search_intent: item.searchIntent,
+          content_length: item.contentLength,
+          status: 'planned'
+        };
+      });
+
+      const { error } = await supabase
+        .from('content_plans')
+        .insert(planData);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      toast({
+        title: "Đã lưu kế hoạch!",
+        description: "Kế hoạch nội dung 30 ngày đã được lưu vào cơ sở dữ liệu.",
+      });
+    } catch (error) {
+      console.error('Save plan failed:', error);
+      toast({
+        title: "Lỗi lưu kế hoạch",
+        description: error instanceof Error ? error.message : "Không thể lưu kế hoạch. Vui lòng thử lại.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSavingPlan(false);
+    }
+  };
+
+  const getIntentBadgeColor = (intent: string) => {
+    switch (intent) {
+      case 'informational': return 'bg-blue-500/20 text-blue-700 dark:text-blue-300';
+      case 'commercial': return 'bg-purple-500/20 text-purple-700 dark:text-purple-300';
+      case 'transactional': return 'bg-green-500/20 text-green-700 dark:text-green-300';
+      case 'navigational': return 'bg-orange-500/20 text-orange-700 dark:text-orange-300';
+      default: return 'bg-gray-500/20 text-gray-700 dark:text-gray-300';
+    }
+  };
+
+  const getLengthBadgeColor = (length: string) => {
+    switch (length) {
+      case 'short': return 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-300';
+      case 'medium': return 'bg-blue-500/20 text-blue-700 dark:text-blue-300';
+      case 'long': return 'bg-purple-500/20 text-purple-700 dark:text-purple-300';
+      default: return 'bg-gray-500/20 text-gray-700 dark:text-gray-300';
+    }
   };
   
   const handleFindGaps = () => {
@@ -352,7 +467,7 @@ export function AIContentStudio() {
         </Card>
 
         {/* Content Planner - Make it single column */}
-        <Card className="glass-card hover:shadow-lg transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm lg:col-span-1">
+        <Card className="glass-card hover:shadow-lg transition-all duration-300 border-border/50 bg-card/50 backdrop-blur-sm lg:col-span-3">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-green-500" />
@@ -360,69 +475,207 @@ export function AIContentStudio() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                AI lập lịch chủ đề tự động
-              </p>
-              
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-3 bg-muted/30 rounded-lg">
-                    <div className="text-lg font-bold text-green-600">24</div>
-                    <div className="text-xs text-muted-foreground">Chủ đề/tháng</div>
-                  </div>
-                  <div className="text-center p-3 bg-muted/30 rounded-lg">
-                    <div className="text-lg font-bold text-blue-600">4.2</div>
-                    <div className="text-xs text-muted-foreground">Avg CTR dự kiến</div>
+            {!contentPlan.length ? (
+              // Input Form
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    AI lập lịch chủ đề tự động cho 30 ngày
+                  </p>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Chủ đề lớn *</label>
+                    <Input
+                      placeholder="VD: skincare cho da dầu"
+                      value={mainTopic}
+                      onChange={(e) => setMainTopic(e.target.value)}
+                    />
                   </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Kế hoạch nội dung AI:</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-2 bg-muted/20 rounded text-xs">
-                      <span>Tuần 1: How-to content</span>
-                      <Badge variant="secondary">Cao</Badge>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 bg-muted/30 rounded-lg">
+                      <div className="text-lg font-bold text-green-600">30</div>
+                      <div className="text-xs text-muted-foreground">Ý tưởng bài viết</div>
                     </div>
-                    <div className="flex items-center justify-between p-2 bg-muted/20 rounded text-xs">
-                      <span>Tuần 2: Product reviews</span>
-                      <Badge variant="outline">Trung bình</Badge>
+                    <div className="text-center p-3 bg-muted/30 rounded-lg">
+                      <div className="text-lg font-bold text-blue-600">4.2</div>
+                      <div className="text-xs text-muted-foreground">Avg CTR dự kiến</div>
                     </div>
-                    <div className="flex items-center justify-between p-2 bg-muted/20 rounded text-xs">
-                      <span>Tuần 3: Trending topics</span>
-                      <Badge variant="secondary">Cao</Badge>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex gap-2 flex-wrap">
+                      <Badge variant="outline" className="text-xs">Trend Analysis</Badge>
+                      <Badge variant="outline" className="text-xs">Search Intent</Badge>
+                      <Badge variant="outline" className="text-xs">Content Length</Badge>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium">Tính năng:</h4>
+                      <ul className="text-xs text-muted-foreground space-y-1">
+                        <li>• 30 ý tưởng bài viết đa dạng</li>
+                        <li>• Phân bổ search intent tối ưu</li>
+                        <li>• Từ khóa chính và phụ cho mỗi bài</li>
+                        <li>• Gợi ý độ dài nội dung</li>
+                        <li>• Lưu kế hoạch vào database</li>
+                      </ul>
                     </div>
                   </div>
                 </div>
+                
+                <Button 
+                  className="w-full" 
+                  onClick={handleGeneratePlan}
+                  disabled={isGeneratingPlan}
+                >
+                  {isGeneratingPlan ? (
+                    <>
+                      <Calendar className="h-4 w-4 mr-2 animate-spin" />
+                      Đang tạo kế hoạch...
+                    </>
+                  ) : (
+                    <>
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Tạo kế hoạch 30 ngày
+                    </>
+                  )}
+                </Button>
               </div>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex gap-2 flex-wrap">
-                <Badge variant="outline" className="text-xs">Trend Analysis</Badge>
-                <Badge variant="outline" className="text-xs">Competitor Watch</Badge>
-                <Badge variant="outline" className="text-xs">Seasonal</Badge>
+            ) : (
+              // Content Plan Display
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-medium">Kế hoạch nội dung: {mainTopic}</h4>
+                    <p className="text-xs text-muted-foreground">{contentPlan.length} ý tưởng bài viết</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setContentPlan([])}
+                    >
+                      Tạo mới
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">Ngày</TableHead>
+                        <TableHead>Tiêu đề</TableHead>
+                        <TableHead>Từ khóa chính</TableHead>
+                        <TableHead>Intent</TableHead>
+                        <TableHead>Độ dài</TableHead>
+                        <TableHead className="w-20">CTA</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {contentPlan.map((item, index) => {
+                        const planDate = new Date();
+                        planDate.setDate(planDate.getDate() + index);
+                        
+                        return (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">
+                              {planDate.getDate()}/{planDate.getMonth() + 1}
+                            </TableCell>
+                            <TableCell className="max-w-xs">
+                              <div className="truncate" title={item.title}>
+                                {item.title}
+                              </div>
+                              {item.secondaryKeywords && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {item.secondaryKeywords.slice(0, 2).join(', ')}
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs">
+                                {item.mainKeyword}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={`text-xs ${getIntentBadgeColor(item.searchIntent)}`}>
+                                {item.searchIntent}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={`text-xs ${getLengthBadgeColor(item.contentLength)}`}>
+                                {item.contentLength}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => {
+                                  setKeyword(item.mainKeyword);
+                                  setContentIntent(item.searchIntent);
+                                  toast({
+                                    title: "Đã chuyển sang Content Generator",
+                                    description: `Từ khóa "${item.mainKeyword}" đã được thiết lập.`,
+                                  });
+                                }}
+                              >
+                                <TrendingUp className="h-3 w-3" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    className="flex-1" 
+                    variant="outline"
+                    onClick={handleSavePlanToDatabase}
+                    disabled={isSavingPlan}
+                  >
+                    {isSavingPlan ? (
+                      <>
+                        <Save className="h-4 w-4 mr-2 animate-spin" />
+                        Đang lưu...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Lưu vào Supabase
+                      </>
+                    )}
+                  </Button>
+                  <Button 
+                    className="flex-1" 
+                    variant="outline"
+                    onClick={() => {
+                      const csvContent = contentPlan.map((item, index) => {
+                        const planDate = new Date();
+                        planDate.setDate(planDate.getDate() + index);
+                        return `${planDate.toLocaleDateString()},${item.title},${item.mainKeyword},${item.searchIntent},${item.contentLength}`;
+                      }).join('\n');
+                      
+                      const blob = new Blob([`Date,Title,Keyword,Intent,Length\n${csvContent}`], { type: 'text/csv' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `content-plan-${mainTopic.replace(/\s+/g, '-')}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export CSV
+                  </Button>
+                </div>
               </div>
-              
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium">Tính năng:</h4>
-                <ul className="text-xs text-muted-foreground space-y-1">
-                  <li>• Phân tích xu hướng tìm kiếm</li>
-                  <li>• Lịch đăng bài tối ưu</li>
-                  <li>• Theo dõi đối thủ cạnh tranh</li>
-                  <li>• Seasonal content planning</li>
-                </ul>
-              </div>
-            </div>
-            
-            <Button 
-              className="w-full" 
-              variant="outline"
-              onClick={handlePlanContent}
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              Tạo kế hoạch 30 ngày
-            </Button>
+            )}
           </CardContent>
         </Card>
 

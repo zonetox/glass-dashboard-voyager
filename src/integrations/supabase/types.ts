@@ -250,6 +250,51 @@ export type Database = {
         }
         Relationships: []
       }
+      content_plans: {
+        Row: {
+          content_length: string
+          created_at: string
+          id: string
+          main_keyword: string
+          main_topic: string
+          plan_date: string
+          search_intent: string
+          secondary_keywords: string[] | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content_length: string
+          created_at?: string
+          id?: string
+          main_keyword: string
+          main_topic: string
+          plan_date: string
+          search_intent: string
+          secondary_keywords?: string[] | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content_length?: string
+          created_at?: string
+          id?: string
+          main_keyword?: string
+          main_topic?: string
+          plan_date?: string
+          search_intent?: string
+          secondary_keywords?: string[] | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_logs: {
         Row: {
           content: string | null
