@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { TrendingUp, AlertTriangle, Target, LineChart, Sparkles, Shield, Plus, X, Loader2 } from "lucide-react";
-import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { TrendingUp, AlertTriangle, Target, LineChart, Sparkles, Shield, Plus, X, Loader2, Search } from "lucide-react";
+import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,11 +21,36 @@ interface KeywordPrediction {
   trend: 'up' | 'down' | 'stable';
 }
 
+interface TrendAnalysis {
+  topic: string;
+  trend: 'increasing' | 'decreasing' | 'stable';
+  confidence: number;
+  trendData: Array<{
+    month: string;
+    searchVolume: number;
+    contentMentions: number;
+    competitionLevel: number;
+  }>;
+  suggestedClusters: string[];
+  contentRecommendations: Array<{
+    action: string;
+    priority: 'high' | 'medium' | 'low';
+    timeline: string;
+  }>;
+  insights: string;
+}
+
 export function PredictiveDashboard() {
   const [keywords, setKeywords] = useState<string[]>(['']);
   const [isLoading, setIsLoading] = useState(false);
   const [predictions, setPredictions] = useState<KeywordPrediction[]>([]);
   const [insights, setInsights] = useState<string>('');
+  
+  // Trend momentum state
+  const [trendTopic, setTrendTopic] = useState<string>('');
+  const [isTrendLoading, setIsTrendLoading] = useState(false);
+  const [trendAnalysis, setTrendAnalysis] = useState<TrendAnalysis | null>(null);
+  
   const { toast } = useToast();
 
   const addKeyword = () => {
@@ -81,6 +106,64 @@ export function PredictiveDashboard() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleTrendAnalysis = async () => {
+    if (!trendTopic.trim()) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập chủ đề cần phân tích",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsTrendLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('trend-momentum', {
+        body: { topic: trendTopic.trim() }
+      });
+
+      if (error) throw error;
+
+      setTrendAnalysis(data);
+      
+      toast({
+        title: "Thành công",
+        description: `Phân tích xu hướng cho "${trendTopic}" thành công!`
+      });
+    } catch (error) {
+      console.error('Error analyzing trend:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể phân tích xu hướng. Vui lòng thử lại.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsTrendLoading(false);
+    }
+  };
+
+  const getTrendBadge = (trend: 'increasing' | 'decreasing' | 'stable') => {
+    switch (trend) {
+      case 'increasing':
+        return <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">🔺 Tăng</Badge>;
+      case 'decreasing':
+        return <Badge className="bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20">🔻 Giảm</Badge>;
+      case 'stable':
+        return <Badge className="bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20">➖ Ổn định</Badge>;
+    }
+  };
+
+  const getPriorityBadge = (priority: 'high' | 'medium' | 'low') => {
+    switch (priority) {
+      case 'high':
+        return <Badge variant="destructive">Cao</Badge>;
+      case 'medium':
+        return <Badge variant="secondary">Trung bình</Badge>;
+      case 'low':
+        return <Badge variant="outline">Thấp</Badge>;
     }
   };
 
@@ -261,7 +344,7 @@ export function PredictiveDashboard() {
           </CardContent>
         </Card>
 
-        {/* Trend Momentum Detector */}
+        {/* Trend Momentum Detector - Enhanced */}
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -274,37 +357,120 @@ export function PredictiveDashboard() {
               Phát hiện xu hướng tìm kiếm và cơ hội từ khóa mới
             </div>
             
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-blue-500/10 rounded-lg">
-                <div>
-                  <div className="font-medium text-blue-700 dark:text-blue-400">Hot Trends</div>
-                  <div className="text-xs text-muted-foreground">5 xu hướng đang nóng</div>
-                </div>
-                <Sparkles className="h-4 w-4 text-blue-600" />
-              </div>
-              
-              <div className="flex items-center justify-between p-3 bg-purple-500/10 rounded-lg">
-                <div>
-                  <div className="font-medium text-purple-700 dark:text-purple-400">Emerging Keywords</div>
-                  <div className="text-xs text-muted-foreground">18 từ khóa tiềm năng mới</div>
-                </div>
-                <Target className="h-4 w-4 text-purple-600" />
-              </div>
-              
-              <div className="flex items-center justify-between p-3 bg-indigo-500/10 rounded-lg">
-                <div>
-                  <div className="font-medium text-indigo-700 dark:text-indigo-400">Seasonal Patterns</div>
-                  <div className="text-xs text-muted-foreground">3 mùa vụ được phát hiện</div>
-                </div>
-                <LineChart className="h-4 w-4 text-indigo-600" />
-              </div>
-            </div>
-            
-            <div className="pt-2">
-              <Button className="w-full text-sm bg-blue-500 text-white hover:bg-blue-600">
-                Khám phá xu hướng
+            {/* Input Section */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Nhập chủ đề hoặc keyword..."
+                value={trendTopic}
+                onChange={(e) => setTrendTopic(e.target.value)}
+                className="flex-1"
+                onKeyPress={(e) => e.key === 'Enter' && handleTrendAnalysis()}
+              />
+              <Button 
+                onClick={handleTrendAnalysis}
+                disabled={isTrendLoading}
+                size="icon"
+              >
+                {isTrendLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
               </Button>
             </div>
+
+            {/* Results */}
+            {trendAnalysis && (
+              <div className="space-y-4 animate-fade-in">
+                {/* Trend Status */}
+                <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+                  <div>
+                    <div className="font-medium">{trendAnalysis.topic}</div>
+                    <div className="text-xs text-muted-foreground">Độ tin cậy: {trendAnalysis.confidence}%</div>
+                  </div>
+                  {getTrendBadge(trendAnalysis.trend)}
+                </div>
+
+                {/* Timeline Chart */}
+                <div className="h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={trendAnalysis.trendData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="month" 
+                        tick={{ fontSize: 10 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
+                      />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip />
+                      <Area
+                        type="monotone"
+                        dataKey="searchVolume"
+                        stroke="#3b82f6"
+                        fill="#3b82f6"
+                        fillOpacity={0.3}
+                        name="Search Volume"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="contentMentions"
+                        stroke="#10b981"
+                        fill="#10b981"
+                        fillOpacity={0.2}
+                        name="Content Mentions"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Suggested Clusters */}
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Topic Clusters</div>
+                  <div className="flex flex-wrap gap-1">
+                    {trendAnalysis.suggestedClusters.slice(0, 3).map((cluster, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {cluster}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Content Recommendations */}
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Khuyến nghị nội dung</div>
+                  <div className="space-y-2">
+                    {trendAnalysis.contentRecommendations.slice(0, 2).map((rec, index) => (
+                      <div key={index} className="flex items-center justify-between text-xs p-2 bg-secondary/20 rounded">
+                        <span className="flex-1">{rec.action}</span>
+                        {getPriorityBadge(rec.priority)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* AI Insights */}
+                {trendAnalysis.insights && (
+                  <div className="p-3 bg-blue-500/10 rounded-lg">
+                    <div className="text-sm font-medium mb-1 flex items-center gap-2">
+                      <Sparkles className="h-3 w-3" />
+                      AI Insights
+                    </div>
+                    <div className="text-xs text-muted-foreground line-clamp-3">
+                      {trendAnalysis.insights}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {!trendAnalysis && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <div className="text-sm">Nhập chủ đề để bắt đầu phân tích xu hướng</div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
