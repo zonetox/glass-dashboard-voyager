@@ -340,6 +340,7 @@ export type Database = {
           id: string
           last_saved_at: string
           plan_id: string
+          scheduled_date: string | null
           status: string
           updated_at: string
           writer_id: string
@@ -350,6 +351,7 @@ export type Database = {
           id?: string
           last_saved_at?: string
           plan_id: string
+          scheduled_date?: string | null
           status?: string
           updated_at?: string
           writer_id: string
@@ -360,6 +362,7 @@ export type Database = {
           id?: string
           last_saved_at?: string
           plan_id?: string
+          scheduled_date?: string | null
           status?: string
           updated_at?: string
           writer_id?: string
