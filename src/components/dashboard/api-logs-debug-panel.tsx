@@ -24,6 +24,13 @@ interface ApiLog {
   request_payload: any;
   response_data: any;
   created_at: string;
+  user_id?: string;
+}
+
+interface StandardizedApiLog extends ApiLog {
+  processing_status: 'success' | 'failed' | 'timeout' | 'error';
+  error_category: string;
+  performance_grade: 'excellent' | 'good' | 'average' | 'poor';
 }
 
 export function ApiLogsDebugPanel() {
@@ -100,17 +107,75 @@ export function ApiLogsDebugPanel() {
     setFilteredLogs(filtered);
   };
 
-  const getStatusBadge = (log: ApiLog) => {
+  const standardizeLog = (log: ApiLog): StandardizedApiLog => {
+    let processing_status: StandardizedApiLog['processing_status'] = 'error';
+    let error_category = 'unknown';
+    let performance_grade: StandardizedApiLog['performance_grade'] = 'poor';
+
+    // Determine processing status
     if (log.success && log.status_code && log.status_code < 300) {
-      return <Badge className="bg-green-500/20 text-green-300 border-green-500/30">✅ Success</Badge>;
-    } else if (log.status_code && log.status_code >= 400 && log.status_code < 500) {
-      return <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">⚠️ 4xx</Badge>;
-    } else if (log.status_code && log.status_code >= 500) {
-      return <Badge className="bg-red-500/20 text-red-300 border-red-500/30">❌ 5xx</Badge>;
+      processing_status = 'success';
     } else if (log.error_message?.includes('timeout')) {
-      return <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/30">⏰ Timeout</Badge>;
-    } else {
-      return <Badge className="bg-red-500/20 text-red-300 border-red-500/30">❌ Error</Badge>;
+      processing_status = 'timeout';
+      error_category = 'timeout';
+    } else if (log.status_code && log.status_code >= 400) {
+      processing_status = 'failed';
+      error_category = log.status_code >= 500 ? 'server_error' : 'client_error';
+    }
+
+    // Determine performance grade
+    if (log.response_time_ms) {
+      if (log.response_time_ms < 1000) performance_grade = 'excellent';
+      else if (log.response_time_ms < 3000) performance_grade = 'good';
+      else if (log.response_time_ms < 5000) performance_grade = 'average';
+      else performance_grade = 'poor';
+    }
+
+    return {
+      ...log,
+      processing_status,
+      error_category,
+      performance_grade
+    };
+  };
+
+  const getStatusBadge = (log: ApiLog) => {
+    const standardized = standardizeLog(log);
+    
+    switch (standardized.processing_status) {
+      case 'success':
+        return <Badge className="bg-green-500/20 text-green-300 border-green-500/30">✅ Thành công</Badge>;
+      case 'timeout':
+        return <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/30">⏰ Timeout</Badge>;
+      case 'failed':
+        const statusCode = log.status_code;
+        if (statusCode && statusCode >= 400 && statusCode < 500) {
+          return <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">⚠️ Lỗi Client</Badge>;
+        } else if (statusCode && statusCode >= 500) {
+          return <Badge className="bg-red-500/20 text-red-300 border-red-500/30">❌ Lỗi Server</Badge>;
+        }
+        return <Badge className="bg-red-500/20 text-red-300 border-red-500/30">❌ Thất bại</Badge>;
+      default:
+        return <Badge className="bg-red-500/20 text-red-300 border-red-500/30">❌ Lỗi</Badge>;
+    }
+  };
+
+  const getPerformanceBadge = (log: ApiLog) => {
+    if (!log.response_time_ms) return null;
+    
+    const standardized = standardizeLog(log);
+    
+    switch (standardized.performance_grade) {
+      case 'excellent':
+        return <Badge variant="outline" className="text-green-400 border-green-400/30">🚀 Xuất sắc</Badge>;
+      case 'good':
+        return <Badge variant="outline" className="text-blue-400 border-blue-400/30">⚡ Tốt</Badge>;
+      case 'average':
+        return <Badge variant="outline" className="text-yellow-400 border-yellow-400/30">⏱️ Trung bình</Badge>;
+      case 'poor':
+        return <Badge variant="outline" className="text-red-400 border-red-400/30">🐌 Chậm</Badge>;
+      default:
+        return null;
     }
   };
 
@@ -190,8 +255,9 @@ export function ApiLogsDebugPanel() {
                 <TableHead>Thời gian</TableHead>
                 <TableHead>API</TableHead>
                 <TableHead>Domain</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Response Time</TableHead>
+                <TableHead>Trạng thái</TableHead>
+                <TableHead>Hiệu suất</TableHead>
+                <TableHead>Thời gian xử lý</TableHead>
                 <TableHead>Chi tiết</TableHead>
               </TableRow>
             </TableHeader>
@@ -208,18 +274,30 @@ export function ApiLogsDebugPanel() {
                     {log.domain || '-'}
                   </TableCell>
                   <TableCell>
-                    {getStatusBadge(log)}
-                    {log.status_code && (
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        {log.status_code}
-                      </span>
-                    )}
+                    <div className="space-y-1">
+                      {getStatusBadge(log)}
+                      {log.status_code && (
+                        <div className="text-xs text-muted-foreground">
+                          HTTP {log.status_code}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {getPerformanceBadge(log)}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {log.response_time_ms ? `${log.response_time_ms}ms` : '-'}
+                      <span className={`text-sm ${log.response_time_ms && log.response_time_ms > 3000 ? 'text-red-400' : 'text-green-400'}`}>
+                        {log.response_time_ms ? `${log.response_time_ms}ms` : '-'}
+                      </span>
                     </div>
+                    {log.error_message && (
+                      <div className="text-xs text-red-400 mt-1 truncate max-w-32" title={log.error_message}>
+                        {log.error_message}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Dialog>

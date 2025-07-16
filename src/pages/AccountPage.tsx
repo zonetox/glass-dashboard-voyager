@@ -27,27 +27,22 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { AutoPilotSettings } from '@/components/AutoPilotSettings';
+import { useUsageTracking } from '@/hooks/useUsageTracking';
 
 export function AccountPage() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const { usage, loading: usageLoading } = useUsageTracking();
   
-  // Mock data - trong thực tế sẽ lấy từ API
+  // Mock profile data - in real app this would come from user_profiles table
   const [profile] = useState({
     tier: 'pro',
-    scans_limit: 50,
-    optimizations_limit: 10,
-    ai_rewrites_limit: 20,
+    scans_limit: usage?.scans_limit || 50,
+    optimizations_limit: usage?.optimizations_limit || 10,
+    ai_rewrites_limit: usage?.ai_rewrites_limit || 20,
     email_verified: true,
     created_at: user?.created_at || new Date().toISOString()
-  });
-
-  const [usage] = useState({
-    scans_used: 15,
-    optimizations_used: 3,
-    ai_rewrites_used: 8,
-    reset_date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString()
   });
 
   const [reports] = useState([
@@ -217,21 +212,26 @@ export function AccountPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Đã sử dụng</span>
-                    <span className="text-white font-medium">
-                      {usage.scans_used} / {profile.scans_limit}
-                    </span>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Đã sử dụng</span>
+                      <span className="text-white font-medium">
+                        {usage?.scans_used || 0} / {usage?.scans_limit || profile.scans_limit}
+                      </span>
+                    </div>
+                    <Progress 
+                      value={getUsagePercentage(usage?.scans_used || 0, usage?.scans_limit || profile.scans_limit)} 
+                      className="h-2"
+                    />
+                    <div className="text-xs space-y-1">
+                      <p className="text-gray-400">
+                        Làm mới vào {new Date(usage?.reset_date || Date.now()).toLocaleDateString('vi-VN')}
+                      </p>
+                      <p className="text-blue-400">
+                        Tháng này: {usage?.current_month_scans || 0} lượt phân tích
+                      </p>
+                    </div>
                   </div>
-                  <Progress 
-                    value={getUsagePercentage(usage.scans_used, profile.scans_limit)} 
-                    className="h-2"
-                  />
-                  <p className="text-xs text-gray-400">
-                    Làm mới vào {new Date(usage.reset_date).toLocaleDateString('vi-VN')}
-                  </p>
-                </div>
               </CardContent>
             </Card>
 
@@ -244,21 +244,26 @@ export function AccountPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Đã sử dụng</span>
-                    <span className="text-white font-medium">
-                      {usage.optimizations_used} / {profile.optimizations_limit}
-                    </span>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Đã sử dụng</span>
+                      <span className="text-white font-medium">
+                        {usage?.optimizations_used || 0} / {usage?.optimizations_limit || profile.optimizations_limit}
+                      </span>
+                    </div>
+                    <Progress 
+                      value={getUsagePercentage(usage?.optimizations_used || 0, usage?.optimizations_limit || profile.optimizations_limit)} 
+                      className="h-2"
+                    />
+                    <div className="text-xs space-y-1">
+                      <p className="text-gray-400">
+                        Làm mới vào {new Date(usage?.reset_date || Date.now()).toLocaleDateString('vi-VN')}
+                      </p>
+                      <p className="text-purple-400">
+                        Tháng này: {usage?.current_month_optimizations || 0} lần tối ưu
+                      </p>
+                    </div>
                   </div>
-                  <Progress 
-                    value={getUsagePercentage(usage.optimizations_used, profile.optimizations_limit)} 
-                    className="h-2"
-                  />
-                  <p className="text-xs text-gray-400">
-                    Làm mới vào {new Date(usage.reset_date).toLocaleDateString('vi-VN')}
-                  </p>
-                </div>
               </CardContent>
             </Card>
 
@@ -271,21 +276,26 @@ export function AccountPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Đã sử dụng</span>
-                    <span className="text-white font-medium">
-                      {usage.ai_rewrites_used} / {profile.ai_rewrites_limit}
-                    </span>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Đã sử dụng</span>
+                      <span className="text-white font-medium">
+                        {usage?.ai_rewrites_used || 0} / {usage?.ai_rewrites_limit || profile.ai_rewrites_limit}
+                      </span>
+                    </div>
+                    <Progress 
+                      value={getUsagePercentage(usage?.ai_rewrites_used || 0, usage?.ai_rewrites_limit || profile.ai_rewrites_limit)} 
+                      className="h-2"
+                    />
+                    <div className="text-xs space-y-1">
+                      <p className="text-gray-400">
+                        Làm mới vào {new Date(usage?.reset_date || Date.now()).toLocaleDateString('vi-VN')}
+                      </p>
+                      <p className="text-green-400">
+                        Tháng này: {usage?.current_month_ai_rewrites || 0} lần AI rewrite
+                      </p>
+                    </div>
                   </div>
-                  <Progress 
-                    value={getUsagePercentage(usage.ai_rewrites_used, profile.ai_rewrites_limit)} 
-                    className="h-2"
-                  />
-                  <p className="text-xs text-gray-400">
-                    Làm mới vào {new Date(usage.reset_date).toLocaleDateString('vi-VN')}
-                  </p>
-                </div>
               </CardContent>
             </Card>
           </div>
