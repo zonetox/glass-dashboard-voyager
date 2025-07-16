@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PenTool, FileText, Loader2, Copy, Download, Search } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { PenTool, FileText, Loader2, Copy, Download, Search, Globe } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ContentDuplicationChecker } from './content-duplication-checker';
@@ -48,6 +49,15 @@ export function ContentWriter() {
   const [generatedContent, setGeneratedContent] = useState<WriteResponse | null>(null);
   const [duplicationResult, setDuplicationResult] = useState<DuplicationResult | null>(null);
   const [showDuplicationWarning, setShowDuplicationWarning] = useState(false);
+  
+  // WordPress publishing states
+  const [showWordPressModal, setShowWordPressModal] = useState(false);
+  const [isPublishingToWP, setIsPublishingToWP] = useState(false);
+  const [wordpressUrl, setWordpressUrl] = useState('');
+  const [wpUsername, setWpUsername] = useState('');
+  const [wpPassword, setWpPassword] = useState('');
+  const [publishDate, setPublishDate] = useState('');
+  
   const { toast } = useToast();
 
   const handleDuplicationCheck = (result: DuplicationResult) => {
@@ -126,6 +136,58 @@ export function ContentWriter() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const publishToWordPress = async () => {
+    if (!wordpressUrl || !wpUsername || !wpPassword || !generatedContent) {
+      toast({
+        title: "Error",
+        description: "Please fill in all WordPress credentials",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsPublishingToWP(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('schedule-to-wordpress', {
+        body: {
+          wordpressUrl: wordpressUrl.trim(),
+          username: wpUsername.trim(),
+          password: wpPassword.trim(),
+          title: generatedContent.title,
+          content: generatedContent.html_content,
+          publishDate: publishDate || undefined
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: data.message || "Post successfully published to WordPress"
+        });
+        setShowWordPressModal(false);
+        // Reset form
+        setWordpressUrl('');
+        setWpUsername('');
+        setWpPassword('');
+        setPublishDate('');
+      } else {
+        throw new Error(data.error || 'Failed to publish to WordPress');
+      }
+    } catch (error) {
+      console.error('Error publishing to WordPress:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to publish to WordPress. Please check your credentials.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsPublishingToWP(false);
+    }
   };
 
   return (
@@ -267,6 +329,92 @@ export function ContentWriter() {
                   <Download className="h-4 w-4 mr-2" />
                   Download
                 </Button>
+                <Dialog open={showWordPressModal} onOpenChange={setShowWordPressModal}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                    >
+                      <Globe className="h-4 w-4 mr-2" />
+                      Đăng lên WordPress
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md bg-gray-900 border-white/10">
+                    <DialogHeader>
+                      <DialogTitle className="text-white">Publish to WordPress</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-gray-300 mb-2 block">WordPress Site URL *</Label>
+                        <Input
+                          value={wordpressUrl}
+                          onChange={(e) => setWordpressUrl(e.target.value)}
+                          placeholder="https://your-site.com"
+                          className="bg-white/5 border-white/10 text-white placeholder:text-gray-400"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label className="text-gray-300 mb-2 block">Username *</Label>
+                        <Input
+                          value={wpUsername}
+                          onChange={(e) => setWpUsername(e.target.value)}
+                          placeholder="WordPress username"
+                          className="bg-white/5 border-white/10 text-white placeholder:text-gray-400"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label className="text-gray-300 mb-2 block">Password / Application Password *</Label>
+                        <Input
+                          type="password"
+                          value={wpPassword}
+                          onChange={(e) => setWpPassword(e.target.value)}
+                          placeholder="WordPress password"
+                          className="bg-white/5 border-white/10 text-white placeholder:text-gray-400"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label className="text-gray-300 mb-2 block">Publish Date (optional)</Label>
+                        <Input
+                          type="datetime-local"
+                          value={publishDate}
+                          onChange={(e) => setPublishDate(e.target.value)}
+                          className="bg-white/5 border-white/10 text-white"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">
+                          Leave empty for immediate draft, or set future date for scheduling
+                        </p>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setShowWordPressModal(false)}
+                          className="flex-1"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={publishToWordPress}
+                          disabled={isPublishingToWP}
+                          className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        >
+                          {isPublishingToWP ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Publishing...
+                            </>
+                          ) : (
+                            'Publish'
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </CardTitle>
           </CardHeader>
