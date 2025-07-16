@@ -292,6 +292,47 @@ export type Database = {
         }
         Relationships: []
       }
+      content_assignments: {
+        Row: {
+          content_plan_id: string
+          created_at: string
+          due_date: string | null
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
+          writer_id: string
+        }
+        Insert: {
+          content_plan_id: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          writer_id: string
+        }
+        Update: {
+          content_plan_id?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          writer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_assignments_content_plan_id_fkey"
+            columns: ["content_plan_id"]
+            isOneToOne: false
+            referencedRelation: "content_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_plans: {
         Row: {
           content_length: string
