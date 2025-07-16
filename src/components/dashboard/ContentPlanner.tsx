@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Table, 
   TableBody, 
@@ -35,6 +36,13 @@ interface ContentPlan {
   search_intent: 'informational' | 'transactional' | 'commercial' | 'navigational';
   content_length: string;
   status: 'planned' | 'in_progress' | 'completed';
+  main_topic: string;
+}
+
+interface SavedTopic {
+  main_topic: string;
+  count: number;
+  latest_date: string;
 }
 
 interface ContentPlanResponse {
@@ -57,6 +65,8 @@ export function ContentPlanner() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [contentPlans, setContentPlans] = useState<ContentPlan[]>([]);
+  const [savedTopics, setSavedTopics] = useState<SavedTopic[]>([]);
+  const [selectedTopic, setSelectedTopic] = useState<string>('');
   const [generatedPlan, setGeneratedPlan] = useState<ContentPlanResponse | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -94,14 +104,14 @@ export function ContentPlanner() {
 
       setGeneratedPlan(data);
       
-      // Save to database
+      // Save individual content plans to the existing table
       const plansToSave = data.content_plan.map((item: any) => ({
         user_id: user.id,
-        main_topic: data.main_topic,
+        main_topic: mainTopic.trim(),
         plan_date: item.date,
         title: item.title,
         main_keyword: item.main_keyword,
-        secondary_keywords: item.secondary_keywords,
+        secondary_keywords: item.secondary_keywords || [],
         search_intent: item.search_intent,
         content_length: getContentLength(item.content_type),
         status: 'planned'
@@ -117,6 +127,7 @@ export function ContentPlanner() {
 
       // Fetch updated plans
       await fetchContentPlans();
+      await fetchSavedTopics();
 
       toast({
         title: "Thành công",
@@ -138,15 +149,21 @@ export function ContentPlanner() {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
+      const query = supabase
         .from('content_plans')
         .select('*')
         .eq('user_id', user.id)
         .order('plan_date', { ascending: true });
 
+      // If a topic is selected, filter by that topic
+      if (selectedTopic) {
+        query.eq('main_topic', selectedTopic);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
       
-      // Type cast the data to match ContentPlan interface
       const typedPlans: ContentPlan[] = (data || []).map(plan => ({
         id: plan.id,
         plan_date: plan.plan_date,
@@ -155,13 +172,65 @@ export function ContentPlanner() {
         secondary_keywords: plan.secondary_keywords || [],
         search_intent: plan.search_intent as 'informational' | 'transactional' | 'commercial' | 'navigational',
         content_length: plan.content_length,
-        status: plan.status as 'planned' | 'in_progress' | 'completed'
+        status: plan.status as 'planned' | 'in_progress' | 'completed',
+        main_topic: plan.main_topic
       }));
       
       setContentPlans(typedPlans);
     } catch (error) {
       console.error('Error fetching content plans:', error);
     }
+  };
+
+  const fetchSavedTopics = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('content_plans')
+        .select('main_topic, created_at')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Group by main_topic and count
+      const topicMap = new Map<string, { count: number; latest_date: string }>();
+      
+      data?.forEach(plan => {
+        const existing = topicMap.get(plan.main_topic);
+        if (existing) {
+          existing.count++;
+          if (plan.created_at > existing.latest_date) {
+            existing.latest_date = plan.created_at;
+          }
+        } else {
+          topicMap.set(plan.main_topic, {
+            count: 1,
+            latest_date: plan.created_at
+          });
+        }
+      });
+
+      const topics: SavedTopic[] = Array.from(topicMap.entries()).map(([topic, info]) => ({
+        main_topic: topic,
+        count: info.count,
+        latest_date: info.latest_date
+      }));
+
+      // Sort by latest date descending
+      topics.sort((a, b) => new Date(b.latest_date).getTime() - new Date(a.latest_date).getTime());
+      
+      setSavedTopics(topics);
+    } catch (error) {
+      console.error('Error fetching saved topics:', error);
+    }
+  };
+
+  const handleTopicSelection = async (topic: string) => {
+    setSelectedTopic(topic);
+    setMainTopic(topic);
+    // Fetch plans for this topic
+    await fetchContentPlans();
   };
 
   const handleExportPDF = async () => {
@@ -266,8 +335,16 @@ export function ContentPlanner() {
 
   // Load existing plans on component mount
   useEffect(() => {
+    fetchSavedTopics();
     fetchContentPlans();
   }, [user]);
+
+  // Update plans when topic selection changes
+  useEffect(() => {
+    if (selectedTopic) {
+      fetchContentPlans();
+    }
+  }, [selectedTopic]);
 
   return (
     <div className="space-y-6">
@@ -280,6 +357,26 @@ export function ContentPlanner() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Dropdown for saved topics */}
+          {savedTopics.length > 0 && (
+            <div className="mb-6">
+              <Label className="text-gray-300 mb-2 block">Chọn kế hoạch đã lưu</Label>
+              <Select value={selectedTopic} onValueChange={handleTopicSelection}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <SelectValue placeholder="Chọn chủ đề cũ hoặc tạo mới" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Tất cả kế hoạch</SelectItem>
+                  {savedTopics.map((topic) => (
+                    <SelectItem key={topic.main_topic} value={topic.main_topic}>
+                      {topic.main_topic} ({topic.count} bài viết - {new Date(topic.latest_date).toLocaleDateString('vi-VN')})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
               <Label className="text-gray-300 mb-2 block">Domain website *</Label>
@@ -349,7 +446,7 @@ export function ContentPlanner() {
         <Card className="glass-card border-white/10">
           <CardHeader className="pb-4">
             <CardTitle className="text-white">
-              Kế hoạch nội dung ({contentPlans.length} bài viết)
+              Kế hoạch nội dung {selectedTopic && `(${selectedTopic})`} - {contentPlans.length} bài viết
             </CardTitle>
           </CardHeader>
           <CardContent>
