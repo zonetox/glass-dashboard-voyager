@@ -27,6 +27,7 @@ import {
   Filter
 } from "lucide-react";
 import IntentCoverageChart from './IntentCoverageChart';
+import TopicalAuthorityHeatmap from './TopicalAuthorityHeatmap';
 
 interface TopicNode {
   id: string;
@@ -440,7 +441,7 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="map" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
             Semantic Topic Map
@@ -448,6 +449,10 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
           <TabsTrigger value="intent" className="flex items-center gap-2">
             <Target className="h-4 w-4" />
             Search Intent Map
+          </TabsTrigger>
+          <TabsTrigger value="authority" className="flex items-center gap-2">
+            <Target className="h-4 w-4" />
+            Topical Authority
           </TabsTrigger>
           <TabsTrigger value="compare" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
@@ -698,6 +703,10 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="authority" className="space-y-6">
+          <TopicalAuthorityHeatmap />
         </TabsContent>
 
         <TabsContent value="compare" className="space-y-6">
