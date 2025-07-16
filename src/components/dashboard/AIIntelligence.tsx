@@ -38,7 +38,11 @@ import {
   Loader2,
   AlertTriangle,
   Bell,
-  Clock
+  Clock,
+  Mic,
+  Volume2,
+  Download,
+  Copy
 } from "lucide-react";
 import IntentCoverageChart from './IntentCoverageChart';
 import TopicalAuthorityHeatmap from './TopicalAuthorityHeatmap';
@@ -132,6 +136,9 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loadingAlerts, setLoadingAlerts] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState('');
+  const [voiceSearchData, setVoiceSearchData] = useState<any>(null);
+  const [loadingVoiceSearch, setLoadingVoiceSearch] = useState(false);
+  const [voiceSearchInput, setVoiceSearchInput] = useState('');
   const { toast } = useToast();
 
   // Fetch intent classification on component mount
@@ -163,6 +170,9 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
     }
     if (activeTab === 'alerts') {
       fetchAlerts();
+    }
+    if (activeTab === 'voice-seo') {
+      // Voice SEO data is generated on demand
     }
   }, [activeTab]);
 
@@ -716,6 +726,109 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
     }
   };
 
+  // Voice Search functions
+  const analyzeVoiceSearch = async () => {
+    if (!voiceSearchInput.trim() && !scanData?.seo?.content) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập nội dung hoặc keyword để phân tích",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoadingVoiceSearch(true);
+    try {
+      const content = scanData?.seo?.content || scanData?.ai_analysis?.content || '';
+      
+      const { data, error } = await supabase.functions.invoke('voice-search-enhancer', {
+        body: {
+          content: content,
+          keyword: voiceSearchInput.trim() || undefined,
+          url: scanData?.url,
+          user_id: (await supabase.auth.getUser()).data.user?.id
+        }
+      });
+
+      if (error) throw error;
+
+      setVoiceSearchData(data);
+      
+      toast({
+        title: "Phân tích hoàn thành",
+        description: `Tạo thành công ${data.question_variants?.length || 0} câu hỏi và ${data.answer_snippets?.length || 0} câu trả lời`,
+      });
+
+    } catch (error) {
+      console.error('Error analyzing voice search:', error);
+      toast({
+        title: "Lỗi phân tích",
+        description: "Không thể phân tích voice search",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingVoiceSearch(false);
+    }
+  };
+
+  const exportFAQSchema = () => {
+    if (!voiceSearchData?.schema_faq) {
+      toast({
+        title: "Không có dữ liệu",
+        description: "Chưa có schema FAQ để export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const schemaText = JSON.stringify(voiceSearchData.schema_faq, null, 2);
+    const blob = new Blob([schemaText], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'faq-schema.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Thành công",
+      description: "Đã export FAQ schema",
+    });
+  };
+
+  const copyToClipboard = (text: string, type: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast({
+        title: "Đã copy",
+        description: `${type} đã được copy vào clipboard`,
+      });
+    }).catch(() => {
+      toast({
+        title: "Lỗi",
+        description: "Không thể copy vào clipboard",
+        variant: "destructive",
+      });
+    });
+  };
+
+  const getVoiceScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-600 bg-green-50';
+    if (score >= 60) return 'text-blue-600 bg-blue-50';
+    if (score >= 40) return 'text-yellow-600 bg-yellow-50';
+    return 'text-red-600 bg-red-50';
+  };
+
+  const getIntentBadgeColor = (intent: string) => {
+    switch (intent) {
+      case 'informational': return 'bg-blue-100 text-blue-700';
+      case 'navigational': return 'bg-green-100 text-green-700';
+      case 'transactional': return 'bg-purple-100 text-purple-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
   const getOpportunityColor = (score: number) => {
     if (score >= 80) return 'text-green-600 bg-green-50';
     if (score >= 60) return 'text-yellow-600 bg-yellow-50';
@@ -1018,7 +1131,7 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="map" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
             Semantic Topic Map
@@ -1050,6 +1163,10 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
         <TabsTrigger value="alerts" className="flex items-center gap-2">
           <Bell className="h-4 w-4" />
           Smart Alerts
+        </TabsTrigger>
+        <TabsTrigger value="voice-seo" className="flex items-center gap-2">
+          <Mic className="h-4 w-4" />
+          Voice SEO
         </TabsTrigger>
           <TabsTrigger value="compare" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
@@ -2196,6 +2313,203 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
                     </div>
                   </CardContent>
                 </Card>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="voice-seo" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mic className="h-5 w-5" />
+                Voice Search Optimization
+              </CardTitle>
+              <CardDescription>
+                Tối ưu hóa nội dung cho tìm kiếm bằng giọng nói và trợ lý ảo
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <Label htmlFor="voice-input">Nội dung hoặc từ khóa để phân tích</Label>
+                  <Input
+                    id="voice-input"
+                    placeholder="Nhập từ khóa chính hoặc để trống để sử dụng nội dung scan hiện tại"
+                    value={voiceSearchInput}
+                    onChange={(e) => setVoiceSearchInput(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button 
+                    onClick={analyzeVoiceSearch}
+                    disabled={loadingVoiceSearch}
+                  >
+                    {loadingVoiceSearch ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Đang phân tích...
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="h-4 w-4 mr-2" />
+                        Phân tích Voice Search
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Voice Search Results */}
+              {voiceSearchData && (
+                <div className="space-y-6">
+                  {/* Optimization Score */}
+                  <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-semibold">Voice Search Score</h3>
+                        <Badge variant="outline" className={getVoiceScoreColor(voiceSearchData.voice_optimization_score || 0)}>
+                          {voiceSearchData.voice_optimization_score || 0}/100
+                        </Badge>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-sm text-muted-foreground">
+                          Tạo được {voiceSearchData.question_variants?.length || 0} câu hỏi và {voiceSearchData.answer_snippets?.length || 0} câu trả lời
+                        </div>
+                        <div className="flex justify-end">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={exportFAQSchema}
+                            disabled={!voiceSearchData.schema_faq}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Export FAQ Schema
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Question Variants */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Câu hỏi Voice Search</CardTitle>
+                      <CardDescription>
+                        Các dạng câu hỏi người dùng có thể hỏi bằng giọng nói
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-3">
+                        {voiceSearchData.question_variants?.map((question: any, index: number) => (
+                          <div key={index} className="p-4 border rounded-lg bg-white/50 dark:bg-slate-800/50">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1">
+                                <p className="font-medium mb-2">{question.question}</p>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className={getIntentBadgeColor(question.intent)}>
+                                    {question.intent}
+                                  </Badge>
+                                  <Badge variant="outline" className="text-xs">
+                                    {question.difficulty}
+                                  </Badge>
+                                  <Badge variant="outline" className="text-xs">
+                                    {question.voice_pattern}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyToClipboard(question.question, "Câu hỏi")}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Answer Snippets */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Câu trả lời được tối ưu</CardTitle>
+                      <CardDescription>
+                        Câu trả lời ngắn gọn, phù hợp cho voice search
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {voiceSearchData.answer_snippets?.map((snippet: any, index: number) => (
+                          <div key={index} className="border rounded-lg overflow-hidden">
+                            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm mb-2">{snippet.question}</p>
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-xs">
+                                      {snippet.word_count} từ
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs">
+                                      Readability: {snippet.readability_score}%
+                                    </Badge>
+                                    {snippet.optimized_for_voice && (
+                                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
+                                        Voice Optimized
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => copyToClipboard(`Q: ${snippet.question}\nA: ${snippet.answer}`, "Q&A")}
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="p-4">
+                              <p className="text-muted-foreground leading-relaxed">
+                                {snippet.answer}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Recommendations */}
+                  {voiceSearchData.recommendations?.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Gợi ý cải thiện</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          {voiceSearchData.recommendations.map((rec: string, index: number) => (
+                            <div key={index} className="flex items-start gap-2">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                              <p className="text-sm text-muted-foreground">{rec}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {/* No Data State */}
+              {!voiceSearchData && !loadingVoiceSearch && (
+                <div className="text-center p-8 text-muted-foreground">
+                  <Mic className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                  <p>Chưa có dữ liệu Voice Search</p>
+                  <p className="text-sm">Nhập từ khóa và chạy phân tích để bắt đầu</p>
+                </div>
               )}
             </CardContent>
           </Card>
