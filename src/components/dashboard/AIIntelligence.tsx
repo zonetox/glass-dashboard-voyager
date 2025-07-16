@@ -55,6 +55,8 @@ import TopicalAuthorityHeatmap from './TopicalAuthorityHeatmap';
 import MultiLangContentWriter from './MultiLangContentWriter';
 import CRMConnect from './CRMConnect';
 import { SEOTimelineView } from './SEOTimelineView';
+import AISEOResult from './AISEOResult';
+import { standardizeAIAnalysis } from '@/lib/standardized-ai-analyzer';
 
 interface TopicNode {
   id: string;
@@ -1345,7 +1347,7 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12">
+        <TabsList className="grid w-full grid-cols-7 lg:grid-cols-13">
           <TabsTrigger value="content" className="flex items-center gap-2">
             <PenTool className="h-4 w-4" />
             AI Writer
@@ -1402,10 +1404,14 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
             <Database className="h-4 w-4" />
             CRM
           </TabsTrigger>
-          <TabsTrigger value="seo-journey" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            SEO Journey
-          </TabsTrigger>
+        <TabsTrigger value="seo-journey" className="flex items-center gap-2">
+          <Clock className="h-4 w-4" />
+          SEO Journey
+        </TabsTrigger>
+        <TabsTrigger value="ai-standardized" className="flex items-center gap-2">
+          <Brain className="h-4 w-4" />
+          AI Results
+        </TabsTrigger>
         </TabsList>
 
         <TabsContent value="content" className="space-y-6">
@@ -3134,6 +3140,12 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
 
         <TabsContent value="seo-journey" className="space-y-6">
           <SEOTimelineView />
+        </TabsContent>
+
+        <TabsContent value="ai-standardized" className="space-y-6">
+          <AISEOResult 
+            aiAnalysis={standardizeAIAnalysis(scanData?.ai_analysis || {})} 
+          />
         </TabsContent>
       </Tabs>
 
