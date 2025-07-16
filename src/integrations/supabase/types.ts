@@ -625,6 +625,120 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_configurations: {
+        Row: {
+          access_token_encrypted: string | null
+          api_endpoint: string | null
+          api_key_encrypted: string
+          created_at: string
+          crm_name: string
+          crm_type: string
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          last_sync_at: string | null
+          refresh_token_encrypted: string | null
+          settings: Json | null
+          sync_frequency: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token_encrypted?: string | null
+          api_endpoint?: string | null
+          api_key_encrypted: string
+          created_at?: string
+          crm_name: string
+          crm_type: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          refresh_token_encrypted?: string | null
+          settings?: Json | null
+          sync_frequency?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token_encrypted?: string | null
+          api_endpoint?: string | null
+          api_key_encrypted?: string
+          created_at?: string
+          crm_name?: string
+          crm_type?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          refresh_token_encrypted?: string | null
+          settings?: Json | null
+          sync_frequency?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      crm_sync_logs: {
+        Row: {
+          created_at: string
+          crm_config_id: string
+          crm_object_id: string | null
+          error_message: string | null
+          id: string
+          request_data: Json | null
+          response_data: Json | null
+          status: string
+          sync_duration_ms: number | null
+          sync_type: string
+          tracking_data_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          crm_config_id: string
+          crm_object_id?: string | null
+          error_message?: string | null
+          id?: string
+          request_data?: Json | null
+          response_data?: Json | null
+          status?: string
+          sync_duration_ms?: number | null
+          sync_type: string
+          tracking_data_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          crm_config_id?: string
+          crm_object_id?: string | null
+          error_message?: string | null
+          id?: string
+          request_data?: Json | null
+          response_data?: Json | null
+          status?: string
+          sync_duration_ms?: number | null
+          sync_type?: string
+          tracking_data_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_crm_sync_logs_config"
+            columns: ["crm_config_id"]
+            isOneToOne: false
+            referencedRelation: "crm_configurations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_crm_sync_logs_tracking"
+            columns: ["tracking_data_id"]
+            isOneToOne: false
+            referencedRelation: "seo_tracking_data"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_logs: {
         Row: {
           content: string | null
@@ -1459,6 +1573,111 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      seo_tracking_data: {
+        Row: {
+          bounce_rate: number | null
+          browser: string | null
+          campaign_id: string | null
+          city: string | null
+          conversion_goal: string | null
+          conversion_value: number | null
+          country: string | null
+          created_at: string
+          crm_contact_id: string | null
+          crm_deal_id: string | null
+          device_type: string | null
+          domain: string
+          id: string
+          ip_address: unknown | null
+          keyword: string | null
+          page_url: string
+          page_views: number | null
+          referrer: string | null
+          session_id: string | null
+          sync_error: string | null
+          synced_to_crm: boolean | null
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          visit_duration: number | null
+          visited_at: string
+          visitor_id: string | null
+        }
+        Insert: {
+          bounce_rate?: number | null
+          browser?: string | null
+          campaign_id?: string | null
+          city?: string | null
+          conversion_goal?: string | null
+          conversion_value?: number | null
+          country?: string | null
+          created_at?: string
+          crm_contact_id?: string | null
+          crm_deal_id?: string | null
+          device_type?: string | null
+          domain: string
+          id?: string
+          ip_address?: unknown | null
+          keyword?: string | null
+          page_url: string
+          page_views?: number | null
+          referrer?: string | null
+          session_id?: string | null
+          sync_error?: string | null
+          synced_to_crm?: boolean | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visit_duration?: number | null
+          visited_at?: string
+          visitor_id?: string | null
+        }
+        Update: {
+          bounce_rate?: number | null
+          browser?: string | null
+          campaign_id?: string | null
+          city?: string | null
+          conversion_goal?: string | null
+          conversion_value?: number | null
+          country?: string | null
+          created_at?: string
+          crm_contact_id?: string | null
+          crm_deal_id?: string | null
+          device_type?: string | null
+          domain?: string
+          id?: string
+          ip_address?: unknown | null
+          keyword?: string | null
+          page_url?: string
+          page_views?: number | null
+          referrer?: string | null
+          session_id?: string | null
+          sync_error?: string | null
+          synced_to_crm?: boolean | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visit_duration?: number | null
+          visited_at?: string
+          visitor_id?: string | null
+        }
+        Relationships: []
       }
       transactions: {
         Row: {

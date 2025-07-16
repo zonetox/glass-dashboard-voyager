@@ -47,11 +47,13 @@ import {
   TrendingDown,
   Search,
   MapPin,
-  PenTool
+  PenTool,
+  Database
 } from "lucide-react";
 import IntentCoverageChart from './IntentCoverageChart';
 import TopicalAuthorityHeatmap from './TopicalAuthorityHeatmap';
 import MultiLangContentWriter from './MultiLangContentWriter';
+import CRMConnect from './CRMConnect';
 
 interface TopicNode {
   id: string;
@@ -1342,7 +1344,7 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-11">
+        <TabsList className="grid w-full grid-cols-12">
           <TabsTrigger value="content" className="flex items-center gap-2">
             <PenTool className="h-4 w-4" />
             AI Writer
@@ -1394,6 +1396,10 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
           <TabsTrigger value="compare" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
             SEO Comparison
+          </TabsTrigger>
+          <TabsTrigger value="crm" className="flex items-center gap-2">
+            <Database className="h-4 w-4" />
+            CRM Connect
           </TabsTrigger>
         </TabsList>
 
@@ -3115,6 +3121,10 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="crm" className="space-y-6">
+          <CRMConnect />
         </TabsContent>
       </Tabs>
 
