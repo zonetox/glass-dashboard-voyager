@@ -333,6 +333,47 @@ export type Database = {
           },
         ]
       }
+      content_drafts: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          last_saved_at: string
+          plan_id: string
+          status: string
+          updated_at: string
+          writer_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          last_saved_at?: string
+          plan_id: string
+          status?: string
+          updated_at?: string
+          writer_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          last_saved_at?: string
+          plan_id?: string
+          status?: string
+          updated_at?: string
+          writer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_drafts_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "content_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_plans: {
         Row: {
           content_length: string
