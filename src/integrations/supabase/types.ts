@@ -374,6 +374,41 @@ export type Database = {
           },
         ]
       }
+      content_feedback: {
+        Row: {
+          comment: string
+          created_at: string
+          draft_id: string
+          id: string
+          reviewer_id: string
+          updated_at: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          draft_id: string
+          id?: string
+          reviewer_id: string
+          updated_at?: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          draft_id?: string
+          id?: string
+          reviewer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_feedback_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "content_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_plans: {
         Row: {
           content_length: string
