@@ -113,6 +113,9 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
   const [translations, setTranslations] = useState<Translation[]>([]);
   const [loadingTranslations, setLoadingTranslations] = useState(false);
   const [selectedTargetLanguage, setSelectedTargetLanguage] = useState('en');
+  const [contentGaps, setContentGaps] = useState<any[]>([]);
+  const [loadingGaps, setLoadingGaps] = useState(false);
+  const [competitorUrls, setCompetitorUrls] = useState('');
   const { toast } = useToast();
 
   // Fetch intent classification on component mount
@@ -135,6 +138,9 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
     }
     if (activeTab === 'multilang') {
       fetchTranslations();
+    }
+    if (activeTab === 'market-gaps') {
+      fetchContentGaps();
     }
   }, [activeTab]);
 
@@ -418,6 +424,94 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
       'th': '🇹🇭'
     };
     return flags[code] || '🌐';
+  };
+
+  // Content gaps functions
+  const fetchContentGaps = async () => {
+    if (!scanData?.url) return;
+    
+    try {
+      setLoadingGaps(true);
+      
+      const { data, error } = await supabase
+        .from('competitor_analysis')
+        .select('analysis_data')
+        .eq('user_website_url', scanData.url)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      if (data?.analysis_data && typeof data.analysis_data === 'object' && 'content_gaps' in data.analysis_data) {
+        setContentGaps((data.analysis_data as any).content_gaps || []);
+      }
+    } catch (error) {
+      console.error('Error fetching content gaps:', error);
+      setContentGaps([]);
+    } finally {
+      setLoadingGaps(false);
+    }
+  };
+
+  const analyzeContentGaps = async () => {
+    if (!scanData?.url) return;
+    
+    const competitors = competitorUrls.split('\n').filter(url => url.trim()).map(url => url.trim());
+    
+    if (competitors.length === 0) {
+      toast({
+        title: "Cần danh sách đối thủ",
+        description: "Vui lòng nhập ít nhất một URL đối thủ",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setLoadingGaps(true);
+      
+      const { data, error } = await supabase.functions.invoke('detect-content-gaps', {
+        body: {
+          domain: scanData.url,
+          competitors: competitors,
+          user_id: (await supabase.auth.getUser()).data.user?.id
+        }
+      });
+
+      if (error) throw error;
+
+      setContentGaps(data.content_gaps || []);
+      
+      toast({
+        title: "Phân tích hoàn thành",
+        description: `Tìm thấy ${data.gaps_found || 0} cơ hội nội dung từ ${data.competitors_analyzed} đối thủ`
+      });
+
+    } catch (error) {
+      console.error('Error analyzing content gaps:', error);
+      toast({
+        title: "Lỗi phân tích",
+        description: error.message || "Không thể phân tích cơ hội thị trường",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingGaps(false);
+    }
+  };
+
+  const getOpportunityColor = (score: number) => {
+    if (score >= 80) return 'text-green-600 bg-green-50';
+    if (score >= 60) return 'text-yellow-600 bg-yellow-50';
+    if (score >= 40) return 'text-orange-600 bg-orange-50';
+    return 'text-red-600 bg-red-50';
+  };
+
+  const getOpportunityLabel = (score: number) => {
+    if (score >= 80) return 'Cao';
+    if (score >= 60) return 'Trung bình';
+    if (score >= 40) return 'Thấp';
+    return 'Rất thấp';
   };
 
   const classifyIntent = async () => {
@@ -725,10 +819,14 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
             <Network className="h-4 w-4" />
             Internal Links
           </TabsTrigger>
-          <TabsTrigger value="multilang" className="flex items-center gap-2">
-            <Languages className="h-4 w-4" />
-            Đa ngôn ngữ
-          </TabsTrigger>
+        <TabsTrigger value="multilang" className="flex items-center gap-2">
+          <Languages className="h-4 w-4" />
+          Đa ngôn ngữ
+        </TabsTrigger>
+        <TabsTrigger value="market-gaps" className="flex items-center gap-2">
+          <Target className="h-4 w-4" />
+          Cơ hội thị trường
+        </TabsTrigger>
           <TabsTrigger value="compare" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
             SEO Comparison
@@ -1344,6 +1442,108 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
                   <Badge variant="secondary">70%</Badge>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Market Gaps Tab */}
+        <TabsContent value="market-gaps" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Phân tích cơ hội thị trường
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  Danh sách đối thủ (mỗi URL một dòng):
+                </label>
+                <textarea
+                  value={competitorUrls}
+                  onChange={(e) => setCompetitorUrls(e.target.value)}
+                  className="w-full p-3 border rounded-lg h-24 text-sm"
+                  placeholder="https://competitor1.com&#10;https://competitor2.com&#10;https://competitor3.com"
+                />
+              </div>
+              
+              <Button 
+                onClick={analyzeContentGaps}
+                disabled={loadingGaps}
+                className="w-full"
+              >
+                {loadingGaps ? (
+                  <>
+                    <RotateCcw className="h-4 w-4 mr-2 animate-spin" />
+                    Đang phân tích...
+                  </>
+                ) : (
+                  <>
+                    <Target className="h-4 w-4 mr-2" />
+                    Phân tích cơ hội nội dung
+                  </>
+                )}
+              </Button>
+
+              {contentGaps.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-medium text-lg">Cơ hội được tìm thấy:</h3>
+                  <div className="space-y-2">
+                    {contentGaps
+                      .sort((a, b) => b.opportunity_score - a.opportunity_score)
+                      .map((gap, index) => (
+                      <Card key={index} className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-base mb-1">{gap.topic}</h4>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              Từ khóa: <span className="font-mono bg-muted px-1 rounded">{gap.keyword}</span>
+                            </p>
+                            <div className="flex items-center gap-4 text-sm">
+                              <span className="flex items-center gap-1">
+                                <Users className="h-3 w-3" />
+                                {gap.competitor_count} đối thủ
+                              </span>
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${getOpportunityColor(gap.opportunity_score)}`}>
+                                {getOpportunityLabel(gap.opportunity_score)} ({gap.opportunity_score}/100)
+                              </span>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="ml-4"
+                            onClick={() => {
+                              // Navigate to content creation with pre-filled data
+                              window.open(`/dashboard?tab=content&topic=${encodeURIComponent(gap.topic)}&keyword=${encodeURIComponent(gap.keyword)}`, '_blank');
+                            }}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Viết ngay
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {contentGaps.length > 10 && (
+                    <div className="text-center">
+                      <Button variant="outline" size="sm">
+                        Xem thêm cơ hội...
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {contentGaps.length === 0 && !loadingGaps && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Chưa có phân tích cơ hội thị trường.</p>
+                  <p className="text-sm">Nhập danh sách đối thủ và bắt đầu phân tích.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
