@@ -48,7 +48,7 @@ import { ContentPlanner } from '@/components/dashboard/ContentPlanner';
 import { PredictiveDashboard } from '@/components/dashboard/PredictiveDashboard';
 import { QuickDomainInput } from '@/components/QuickDomainInput';
 import { QuickActions } from '@/components/dashboard/QuickActions';
-import { Website, SEOIssue, mockSEOIssues } from '@/lib/types';
+import { Website, SEOIssue } from '@/lib/types';
 
 export default function Dashboard() {
   const location = useLocation();

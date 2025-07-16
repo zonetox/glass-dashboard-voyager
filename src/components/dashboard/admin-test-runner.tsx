@@ -101,11 +101,19 @@ export function AdminTestRunner() {
       setTestResults([...results]);
       
       try {
-        // Simulate analysis (in real scenario, call actual API)
-        const mockAnalysis = await simulateAnalysis(url);
+        const { data: { user } } = await supabase.auth.getUser();
         
-        // Validate the analysis
-        const validation = await SEOValidator.validateAnalysis(mockAnalysis, url);
+        // Use real analysis instead of simulation
+        const { data: realAnalysis, error } = await supabase.functions.invoke('analyze-site', {
+          body: { url, user_id: user?.id }
+        });
+
+        if (error) {
+          throw new Error(`Analysis failed: ${error.message}`);
+        }
+        
+        // Validate the real analysis
+        const validation = await SEOValidator.validateAnalysis(realAnalysis, url);
         
         if (validation.isValid && validation.standardized) {
           result.analysis = validation.standardized;

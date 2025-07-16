@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -9,7 +9,7 @@ import { Bot, Brain, Target, Search, Sparkles, TrendingUp, MessagesSquare, Rotat
 import { useToast } from '@/hooks/use-toast';
 import { Cell, PieChart, Pie, ResponsiveContainer } from 'recharts';
 
-export function AISEOAnalysis() {
+export function AISEOAnalysis({ scanData, websiteUrl }: { scanData?: any; websiteUrl?: string }) {
   const { toast } = useToast();
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<'google' | 'perplexity' | 'chatgpt'>('google');
@@ -43,68 +43,16 @@ export function AISEOAnalysis() {
   
   const { score: aiVisibilityScore, metrics } = calculateAIVisibilityScore();
   
-  // Mock entity data from last scan
-  const mockEntities = [
-    {
-      id: 1,
-      name: "SEO Analysis Tool",
-      type: "Product",
-      importance: 9,
-      context: "Main product offering",
-      suggestions: ["Add Product schema", "Create internal linking hub"]
-    },
-    {
-      id: 2,
-      name: "Artificial Intelligence",
-      type: "Technology",
-      importance: 8,
-      context: "Core technology",
-      suggestions: ["Add Technology schema", "Link to AI-related pages"]
-    },
-    {
-      id: 3,
-      name: "Website Optimization",
-      type: "Service",
-      importance: 7,
-      context: "Primary service",
-      suggestions: ["Add Service schema", "Create service landing pages"]
-    },
-    {
-      id: 4,
-      name: "Google",
-      type: "Organization",
-      importance: 6,
-      context: "Search engine focus",
-      suggestions: ["Add Organization context", "Reference in authority content"]
-    },
-    {
-      id: 5,
-      name: "Machine Learning",
-      type: "Technology",
-      importance: 5,
-      context: "Supporting technology",
-      suggestions: ["Add Technology schema", "Create ML content cluster"]
+  // Real data from scan results
+  const [entities, setEntities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Load real entities from scan data
+  useEffect(() => {
+    if (scanData?.ai_analysis?.entities) {
+      setEntities(scanData.ai_analysis.entities);
     }
-  ];
-  
-  // Mock data from last scan
-  const mockScanData = {
-    h1: "AI-Powered SEO Analysis Tool - Optimize Your Website Rankings",
-    paragraphs: [
-      "Our advanced SEO analysis tool uses artificial intelligence to identify optimization opportunities and improve your website's search engine visibility.",
-      "With real-time scanning and automated recommendations, you can fix SEO issues faster than ever before."
-    ],
-    faqs: [
-      {
-        question: "How does AI SEO analysis work?",
-        answer: "Our tool crawls your website, analyzes content structure, and uses machine learning to identify SEO improvements."
-      },
-      {
-        question: "What makes this different from other SEO tools?",
-        answer: "We provide AI-generated content suggestions and automated optimization workflows that save time."
-      }
-    ]
-  };
+  }, [scanData]);
 
   const aiAnswerVariations = {
     google: {
@@ -146,26 +94,27 @@ export function AISEOAnalysis() {
 
   // Generate schema snippets based on scanned content
   const generateSchemaSnippet = (type: string) => {
-    const baseUrl = "https://example.com";
+    const baseUrl = websiteUrl || "https://example.com";
+    const realData = scanData || {};
     
     const schemas: Record<string, object> = {
       faq: {
         "@context": "https://schema.org",
         "@type": "FAQPage",
-        "mainEntity": mockScanData.faqs.map(faq => ({
+        "mainEntity": realData.faq_suggestions?.map((faq: any) => ({
           "@type": "Question",
           "name": faq.question,
           "acceptedAnswer": {
             "@type": "Answer",
             "text": faq.answer
           }
-        }))
+        })) || []
       },
       article: {
         "@context": "https://schema.org",
         "@type": "Article",
-        "headline": mockScanData.h1,
-        "description": mockScanData.paragraphs[0],
+        "headline": realData.seo?.title || "Article Title",
+        "description": realData.seo?.meta_description || "Article description",
         "author": {
           "@type": "Organization",
           "name": "SEO Auto Tool"
@@ -176,8 +125,8 @@ export function AISEOAnalysis() {
       product: {
         "@context": "https://schema.org",
         "@type": "Product",
-        "name": "AI-Powered SEO Analysis Tool",
-        "description": mockScanData.paragraphs[0],
+        "name": realData.seo?.title || "Product Name",
+        "description": realData.seo?.meta_description || "Product description",
         "offers": {
           "@type": "Offer",
           "price": "0",
@@ -188,18 +137,18 @@ export function AISEOAnalysis() {
       howto: {
         "@context": "https://schema.org",
         "@type": "HowTo",
-        "name": "How to Use AI SEO Analysis",
-        "description": mockScanData.paragraphs[1],
+        "name": realData.seo?.title || "How to Guide",
+        "description": realData.seo?.meta_description || "Step by step guide",
         "step": [
           {
             "@type": "HowToStep",
-            "name": "Scan Your Website",
-            "text": "Enter your website URL to start the AI analysis process"
+            "name": "Step 1",
+            "text": "Start the process"
           },
           {
             "@type": "HowToStep", 
-            "name": "Review Results",
-            "text": "Analyze the AI-generated recommendations and insights"
+            "name": "Step 2",
+            "text": "Complete the action"
           }
         ]
       },
@@ -367,13 +316,13 @@ export function AISEOAnalysis() {
               <h4 className="text-sm font-medium">Nội dung gốc được trích xuất:</h4>
               <div className="grid grid-cols-1 gap-2 text-xs">
                 <div className="p-2 bg-muted/20 rounded border-l-2 border-blue-500">
-                  <span className="text-muted-foreground">H1:</span> {mockScanData.h1}
+                  <span className="text-muted-foreground">H1:</span> {scanData?.seo?.h1_tags?.[0] || 'Chưa có dữ liệu'}
                 </div>
                 <div className="p-2 bg-muted/20 rounded border-l-2 border-green-500">
-                  <span className="text-muted-foreground">Đoạn văn:</span> {mockScanData.paragraphs[0]}
+                  <span className="text-muted-foreground">Meta Description:</span> {scanData?.seo?.meta_description || 'Chưa có dữ liệu'}
                 </div>
                 <div className="p-2 bg-muted/20 rounded border-l-2 border-purple-500">
-                  <span className="text-muted-foreground">FAQ:</span> {mockScanData.faqs[0].answer}
+                  <span className="text-muted-foreground">Title:</span> {scanData?.seo?.title || 'Chưa có dữ liệu'}
                 </div>
               </div>
             </div>
@@ -542,7 +491,7 @@ export function AISEOAnalysis() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Đã phát hiện {mockEntities.length} entities chính trong nội dung của bạn
+                Đã phát hiện {entities.length} entities chính trong nội dung của bạn
               </p>
               <Badge variant="secondary" className="text-xs">
                 NLP Analysis
@@ -562,8 +511,8 @@ export function AISEOAnalysis() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockEntities.map((entity) => (
-                    <TableRow key={entity.id} className="border-border/30 hover:bg-muted/30">
+                  {entities.map((entity, index) => (
+                    <TableRow key={index} className="border-border/30 hover:bg-muted/30">
                       <TableCell className="font-medium">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
@@ -601,13 +550,13 @@ export function AISEOAnalysis() {
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
-                          {entity.suggestions.map((suggestion, index) => (
-                            <div key={index} className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <div className="w-1 h-1 bg-muted-foreground rounded-full flex-shrink-0"></div>
-                              {suggestion}
-                            </div>
-                          ))}
-                        </div>
+                           {(entity.suggestions || []).map((suggestion: string, i: number) => (
+                             <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+                               <div className="w-1 h-1 bg-muted-foreground rounded-full flex-shrink-0"></div>
+                               {suggestion}
+                             </div>
+                           ))}
+                         </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-1">

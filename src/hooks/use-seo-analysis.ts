@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Website, SEOIssue, mockSEOIssues, projectToWebsite } from '@/lib/types';
+import { Website, SEOIssue, projectToWebsite } from '@/lib/types';
 import { SEOAnalyzer } from '@/lib/seo-analyzer';
 import { useAuth } from '@/hooks/useAuth';
 import { 
@@ -15,7 +15,7 @@ export function useSEOAnalysis() {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [websites, setWebsites] = useState<Website[]>([]);
-  const [issues, setIssues] = useState<SEOIssue[]>(mockSEOIssues);
+  const [issues, setIssues] = useState<SEOIssue[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

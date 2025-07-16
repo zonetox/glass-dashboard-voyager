@@ -98,21 +98,7 @@ export interface ScanResult {
   created_at?: string;
 }
 
-// Mock data for development
-export const mockSEOIssues: SEOIssue[] = [
-  {
-    id: '1',
-    websiteId: 'mock-1',
-    title: 'Missing meta description',
-    description: 'Your page is missing a meta description',
-    severity: 'high',
-    category: 'Meta Tags',
-    type: 'meta',
-    affectedUrl: '/',
-    recommendation: 'Add a compelling meta description',
-    isFixed: false
-  }
-];
+// No mock data - all data comes from real API calls
 
 // Helper function to convert Project to Website
 export function projectToWebsite(project: Project): Website {

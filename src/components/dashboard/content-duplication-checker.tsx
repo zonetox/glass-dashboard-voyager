@@ -47,47 +47,38 @@ export function ContentDuplicationChecker({ onCheck, isChecking }: ContentDuplic
     }
 
     try {
-      // Simulate content duplication check - in real implementation this would call AI search APIs
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const mockResult: DuplicationResult = {
-        is_duplicate: Math.random() > 0.7,
-        similarity_score: Math.floor(Math.random() * 100),
-        existing_content: [
-          {
-            title: `Similar article about ${topic}`,
-            url: `https://example.com/article-1`,
-            similarity: 85
-          },
-          {
-            title: `Related content on ${keyword}`,
-            url: `https://example.com/article-2`,
-            similarity: 72
-          }
-        ],
-        suggested_angles: [
-          `Focus on ${keyword} for beginners`,
-          `Advanced ${keyword} strategies`,
-          `${topic} case studies and examples`,
-          `Common ${keyword} mistakes to avoid`,
-          `Future trends in ${topic}`
-        ],
-        search_results: [
-          {
-            title: `Complete Guide to ${topic}`,
-            url: 'https://competitor.com/guide',
-            snippet: `Learn everything about ${keyword} with our comprehensive guide...`
-          }
-        ]
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Authentication required");
+      }
+
+      // Call real content gap analysis API
+      const { data, error } = await supabase.functions.invoke('content-gap-analysis', {
+        body: { 
+          topic, 
+          keyword, 
+          websiteUrl: websiteUrl || '',
+          user_id: user.id 
+        }
+      });
+
+      if (error) throw error;
+
+      const realResult: DuplicationResult = {
+        is_duplicate: data?.is_duplicate || false,
+        similarity_score: data?.similarity_score || 0,
+        existing_content: data?.existing_content || [],
+        suggested_angles: data?.suggested_angles || [],
+        search_results: data?.search_results || []
       };
 
-      setCheckResult(mockResult);
-      onCheck(mockResult);
+      setCheckResult(realResult);
+      onCheck(realResult);
 
       toast({
         title: "Check Complete",
-        description: mockResult.is_duplicate 
-          ? "Potential content duplication detected" 
+        description: realResult.is_duplicate 
+          ? "Potential content duplication detected"
           : "No significant duplication found"
       });
 

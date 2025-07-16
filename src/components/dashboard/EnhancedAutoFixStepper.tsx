@@ -125,20 +125,14 @@ export default function EnhancedAutoFixStepper({
 
       await generateFix(websiteUrl, aiAnalysis);
       
-      const mockSuggestions = [
-        "Thêm meta description cho trang chủ",
-        "Tối ưu hóa title tags",
-        "Cải thiện cấu trúc heading (H1, H2, H3)",
-        "Thêm alt text cho hình ảnh",
-        "Tối ưu hóa internal linking"
-      ];
-
-      const mockPreview = {
-        before: "<title>Trang chủ</title>\n<meta name=\"description\" content=\"\">",
-        after: "<title>Trang chủ - Dịch vụ SEO chuyên nghiệp</title>\n<meta name=\"description\" content=\"Dịch vụ SEO chuyên nghiệp giúp website của bạn lên top Google. Tư vấn miễn phí 24/7.\">"
+      // Use real data from fixes hook
+      const realSuggestions = fixes?.suggestions || ["Đang tải gợi ý..."];
+      const realPreview = fixes?.preview || {
+        before: "Đang tải...",
+        after: "Đang tạo preview..."
       };
 
-      updateStepStatus(1, "success", "Đã phân tích và tạo gợi ý sửa", undefined, mockSuggestions, mockPreview);
+      updateStepStatus(1, "success", "Đã phân tích và tạo gợi ý sửa", undefined, realSuggestions, realPreview);
       setCurrentStep(1);
     } catch (err) {
       updateStepStatus(1, "failed", undefined, err instanceof Error ? err.message : "Lỗi không xác định");
