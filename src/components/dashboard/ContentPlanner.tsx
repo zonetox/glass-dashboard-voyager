@@ -174,14 +174,37 @@ export function ContentPlanner() {
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Chưa đăng nhập",
+        description: "Vui lòng đăng nhập để xuất PDF",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsExportingPDF(true);
     try {
-      // Create PDF export logic here
-      toast({
-        title: "Xuất PDF thành công",
-        description: "Kế hoạch nội dung đã được xuất ra file PDF"
+      const { data, error } = await supabase.functions.invoke('generate-pdf-report', {
+        body: { 
+          user_id: user.id,
+          report_type: 'content-plan',
+          main_topic: mainTopic
+        }
       });
+
+      if (error) throw error;
+
+      // Open the PDF file in a new tab
+      if (data?.file_url) {
+        window.open(data.file_url, '_blank');
+        toast({
+          title: "Xuất PDF thành công",
+          description: `Kế hoạch nội dung đã được xuất thành PDF (${data.total_articles} bài viết)`
+        });
+      }
     } catch (error) {
+      console.error('Error exporting PDF:', error);
       toast({
         title: "Lỗi xuất PDF",
         description: "Không thể xuất file PDF. Vui lòng thử lại.",
