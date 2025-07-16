@@ -35,7 +35,10 @@ import {
   Globe,
   Languages,
   BarChart3,
-  Loader2
+  Loader2,
+  AlertTriangle,
+  Bell,
+  Clock
 } from "lucide-react";
 import IntentCoverageChart from './IntentCoverageChart';
 import TopicalAuthorityHeatmap from './TopicalAuthorityHeatmap';
@@ -126,6 +129,9 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
   const [newTestUrl, setNewTestUrl] = useState('');
   const [originalTitle, setOriginalTitle] = useState('');
   const [originalDescription, setOriginalDescription] = useState('');
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [loadingAlerts, setLoadingAlerts] = useState(false);
+  const [selectedDomain, setSelectedDomain] = useState('');
   const { toast } = useToast();
 
   // Fetch intent classification on component mount
@@ -154,6 +160,9 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
     }
     if (activeTab === 'abtest') {
       fetchABTests();
+    }
+    if (activeTab === 'alerts') {
+      fetchAlerts();
     }
   }, [activeTab]);
 
@@ -606,6 +615,107 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
     }
   };
 
+  // Alerts functions
+  const fetchAlerts = async () => {
+    try {
+      setLoadingAlerts(true);
+      const { data, error } = await supabase
+        .from('alerts')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setAlerts(data || []);
+    } catch (error) {
+      console.error('Error loading alerts:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải cảnh báo",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingAlerts(false);
+    }
+  };
+
+  const runSEOAlertsAnalysis = async () => {
+    if (!selectedDomain.trim()) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập domain để phân tích",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoadingAlerts(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('seo-alerts-watcher', {
+        body: {
+          domain: selectedDomain.trim(),
+          userId: (await supabase.auth.getUser()).data.user?.id,
+          isScheduled: false
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Phân tích hoàn thành",
+        description: `Đã tạo ${data.alertsGenerated || 0} cảnh báo từ phân tích SEO`,
+      });
+
+      fetchAlerts();
+    } catch (error) {
+      console.error('Error running SEO alerts analysis:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể chạy phân tích cảnh báo SEO",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingAlerts(false);
+    }
+  };
+
+  const markAlertAsRead = async (alertId: string) => {
+    try {
+      const { error } = await supabase
+        .from('alerts')
+        .update({ is_read: true })
+        .eq('id', alertId);
+
+      if (error) throw error;
+
+      setAlerts(prev => prev.map(alert => 
+        alert.id === alertId ? { ...alert, is_read: true } : alert
+      ));
+    } catch (error) {
+      console.error('Error marking alert as read:', error);
+    }
+  };
+
+  const getSeverityIcon = (severity: string) => {
+    switch (severity) {
+      case 'emergency': return '🆘';
+      case 'critical': return '🚨';
+      case 'warning': return '⚠️';
+      case 'info': return 'ℹ️';
+      default: return '📋';
+    }
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'emergency': return 'bg-red-50 border-red-200 text-red-700';
+      case 'critical': return 'bg-orange-50 border-orange-200 text-orange-700';
+      case 'warning': return 'bg-yellow-50 border-yellow-200 text-yellow-700';
+      case 'info': return 'bg-blue-50 border-blue-200 text-blue-700';
+      default: return 'bg-gray-50 border-gray-200 text-gray-700';
+    }
+  };
+
   const getOpportunityColor = (score: number) => {
     if (score >= 80) return 'text-green-600 bg-green-50';
     if (score >= 60) return 'text-yellow-600 bg-yellow-50';
@@ -908,7 +1018,7 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="map" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
             Semantic Topic Map
@@ -936,6 +1046,10 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
         <TabsTrigger value="abtest" className="flex items-center gap-2">
           <BarChart3 className="h-4 w-4" />
           AI A/B Testing
+        </TabsTrigger>
+        <TabsTrigger value="alerts" className="flex items-center gap-2">
+          <Bell className="h-4 w-4" />
+          Smart Alerts
         </TabsTrigger>
           <TabsTrigger value="compare" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
@@ -1932,6 +2046,157 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="alerts" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Smart SEO Alerts
+              </CardTitle>
+              <CardDescription>
+                Hệ thống cảnh báo thông minh theo dõi ranking, PageSpeed và content changes
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <Label htmlFor="domain">Domain cần theo dõi</Label>
+                  <Input
+                    id="domain"
+                    placeholder="https://example.com"
+                    value={selectedDomain}
+                    onChange={(e) => setSelectedDomain(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button 
+                    onClick={runSEOAlertsAnalysis}
+                    disabled={loadingAlerts}
+                  >
+                    {loadingAlerts ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Đang phân tích...
+                      </>
+                    ) : (
+                      <>
+                        <AlertTriangle className="h-4 w-4 mr-2" />
+                        Chạy phân tích
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Alerts List */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Cảnh báo gần đây</h3>
+                  <Badge variant="outline">
+                    {alerts.filter(alert => !alert.is_read).length} chưa đọc
+                  </Badge>
+                </div>
+
+                {loadingAlerts && alerts.length === 0 ? (
+                  <div className="flex items-center justify-center p-8">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    Đang tải cảnh báo...
+                  </div>
+                ) : alerts.length === 0 ? (
+                  <div className="text-center p-8 text-muted-foreground">
+                    <Bell className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                    <p>Chưa có cảnh báo nào</p>
+                    <p className="text-sm">Chạy phân tích để tạo cảnh báo SEO</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {alerts.map((alert) => (
+                      <Card
+                        key={alert.id}
+                        className={`${getSeverityColor(alert.severity)} ${
+                          alert.is_read ? 'opacity-60' : ''
+                        } cursor-pointer hover:shadow-md transition-all`}
+                        onClick={() => !alert.is_read && markAlertAsRead(alert.id)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="text-2xl">
+                              {getSeverityIcon(alert.severity)}
+                            </div>
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <Badge variant="outline" className="capitalize">
+                                  {alert.type}
+                                </Badge>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <Clock className="h-3 w-3" />
+                                  {new Date(alert.created_at).toLocaleDateString('vi-VN')}
+                                </div>
+                              </div>
+                              <p className="font-medium">{alert.message}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Domain: {alert.domain}
+                              </p>
+                              {alert.link && (
+                                <Button variant="link" className="p-0 h-auto text-xs">
+                                  <Link className="h-3 w-3 mr-1" />
+                                  Xem chi tiết
+                                </Button>
+                              )}
+                            </div>
+                            {!alert.is_read && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Alert Summary */}
+              {alerts.length > 0 && (
+                <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
+                  <CardContent className="p-4">
+                    <h4 className="font-semibold mb-2">Thống kê cảnh báo</h4>
+                    <div className="grid grid-cols-4 gap-4 text-center">
+                      <div>
+                        <div className="text-2xl">🆘</div>
+                        <div className="text-sm font-medium">
+                          {alerts.filter(a => a.severity === 'emergency').length}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Khẩn cấp</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl">🚨</div>
+                        <div className="text-sm font-medium">
+                          {alerts.filter(a => a.severity === 'critical').length}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Nghiêm trọng</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl">⚠️</div>
+                        <div className="text-sm font-medium">
+                          {alerts.filter(a => a.severity === 'warning').length}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Cảnh báo</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl">ℹ️</div>
+                        <div className="text-sm font-medium">
+                          {alerts.filter(a => a.severity === 'info').length}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Thông tin</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

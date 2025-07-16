@@ -134,6 +134,48 @@ export type Database = {
         }
         Relationships: []
       }
+      alerts: {
+        Row: {
+          created_at: string
+          data: Json | null
+          domain: string
+          id: string
+          is_read: boolean | null
+          link: string | null
+          message: string
+          severity: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json | null
+          domain: string
+          id?: string
+          is_read?: boolean | null
+          link?: string | null
+          message: string
+          severity?: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json | null
+          domain?: string
+          id?: string
+          is_read?: boolean | null
+          link?: string | null
+          message?: string
+          severity?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       api_logs: {
         Row: {
           api_name: string
