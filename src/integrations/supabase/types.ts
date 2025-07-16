@@ -418,6 +418,36 @@ export type Database = {
           },
         ]
       }
+      content_intent: {
+        Row: {
+          confidence: number
+          content_id: string
+          created_at: string
+          generated_at: string
+          id: string
+          intent_type: string
+          updated_at: string
+        }
+        Insert: {
+          confidence: number
+          content_id: string
+          created_at?: string
+          generated_at?: string
+          id?: string
+          intent_type: string
+          updated_at?: string
+        }
+        Update: {
+          confidence?: number
+          content_id?: string
+          created_at?: string
+          generated_at?: string
+          id?: string
+          intent_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       content_plans: {
         Row: {
           content_length: string

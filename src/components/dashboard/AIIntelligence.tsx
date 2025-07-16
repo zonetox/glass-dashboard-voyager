@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Brain, 
   Network, 
@@ -16,7 +18,11 @@ import {
   ArrowRight,
   Sparkles,
   Eye,
-  CheckCircle2
+  CheckCircle2,
+  Info,
+  Navigation,
+  ShoppingCart,
+  Briefcase
 } from "lucide-react";
 
 interface TopicNode {
@@ -38,13 +44,135 @@ interface SemanticTopicMapProps {
   className?: string;
 }
 
-interface AIIntelligenceProps {
-  className?: string;
+interface ContentIntent {
+  id: string;
+  content_id: string;
+  intent_type: 'informational' | 'navigational' | 'transactional' | 'commercial';
+  confidence: number;
+  generated_at: string;
 }
 
-export default function AIIntelligence({ className }: AIIntelligenceProps) {
+interface AIIntelligenceProps {
+  className?: string;
+  scanData?: any;
+}
+
+export default function AIIntelligence({ className, scanData }: AIIntelligenceProps) {
   const [selectedTopic, setSelectedTopic] = useState<TopicNode | null>(null);
   const [activeTab, setActiveTab] = useState('map');
+  const [contentIntent, setContentIntent] = useState<ContentIntent | null>(null);
+  const [isClassifying, setIsClassifying] = useState(false);
+  const { toast } = useToast();
+
+  // Fetch intent classification on component mount
+  useEffect(() => {
+    if (scanData?.id) {
+      fetchContentIntent(scanData.id);
+    }
+  }, [scanData?.id]);
+
+  const fetchContentIntent = async (contentId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('content_intent')
+        .select('*')
+        .eq('content_id', contentId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      if (data) {
+        setContentIntent(data as ContentIntent);
+      }
+    } catch (error) {
+      console.error('Error fetching intent:', error);
+    }
+  };
+
+  const classifyIntent = async () => {
+    if (!scanData?.id) {
+      toast({
+        title: "Lỗi",
+        description: "Không có dữ liệu scan để phân tích",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsClassifying(true);
+    try {
+      // Extract content from scan data
+      const content = scanData?.seo?.content || scanData?.ai_analysis?.content || '';
+      
+      if (!content) {
+        throw new Error('Không tìm thấy nội dung để phân tích');
+      }
+
+      const { data, error } = await supabase.functions.invoke('classify-intent', {
+        body: {
+          content_id: scanData.id,
+          content: content
+        }
+      });
+
+      if (error) throw error;
+
+      setContentIntent({
+        id: data.stored_id,
+        content_id: scanData.id,
+        intent_type: data.intent_type,
+        confidence: data.confidence,
+        generated_at: new Date().toISOString()
+      });
+
+      toast({
+        title: "Phân tích hoàn thành",
+        description: `Phân loại intent: ${data.intent_type} (${Math.round(data.confidence * 100)}% confidence)`
+      });
+
+    } catch (error) {
+      console.error('Intent classification error:', error);
+      toast({
+        title: "Lỗi phân tích",
+        description: error.message || "Không thể phân tích intent",
+        variant: "destructive"
+      });
+    } finally {
+      setIsClassifying(false);
+    }
+  };
+
+  const getIntentIcon = (intentType: string) => {
+    switch (intentType) {
+      case 'informational': return Info;
+      case 'navigational': return Navigation;
+      case 'transactional': return ShoppingCart;
+      case 'commercial': return Briefcase;
+      default: return Brain;
+    }
+  };
+
+  const getIntentColor = (intentType: string) => {
+    switch (intentType) {
+      case 'informational': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'navigational': return 'bg-green-100 text-green-700 border-green-200';
+      case 'transactional': return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'commercial': return 'bg-orange-100 text-orange-700 border-orange-200';
+      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+    }
+  };
+
+  const getIntentDescription = (intentType: string) => {
+    switch (intentType) {
+      case 'informational': return 'Cung cấp thông tin, giải đáp câu hỏi';
+      case 'navigational': return 'Tìm kiếm website, thương hiệu cụ thể';
+      case 'transactional': return 'Thực hiện hành động: mua, đăng ký, tải';
+      case 'commercial': return 'So sánh sản phẩm, đánh giá, hướng dẫn mua';
+      default: return 'Chưa phân loại';
+    }
+  };
 
   // Mock semantic topic data
   const semanticTopics: TopicNode[] = [
@@ -207,6 +335,48 @@ export default function AIIntelligence({ className }: AIIntelligenceProps) {
           AI-Powered
         </Badge>
       </div>
+
+      {/* Intent Classification Section */}
+      {scanData && (
+        <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Brain className="h-5 w-5" />
+                Phân loại Intent
+              </div>
+              <Button 
+                onClick={classifyIntent} 
+                disabled={isClassifying}
+                size="sm"
+                variant="outline"
+              >
+                {isClassifying ? 'Đang phân tích...' : 'Phân tích Intent'}
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {contentIntent ? (
+              <div className="flex items-center gap-4">
+                <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border ${getIntentColor(contentIntent.intent_type)}`}>
+                  {React.createElement(getIntentIcon(contentIntent.intent_type), { className: "h-4 w-4" })}
+                  <span className="font-medium capitalize">{contentIntent.intent_type}</span>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Confidence: {Math.round(contentIntent.confidence * 100)}%
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {getIntentDescription(contentIntent.intent_type)}
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">
+                Chưa có dữ liệu phân loại intent. Nhấn "Phân tích Intent" để bắt đầu.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
