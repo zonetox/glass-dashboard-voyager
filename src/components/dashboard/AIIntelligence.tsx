@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -22,8 +23,10 @@ import {
   Info,
   Navigation,
   ShoppingCart,
-  Briefcase
+  Briefcase,
+  Filter
 } from "lucide-react";
+import IntentCoverageChart from './IntentCoverageChart';
 
 interface TopicNode {
   id: string;
@@ -52,6 +55,14 @@ interface ContentIntent {
   generated_at: string;
 }
 
+interface ContentWithIntent {
+  id: string;
+  url: string;
+  intent_type: string;
+  confidence: number;
+  created_at: string;
+}
+
 interface AIIntelligenceProps {
   className?: string;
   scanData?: any;
@@ -62,6 +73,9 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
   const [activeTab, setActiveTab] = useState('map');
   const [contentIntent, setContentIntent] = useState<ContentIntent | null>(null);
   const [isClassifying, setIsClassifying] = useState(false);
+  const [contentWithIntent, setContentWithIntent] = useState<ContentWithIntent[]>([]);
+  const [selectedIntentFilter, setSelectedIntentFilter] = useState<string>('all');
+  const [loadingContent, setLoadingContent] = useState(false);
   const { toast } = useToast();
 
   // Fetch intent classification on component mount
@@ -69,7 +83,13 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
     if (scanData?.id) {
       fetchContentIntent(scanData.id);
     }
+    fetchAllContentWithIntent();
   }, [scanData?.id]);
+
+  // Fetch content when filter changes
+  useEffect(() => {
+    fetchAllContentWithIntent();
+  }, [selectedIntentFilter]);
 
   const fetchContentIntent = async (contentId: string) => {
     try {
@@ -88,6 +108,47 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
       }
     } catch (error) {
       console.error('Error fetching intent:', error);
+    }
+  };
+
+  const fetchAllContentWithIntent = async () => {
+    try {
+      setLoadingContent(true);
+      
+      let query = supabase
+        .from('content_intent')
+        .select(`
+          id,
+          content_id,
+          intent_type,
+          confidence,
+          created_at,
+          scans!inner(url)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (selectedIntentFilter !== 'all') {
+        query = query.eq('intent_type', selectedIntentFilter);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      const formattedData = data?.map(item => ({
+        id: item.content_id,
+        url: (item as any).scans.url,
+        intent_type: item.intent_type,
+        confidence: item.confidence,
+        created_at: item.created_at
+      })) || [];
+
+      setContentWithIntent(formattedData);
+    } catch (error) {
+      console.error('Error fetching content with intent:', error);
+      setContentWithIntent([]);
+    } finally {
+      setLoadingContent(false);
     }
   };
 
@@ -379,10 +440,14 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="map" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
             Semantic Topic Map
+          </TabsTrigger>
+          <TabsTrigger value="intent" className="flex items-center gap-2">
+            <Target className="h-4 w-4" />
+            Search Intent Map
           </TabsTrigger>
           <TabsTrigger value="compare" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
@@ -555,6 +620,81 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
                     <p className="text-2xl font-bold">4</p>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="intent" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Intent Coverage Chart */}
+            <IntentCoverageChart />
+
+            {/* Content List with Intent Filter */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Target className="h-5 w-5" />
+                    Danh sách bài viết
+                  </div>
+                  <Select value={selectedIntentFilter} onValueChange={setSelectedIntentFilter}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Lọc theo intent" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tất cả</SelectItem>
+                      <SelectItem value="informational">Thông tin</SelectItem>
+                      <SelectItem value="navigational">Điều hướng</SelectItem>
+                      <SelectItem value="transactional">Giao dịch</SelectItem>
+                      <SelectItem value="commercial">Thương mại</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingContent ? (
+                  <div className="h-64 flex items-center justify-center">
+                    <div className="text-muted-foreground">Đang tải...</div>
+                  </div>
+                ) : contentWithIntent.length === 0 ? (
+                  <div className="h-64 flex items-center justify-center">
+                    <div className="text-center text-muted-foreground">
+                      <div className="mb-2">Không có bài viết nào</div>
+                      <div className="text-sm">
+                        {selectedIntentFilter === 'all' 
+                          ? 'Hãy phân tích intent cho các trang web'
+                          : `Không có bài viết với intent "${selectedIntentFilter}"`
+                        }
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-64">
+                    <div className="space-y-3">
+                      {contentWithIntent.map((content) => {
+                        const IconComponent = getIntentIcon(content.intent_type);
+                        return (
+                          <div key={content.id} className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                            <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs ${getIntentColor(content.intent_type)}`}>
+                              <IconComponent className="h-3 w-3" />
+                              <span className="capitalize">{content.intent_type}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm truncate">
+                                {content.url}
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                Confidence: {Math.round(content.confidence * 100)}% • 
+                                Phân tích: {new Date(content.created_at).toLocaleDateString('vi-VN')}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                )}
               </CardContent>
             </Card>
           </div>
