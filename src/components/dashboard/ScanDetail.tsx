@@ -184,7 +184,11 @@ export default function ScanDetail({ scan, onBack, onDelete }: ScanDetailProps) 
         </Card>
 
         {scan.ai_analysis && (
-          <AISEOResult aiAnalysis={scan.ai_analysis} />
+          <AISEOResult 
+            aiAnalysis={scan.ai_analysis} 
+            scanUrl={scan.url}
+            scanId={scan.id}
+          />
         )}
 
         {/* SEO Comparison - Show when there are multiple scans for the same URL */}
