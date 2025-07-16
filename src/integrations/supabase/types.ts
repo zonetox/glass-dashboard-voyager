@@ -340,8 +340,10 @@ export type Database = {
           id: string
           last_saved_at: string
           plan_id: string
+          published_sites: Json | null
           scheduled_date: string | null
           status: string
+          target_sites: string[] | null
           updated_at: string
           writer_id: string
         }
@@ -351,8 +353,10 @@ export type Database = {
           id?: string
           last_saved_at?: string
           plan_id: string
+          published_sites?: Json | null
           scheduled_date?: string | null
           status?: string
+          target_sites?: string[] | null
           updated_at?: string
           writer_id: string
         }
@@ -362,8 +366,10 @@ export type Database = {
           id?: string
           last_saved_at?: string
           plan_id?: string
+          published_sites?: Json | null
           scheduled_date?: string | null
           status?: string
+          target_sites?: string[] | null
           updated_at?: string
           writer_id?: string
         }
@@ -1437,6 +1443,42 @@ export type Database = {
           reset_date?: string
           scans_used?: number
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wordpress_sites: {
+        Row: {
+          application_password: string
+          created_at: string
+          default_category: string | null
+          default_status: string | null
+          id: string
+          site_name: string
+          site_url: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          application_password: string
+          created_at?: string
+          default_category?: string | null
+          default_status?: string | null
+          id?: string
+          site_name: string
+          site_url: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          application_password?: string
+          created_at?: string
+          default_category?: string | null
+          default_status?: string | null
+          id?: string
+          site_name?: string
+          site_url?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

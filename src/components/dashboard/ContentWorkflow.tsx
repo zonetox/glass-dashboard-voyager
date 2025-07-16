@@ -10,7 +10,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarIcon, Clock, User, FileText } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { CalendarIcon, Clock, User, FileText, Globe } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface ContentDraft {
@@ -23,11 +24,20 @@ interface ContentDraft {
   updated_at: string;
   last_saved_at: string;
   scheduled_date?: string;
+  target_sites?: string[];
+  published_sites?: any;
   content_plans: {
     title: string;
     main_keyword: string;
     main_topic: string;
   };
+}
+
+interface WordPressSite {
+  id: string;
+  site_name: string;
+  site_url: string;
+  default_status: string;
 }
 
 const statusColors: Record<string, string> = {
@@ -58,10 +68,15 @@ export const ContentWorkflow: React.FC = () => {
   const [selectedDraft, setSelectedDraft] = useState<ContentDraft | null>(null);
   const [scheduledDate, setScheduledDate] = useState<Date>();
   const [scheduledTime, setScheduledTime] = useState<string>('09:00');
+  const [wordPressSites, setWordPressSites] = useState<WordPressSite[]>([]);
+  const [selectedSites, setSelectedSites] = useState<string[]>([]);
+  const [showPublishDialog, setShowPublishDialog] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchDrafts();
+    fetchWordPressSites();
   }, []);
 
   useEffect(() => {
@@ -97,6 +112,55 @@ export const ContentWorkflow: React.FC = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchWordPressSites = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('wordpress_sites')
+        .select('*')
+        .order('site_name', { ascending: true });
+
+      if (error) throw error;
+      setWordPressSites(data || []);
+    } catch (error) {
+      console.error('Error fetching WordPress sites:', error);
+    }
+  };
+
+  const handlePublishToMultipleSites = async () => {
+    if (!selectedDraft || selectedSites.length === 0) return;
+
+    setPublishing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('publish-to-multiple-wp', {
+        body: {
+          draftId: selectedDraft.id,
+          siteIds: selectedSites,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Thành công',
+        description: `Đã đăng bài lên ${data.successfulPublications} / ${data.totalSites} sites`,
+      });
+
+      fetchDrafts();
+      setShowPublishDialog(false);
+      setSelectedSites([]);
+      setSelectedDraft(null);
+    } catch (error) {
+      console.error('Error publishing to multiple sites:', error);
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể đăng bài lên WordPress',
+        variant: 'destructive',
+      });
+    } finally {
+      setPublishing(false);
     }
   };
 
@@ -209,53 +273,115 @@ export const ContentWorkflow: React.FC = () => {
                   )}
                 </TableCell>
                 <TableCell>
-                  {draft.status === 'approved' && (
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedDraft(draft)}
-                        >
-                          <Clock className="h-4 w-4 mr-1" />
-                          Lên lịch
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Lên lịch đăng bài</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <Label>Chọn ngày đăng</Label>
-                            <Calendar
-                              mode="single"
-                              selected={scheduledDate}
-                              onSelect={setScheduledDate}
-                              disabled={(date) => date < new Date()}
-                              className="rounded-md border"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="time">Giờ đăng</Label>
-                            <Input
-                              id="time"
-                              type="time"
-                              value={scheduledTime}
-                              onChange={(e) => setScheduledTime(e.target.value)}
-                            />
-                          </div>
-                          <Button 
-                            onClick={handleSchedule}
-                            disabled={!scheduledDate}
-                            className="w-full"
-                          >
-                            Xác nhận lên lịch
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  )}
+                  <div className="flex gap-2">
+                    {draft.status === 'approved' && (
+                      <>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedDraft(draft)}
+                            >
+                              <Clock className="h-4 w-4 mr-1" />
+                              Lên lịch
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Lên lịch đăng bài</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <Label>Chọn ngày đăng</Label>
+                                <Calendar
+                                  mode="single"
+                                  selected={scheduledDate}
+                                  onSelect={setScheduledDate}
+                                  disabled={(date) => date < new Date()}
+                                  className="rounded-md border"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="time">Giờ đăng</Label>
+                                <Input
+                                  id="time"
+                                  type="time"
+                                  value={scheduledTime}
+                                  onChange={(e) => setScheduledTime(e.target.value)}
+                                />
+                              </div>
+                              <Button 
+                                onClick={handleSchedule}
+                                disabled={!scheduledDate}
+                                className="w-full"
+                              >
+                                Xác nhận lên lịch
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+
+                        <Dialog open={showPublishDialog} onOpenChange={setShowPublishDialog}>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedDraft(draft);
+                                setShowPublishDialog(true);
+                              }}
+                            >
+                              <Globe className="h-4 w-4 mr-1" />
+                              Đăng ngay
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Đăng bài lên WordPress</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <Label>Chọn WordPress sites để đăng:</Label>
+                                <div className="space-y-2 mt-2 max-h-48 overflow-y-auto">
+                                  {wordPressSites.map((site) => (
+                                    <div key={site.id} className="flex items-center space-x-2">
+                                      <Checkbox
+                                        id={site.id}
+                                        checked={selectedSites.includes(site.id)}
+                                        onCheckedChange={(checked) => {
+                                          if (checked) {
+                                            setSelectedSites(prev => [...prev, site.id]);
+                                          } else {
+                                            setSelectedSites(prev => prev.filter(id => id !== site.id));
+                                          }
+                                        }}
+                                      />
+                                      <Label htmlFor={site.id} className="text-sm">
+                                        {site.site_name} ({site.site_url})
+                                      </Label>
+                                    </div>
+                                  ))}
+                                </div>
+                                {wordPressSites.length === 0 && (
+                                  <p className="text-sm text-muted-foreground">
+                                    Chưa có WordPress site nào. Thêm site ở tab Site Manager.
+                                  </p>
+                                )}
+                              </div>
+                              <Button 
+                                onClick={handlePublishToMultipleSites}
+                                disabled={selectedSites.length === 0 || publishing}
+                                className="w-full"
+                              >
+                                {publishing ? 'Đang đăng...' : `Đăng lên ${selectedSites.length} site(s)`}
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
