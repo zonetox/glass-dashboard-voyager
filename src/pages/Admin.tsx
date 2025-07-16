@@ -13,6 +13,7 @@ import { Navigate, Link } from 'react-router-dom';
 import { Settings, Users, Key, Database, Activity, Package, Info, BarChart3 } from 'lucide-react';
 import { APIHealthPanel } from '@/components/dashboard/api-health-panel';
 import { AdminDashboard } from '@/components/dashboard/AdminDashboard';
+import { AdminTestRunner } from '@/components/dashboard/admin-test-runner';
 
 interface AdminSetting {
   id: string;
@@ -208,10 +209,14 @@ export default function Admin() {
 
         <TooltipProvider>
           <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6 bg-white/10">
+            <TabsList className="grid w-full grid-cols-7 bg-white/10">
               <TabsTrigger value="dashboard" className="data-[state=active]:bg-white/20">
                 <BarChart3 className="h-4 w-4 mr-2" />
                 Dashboard
+              </TabsTrigger>
+              <TabsTrigger value="test-runner" className="data-[state=active]:bg-white/20">
+                <Settings className="h-4 w-4 mr-2" />
+                Kiểm thử
               </TabsTrigger>
               <TabsTrigger value="settings" className="data-[state=active]:bg-white/20">
                 <Key className="h-4 w-4 mr-2" />
@@ -238,6 +243,11 @@ export default function Admin() {
           {/* Admin Dashboard Tab */}
           <TabsContent value="dashboard">
             <AdminDashboard />
+          </TabsContent>
+
+          {/* Test Runner Tab */}
+          <TabsContent value="test-runner">
+            <AdminTestRunner />
           </TabsContent>
 
           {/* API Settings */}
