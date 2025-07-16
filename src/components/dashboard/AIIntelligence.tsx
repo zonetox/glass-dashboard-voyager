@@ -148,6 +148,10 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
   const [trackingDomain, setTrackingDomain] = useState('');
   const [keywordsToTrack, setKeywordsToTrack] = useState('');
   const [targetUrls, setTargetUrls] = useState<{ [key: string]: string }>({});
+  const [predictiveData, setPredictiveData] = useState<any[]>([]);
+  const [loadingPredictive, setLoadingPredictive] = useState(false);
+  const [predictiveDomain, setPredictiveDomain] = useState('');
+  const [predictiveKeywords, setPredictiveKeywords] = useState('');
   const { toast } = useToast();
 
   // Fetch intent classification on component mount
@@ -185,6 +189,9 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
     }
     if (activeTab === 'keyword-tracker') {
       fetchKeywordRankings();
+    }
+    if (activeTab === 'predictive-seo') {
+      // Predictive SEO data is generated on demand
     }
   }, [activeTab]);
 
@@ -841,6 +848,68 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
     }
   };
 
+  // Predictive SEO functions
+  const generatePredictions = async () => {
+    if (!predictiveDomain || !predictiveKeywords) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập domain và keywords",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoadingPredictive(true);
+    try {
+      const keywords = predictiveKeywords.split(',').map(k => k.trim()).filter(k => k);
+      
+      const { data, error } = await supabase.functions.invoke('predict-seo-ranking', {
+        body: {
+          domain: predictiveDomain.trim(),
+          keywords: keywords
+        }
+      });
+
+      if (error) throw error;
+
+      setPredictiveData(data.predictions || []);
+      
+      toast({
+        title: "Dự đoán hoàn thành",
+        description: `Phân tích ${keywords.length} từ khóa cho domain ${predictiveDomain}`,
+      });
+
+    } catch (error) {
+      console.error('Error generating predictions:', error);
+      toast({
+        title: "Lỗi dự đoán",
+        description: "Không thể tạo dự đoán ranking",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingPredictive(false);
+    }
+  };
+
+  const getPredictionChangeColor = (change: number) => {
+    if (change > 0) return 'text-green-600 bg-green-50';
+    if (change < 0) return 'text-red-600 bg-red-50';
+    return 'text-gray-600 bg-gray-50';
+  };
+
+  const getPredictionIcon = (change: number) => {
+    if (change > 0) return <TrendingUp className="h-4 w-4" />;
+    if (change < 0) return <TrendingDown className="h-4 w-4" />;
+    return <BarChart3 className="h-4 w-4" />;
+  };
+
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 80) return 'text-green-600 bg-green-50';
+    if (confidence >= 60) return 'text-blue-600 bg-blue-50';
+    if (confidence >= 40) return 'text-yellow-600 bg-yellow-50';
+    return 'text-red-600 bg-red-50';
+  };
+
   // Keyword Rankings functions
   const fetchKeywordRankings = async () => {
     try {
@@ -1311,6 +1380,10 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
         <TabsTrigger value="keyword-tracker" className="flex items-center gap-2">
           <BarChart4 className="h-4 w-4" />
           Keyword Tracker
+        </TabsTrigger>
+        <TabsTrigger value="predictive-seo" className="flex items-center gap-2">
+          <TrendingUp className="h-4 w-4" />
+          Predictive SEO
         </TabsTrigger>
           <TabsTrigger value="compare" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
@@ -2858,6 +2931,178 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
                   )}
                 </CardContent>
               </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="predictive-seo" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Predictive SEO Analysis
+              </CardTitle>
+              <CardDescription>
+                Dự đoán thay đổi thứ hạng từ khóa trong 7 ngày tới
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Input Form */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="predictive-domain">Domain</Label>
+                  <Input
+                    id="predictive-domain"
+                    placeholder="example.com"
+                    value={predictiveDomain}
+                    onChange={(e) => setPredictiveDomain(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="predictive-keywords">Keywords (phân cách bằng dấu phẩy)</Label>
+                  <Input
+                    id="predictive-keywords"
+                    placeholder="SEO, marketing, content..."
+                    value={predictiveKeywords}
+                    onChange={(e) => setPredictiveKeywords(e.target.value)}
+                  />
+                </div>
+              </div>
+              
+              <Button
+                onClick={generatePredictions}
+                disabled={loadingPredictive}
+                className="w-full"
+              >
+                {loadingPredictive ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                )}
+                Phân tích dự đoán
+              </Button>
+
+              {/* Results */}
+              {predictiveData.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Dự đoán thứ hạng (7 ngày tới)</h3>
+                    <Badge variant="outline" className="text-sm">
+                      {predictiveData.length} từ khóa
+                    </Badge>
+                  </div>
+
+                  <div className="grid gap-4">
+                    {predictiveData.map((prediction, index) => (
+                      <Card key={index} className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h4 className="font-medium">{prediction.keyword}</h4>
+                              <Badge variant="outline">
+                                Hiện tại: #{prediction.current_rank || 'N/A'}
+                              </Badge>
+                              <Badge 
+                                variant="outline" 
+                                className={getPredictionChangeColor(prediction.predicted_change)}
+                              >
+                                <div className="flex items-center gap-1">
+                                  {getPredictionIcon(prediction.predicted_change)}
+                                  <span>
+                                    {prediction.predicted_change > 0 ? '+' : ''}
+                                    {prediction.predicted_change}
+                                  </span>
+                                </div>
+                              </Badge>
+                            </div>
+                            
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
+                              <div className="flex items-center gap-1">
+                                <span>Độ tin cậy:</span>
+                                <Badge 
+                                  variant="outline"
+                                  className={getConfidenceColor(prediction.confidence)}
+                                >
+                                  {prediction.confidence}%
+                                </Badge>
+                              </div>
+                            </div>
+
+                            <div className="text-sm">
+                              <span className="font-medium">Hành động đề xuất:</span>
+                              <p className="text-muted-foreground mt-1">
+                                {prediction.suggested_action}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                toast({
+                                  title: "Tối ưu nội dung",
+                                  description: `Bắt đầu tối ưu cho từ khóa: ${prediction.keyword}`,
+                                });
+                              }}
+                            >
+                              <Settings className="h-4 w-4 mr-2" />
+                              Tối ưu ngay
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Summary Stats */}
+                  <Card className="p-4 bg-blue-50 dark:bg-blue-900/20">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                      <div>
+                        <div className="text-2xl font-bold text-green-600">
+                          {predictiveData.filter(p => p.predicted_change > 0).length}
+                        </div>
+                        <div className="text-sm text-muted-foreground">Từ khóa tăng hạng</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-red-600">
+                          {predictiveData.filter(p => p.predicted_change < 0).length}
+                        </div>
+                        <div className="text-sm text-muted-foreground">Từ khóa giảm hạng</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-blue-600">
+                          {Math.round(predictiveData.reduce((acc, p) => acc + p.confidence, 0) / predictiveData.length)}%
+                        </div>
+                        <div className="text-sm text-muted-foreground">Độ tin cậy TB</div>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              )}
+
+              {/* Alerts */}
+              {predictiveData.some(p => p.predicted_change < -3) && (
+                <Card className="p-4 border-red-200 bg-red-50 dark:bg-red-900/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="h-5 w-5 text-red-600" />
+                    <h4 className="font-medium text-red-800">Cảnh báo nội dung</h4>
+                  </div>
+                  <p className="text-sm text-red-700">
+                    Một số từ khóa có khả năng giảm mạnh. Cần làm mới nội dung ngay!
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {predictiveData
+                      .filter(p => p.predicted_change < -3)
+                      .map((p, i) => (
+                        <Badge key={i} variant="destructive" className="text-xs">
+                          {p.keyword}
+                        </Badge>
+                      ))}
+                  </div>
+                </Card>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
