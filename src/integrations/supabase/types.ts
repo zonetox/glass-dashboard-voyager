@@ -789,6 +789,48 @@ export type Database = {
           },
         ]
       }
+      keyword_tracking_configs: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+          is_active: boolean | null
+          keywords: string[]
+          last_tracked_at: string | null
+          next_track_at: string | null
+          target_urls: Json | null
+          tracking_frequency: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+          is_active?: boolean | null
+          keywords: string[]
+          last_tracked_at?: string | null
+          next_track_at?: string | null
+          target_urls?: Json | null
+          tracking_frequency?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+          is_active?: boolean | null
+          keywords?: string[]
+          last_tracked_at?: string | null
+          next_track_at?: string | null
+          target_urls?: Json | null
+          tracking_frequency?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       optimization_history: {
         Row: {
           backup_url: string | null
@@ -1034,6 +1076,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rankings: {
+        Row: {
+          created_at: string
+          current_rank: number | null
+          difficulty_score: number | null
+          domain: string
+          id: string
+          keyword: string
+          previous_rank: number | null
+          search_volume: number | null
+          serp_data: Json | null
+          target_url: string | null
+          tracked_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_rank?: number | null
+          difficulty_score?: number | null
+          domain: string
+          id?: string
+          keyword: string
+          previous_rank?: number | null
+          search_volume?: number | null
+          serp_data?: Json | null
+          target_url?: string | null
+          tracked_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_rank?: number | null
+          difficulty_score?: number | null
+          domain?: string
+          id?: string
+          keyword?: string
+          previous_rank?: number | null
+          search_volume?: number | null
+          serp_data?: Json | null
+          target_url?: string | null
+          tracked_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       reports: {
         Row: {

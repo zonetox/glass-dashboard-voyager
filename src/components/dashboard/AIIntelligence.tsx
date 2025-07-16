@@ -42,7 +42,11 @@ import {
   Mic,
   Volume2,
   Download,
-  Copy
+  Copy,
+  BarChart4,
+  TrendingDown,
+  Search,
+  MapPin
 } from "lucide-react";
 import IntentCoverageChart from './IntentCoverageChart';
 import TopicalAuthorityHeatmap from './TopicalAuthorityHeatmap';
@@ -139,6 +143,11 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
   const [voiceSearchData, setVoiceSearchData] = useState<any>(null);
   const [loadingVoiceSearch, setLoadingVoiceSearch] = useState(false);
   const [voiceSearchInput, setVoiceSearchInput] = useState('');
+  const [keywordRankings, setKeywordRankings] = useState<any[]>([]);
+  const [loadingRankings, setLoadingRankings] = useState(false);
+  const [trackingDomain, setTrackingDomain] = useState('');
+  const [keywordsToTrack, setKeywordsToTrack] = useState('');
+  const [targetUrls, setTargetUrls] = useState<{ [key: string]: string }>({});
   const { toast } = useToast();
 
   // Fetch intent classification on component mount
@@ -173,6 +182,9 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
     }
     if (activeTab === 'voice-seo') {
       // Voice SEO data is generated on demand
+    }
+    if (activeTab === 'keyword-tracker') {
+      fetchKeywordRankings();
     }
   }, [activeTab]);
 
@@ -829,6 +841,134 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
     }
   };
 
+  // Keyword Rankings functions
+  const fetchKeywordRankings = async () => {
+    try {
+      setLoadingRankings(true);
+      const { data, error } = await supabase
+        .from('rankings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setKeywordRankings(data || []);
+    } catch (error) {
+      console.error('Error loading keyword rankings:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải dữ liệu ranking",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingRankings(false);
+    }
+  };
+
+  const trackKeywords = async () => {
+    if (!trackingDomain.trim() || !keywordsToTrack.trim()) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập domain và danh sách từ khóa",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const keywords = keywordsToTrack.split('\n').filter(k => k.trim()).map(k => k.trim());
+    
+    if (keywords.length === 0) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập ít nhất một từ khóa",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoadingRankings(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('track-keyword-ranking', {
+        body: {
+          domain: trackingDomain.trim(),
+          keywords: keywords,
+          target_urls: targetUrls,
+          user_id: (await supabase.auth.getUser()).data.user?.id
+        }
+      });
+
+      if (error) {
+        if (data?.setup_required) {
+          toast({
+            title: "Cần thiết lập API",
+            description: "Vui lòng thêm SERPAPI_KEY vào Supabase secrets để sử dụng tính năng này",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
+
+      toast({
+        title: "Tracking hoàn thành",
+        description: `Đã track ${data.summary?.tracked_keywords || 0}/${data.summary?.total_keywords || 0} từ khóa`,
+      });
+
+      fetchKeywordRankings();
+    } catch (error) {
+      console.error('Error tracking keywords:', error);
+      toast({
+        title: "Lỗi tracking",
+        description: "Không thể track từ khóa",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingRankings(false);
+    }
+  };
+
+  const updateTargetUrl = (keyword: string, url: string) => {
+    setTargetUrls(prev => ({
+      ...prev,
+      [keyword]: url
+    }));
+  };
+
+  const getRankBadgeColor = (currentRank: number | null, previousRank: number | null) => {
+    if (!currentRank) return 'bg-gray-100 text-gray-700';
+    if (!previousRank) return 'bg-blue-100 text-blue-700';
+    
+    if (currentRank < previousRank) return 'bg-green-100 text-green-700'; // Improved
+    if (currentRank > previousRank) return 'bg-red-100 text-red-700'; // Declined
+    return 'bg-gray-100 text-gray-700'; // Same
+  };
+
+  const getRankChangeIcon = (currentRank: number | null, previousRank: number | null) => {
+    if (!currentRank || !previousRank) return null;
+    
+    if (currentRank < previousRank) return TrendingUp;
+    if (currentRank > previousRank) return TrendingDown;
+    return null;
+  };
+
+  const groupRankingsByKeyword = (rankings: any[]) => {
+    const grouped: { [key: string]: any[] } = {};
+    rankings.forEach(ranking => {
+      if (!grouped[ranking.keyword]) {
+        grouped[ranking.keyword] = [];
+      }
+      grouped[ranking.keyword].push(ranking);
+    });
+    
+    // Return latest ranking for each keyword
+    return Object.keys(grouped).map(keyword => {
+      const keywordRankings = grouped[keyword].sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      return keywordRankings[0]; // Most recent
+    });
+  };
+
   const getOpportunityColor = (score: number) => {
     if (score >= 80) return 'text-green-600 bg-green-50';
     if (score >= 60) return 'text-yellow-600 bg-yellow-50';
@@ -1131,7 +1271,7 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-9">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="map" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
             Semantic Topic Map
@@ -1167,6 +1307,10 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
         <TabsTrigger value="voice-seo" className="flex items-center gap-2">
           <Mic className="h-4 w-4" />
           Voice SEO
+        </TabsTrigger>
+        <TabsTrigger value="keyword-tracker" className="flex items-center gap-2">
+          <BarChart4 className="h-4 w-4" />
+          Keyword Tracker
         </TabsTrigger>
           <TabsTrigger value="compare" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
@@ -2511,6 +2655,209 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
                   <p className="text-sm">Nhập từ khóa và chạy phân tích để bắt đầu</p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="keyword-tracker" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart4 className="h-5 w-5" />
+                Keyword Ranking Tracker
+              </CardTitle>
+              <CardDescription>
+                Theo dõi vị trí từ khóa trên Google và phân tích thay đổi ranking
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Tracking Setup */}
+              <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
+                <CardHeader>
+                  <CardTitle className="text-lg">Thiết lập tracking mới</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <Label htmlFor="tracking-domain">Domain để track</Label>
+                      <Input
+                        id="tracking-domain"
+                        placeholder="https://example.com"
+                        value={trackingDomain}
+                        onChange={(e) => setTrackingDomain(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button 
+                        onClick={trackKeywords}
+                        disabled={loadingRankings}
+                        className="w-full"
+                      >
+                        {loadingRankings ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Đang track...
+                          </>
+                        ) : (
+                          <>
+                            <Search className="h-4 w-4 mr-2" />
+                            Bắt đầu tracking
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="keywords-list">Danh sách từ khóa (mỗi từ khóa một dòng)</Label>
+                    <Textarea
+                      id="keywords-list"
+                      placeholder="từ khóa 1&#10;từ khóa 2&#10;từ khóa 3"
+                      value={keywordsToTrack}
+                      onChange={(e) => setKeywordsToTrack(e.target.value)}
+                      rows={4}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Rankings Results */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Kết quả tracking gần đây</CardTitle>
+                  <CardDescription>
+                    Dữ liệu ranking được cập nhật từ SerpApi
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loadingRankings && keywordRankings.length === 0 ? (
+                    <div className="flex items-center justify-center p-8">
+                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                      Đang tải dữ liệu ranking...
+                    </div>
+                  ) : keywordRankings.length === 0 ? (
+                    <div className="text-center p-8 text-muted-foreground">
+                      <BarChart4 className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                      <p>Chưa có dữ liệu ranking</p>
+                      <p className="text-sm">Thiết lập tracking để bắt đầu theo dõi từ khóa</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Summary Stats */}
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <Card className="p-4">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-blue-600">
+                              {groupRankingsByKeyword(keywordRankings).length}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Từ khóa tracking</div>
+                          </div>
+                        </Card>
+                        <Card className="p-4">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-green-600">
+                              {groupRankingsByKeyword(keywordRankings).filter(r => 
+                                r.current_rank && r.current_rank <= 10
+                              ).length}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Top 10</div>
+                          </div>
+                        </Card>
+                        <Card className="p-4">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-yellow-600">
+                              {groupRankingsByKeyword(keywordRankings).filter(r => 
+                                r.current_rank && r.previous_rank && r.current_rank < r.previous_rank
+                              ).length}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Tăng hạng</div>
+                          </div>
+                        </Card>
+                        <Card className="p-4">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-red-600">
+                              {groupRankingsByKeyword(keywordRankings).filter(r => 
+                                r.current_rank && r.previous_rank && r.current_rank > r.previous_rank
+                              ).length}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Giảm hạng</div>
+                          </div>
+                        </Card>
+                      </div>
+
+                      {/* Rankings Table */}
+                      <div className="space-y-3">
+                        {groupRankingsByKeyword(keywordRankings).map((ranking, index) => {
+                          const RankChangeIcon = getRankChangeIcon(ranking.current_rank, ranking.previous_rank);
+                          
+                          return (
+                            <Card key={index} className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <h4 className="font-medium">{ranking.keyword}</h4>
+                                    <Badge variant="outline" className={getRankBadgeColor(ranking.current_rank, ranking.previous_rank)}>
+                                      {ranking.current_rank ? `#${ranking.current_rank}` : 'Not found'}
+                                    </Badge>
+                                    {RankChangeIcon && (
+                                      <div className="flex items-center gap-1">
+                                        <RankChangeIcon className="h-4 w-4" />
+                                        <span className="text-xs">
+                                          {ranking.previous_rank ? `từ #${ranking.previous_rank}` : ''}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <span>Domain: {ranking.domain}</span>
+                                    {ranking.search_volume && (
+                                      <span>Volume: {ranking.search_volume.toLocaleString()}</span>
+                                    )}
+                                    {ranking.difficulty_score && (
+                                      <span>Độ khó: {ranking.difficulty_score}/100</span>
+                                    )}
+                                    <span>Cập nhật: {new Date(ranking.created_at).toLocaleDateString('vi-VN')}</span>
+                                  </div>
+
+                                  {ranking.target_url && (
+                                    <div className="mt-2 flex items-center gap-2">
+                                      <MapPin className="h-3 w-3" />
+                                      <span className="text-xs text-muted-foreground">
+                                        Target: {ranking.target_url}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="text-right">
+                                  <div className="space-y-1">
+                                    {ranking.current_rank && ranking.current_rank <= 3 && (
+                                      <Badge variant="outline" className="bg-green-50 text-green-700">
+                                        Top 3
+                                      </Badge>
+                                    )}
+                                    {ranking.current_rank && ranking.current_rank <= 10 && ranking.current_rank > 3 && (
+                                      <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                                        Top 10
+                                      </Badge>
+                                    )}
+                                    {ranking.current_rank && ranking.current_rank > 50 && (
+                                      <Badge variant="outline" className="bg-red-50 text-red-700">
+                                        Cần cải thiện
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </CardContent>
           </Card>
         </TabsContent>
