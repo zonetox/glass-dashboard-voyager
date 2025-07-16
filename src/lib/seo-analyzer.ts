@@ -1,12 +1,15 @@
 
 import { Website, SEOIssue } from './types';
+import { StandardizedSEOAnalyzer } from './standardized-seo-analyzer';
 
 export class SEOAnalyzer {
-  static async analyzeWebsite(url: string, projectId?: string): Promise<{
+  static async analyzeWebsite(url: string, projectId?: string, keywords: string[] = []): Promise<{
     seoScore: number;
     issues: SEOIssue[];
     status: 'pending' | 'analyzing' | 'completed' | 'error';
     analysisData?: any;
+    standardizedAnalysis?: any;
+    formattedOutput?: string;
   }> {
     try {
       console.log(`Starting analysis for: ${url}`);
@@ -175,13 +178,22 @@ export class SEOAnalyzer {
 
       seoScore = Math.max(0, Math.min(100, seoScore));
 
+      // Create standardized analysis
+      const standardizedAnalyzer = new StandardizedSEOAnalyzer(keywords);
+      const standardizedAnalysis = standardizedAnalyzer.analyzeWithStandardFormat(analysisResult);
+      const formattedOutput = standardizedAnalyzer.formatAnalysisOutput(standardizedAnalysis);
+
       console.log(`Analysis completed for: ${url}, Score: ${seoScore}`);
+      console.log('Standardized Output:');
+      console.log(formattedOutput);
 
       return {
         seoScore,
         issues,
         status: 'completed',
-        analysisData: analysisResult
+        analysisData: analysisResult,
+        standardizedAnalysis,
+        formattedOutput
       };
 
     } catch (error) {
@@ -190,7 +202,9 @@ export class SEOAnalyzer {
         seoScore: 0,
         issues: [],
         status: 'error',
-        analysisData: { error: error.message }
+        analysisData: { error: error.message },
+        standardizedAnalysis: null,
+        formattedOutput: 'Analysis failed'
       };
     }
   }

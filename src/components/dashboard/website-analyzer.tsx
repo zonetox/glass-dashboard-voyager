@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Globe, Search, Loader2, CheckCircle, AlertCircle, Zap, Monitor, Smartphone, Brain, Code } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { StandardizedSEOResults } from './StandardizedSEOResults';
 
 interface AnalysisResult {
   seo: {
@@ -61,6 +62,8 @@ interface AnalysisResult {
     overallScore: number;
     priorityIssues: string[];
   };
+  standardizedAnalysis?: any;
+  formattedOutput?: string;
   scanId?: string;
   error?: string;
 }
@@ -268,14 +271,22 @@ export function WebsiteAnalyzer({ onAnalysisComplete }: WebsiteAnalyzerProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-5 bg-white/5">
+            <Tabs defaultValue="standardized" className="w-full">
+              <TabsList className="grid w-full grid-cols-6 bg-white/5">
+                <TabsTrigger value="standardized">Chuẩn Hóa</TabsTrigger>
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="performance">Performance</TabsTrigger>
                 <TabsTrigger value="seo">SEO</TabsTrigger>
                 <TabsTrigger value="ai">AI Analysis</TabsTrigger>
                 <TabsTrigger value="schema">Schema</TabsTrigger>
               </TabsList>
+              
+              <TabsContent value="standardized" className="space-y-4">
+                <StandardizedSEOResults 
+                  standardizedAnalysis={analysisResult.standardizedAnalysis}
+                  formattedOutput={analysisResult.formattedOutput || 'No formatted output available'}
+                />
+              </TabsContent>
               
               <TabsContent value="overview" className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
