@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   Table, 
   TableBody, 
@@ -14,18 +15,25 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { 
-  Calendar, 
+  Calendar as CalendarIcon, 
   FileText, 
   Loader2, 
   Download, 
   PenTool,
   Brain,
   Target,
-  ClipboardList
+  ClipboardList,
+  TableIcon,
+  Filter
 } from 'lucide-react';
+import { Calendar, momentLocalizer, Event } from 'react-big-calendar';
+import moment from 'moment';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+
+const localizer = momentLocalizer(moment);
 
 interface ContentPlan {
   id: string;
@@ -68,6 +76,10 @@ export function ContentPlanner() {
   const [savedTopics, setSavedTopics] = useState<SavedTopic[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<string>('');
   const [generatedPlan, setGeneratedPlan] = useState<ContentPlanResponse | null>(null);
+  const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table');
+  const [filterIntent, setFilterIntent] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>('');
+  const [selectedPlan, setSelectedPlan] = useState<ContentPlan | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
