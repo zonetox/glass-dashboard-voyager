@@ -28,7 +28,9 @@ import {
   Link,
   Plus,
   Settings,
-  RotateCcw
+  RotateCcw,
+  Globe,
+  Languages
 } from "lucide-react";
 import IntentCoverageChart from './IntentCoverageChart';
 import TopicalAuthorityHeatmap from './TopicalAuthorityHeatmap';
@@ -81,6 +83,18 @@ interface InternalLinkSuggestion {
   to_article?: { id: string; title: string; url: string };
 }
 
+interface Translation {
+  id: string;
+  original_id: string;
+  lang: string;
+  translated_title: string;
+  translated_content: string;
+  translated_meta: any;
+  ai_quality_score: number;
+  status: string;
+  created_at: string;
+}
+
 interface AIIntelligenceProps {
   className?: string;
   scanData?: any;
@@ -96,6 +110,9 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
   const [loadingContent, setLoadingContent] = useState(false);
   const [internalLinks, setInternalLinks] = useState<InternalLinkSuggestion[]>([]);
   const [loadingLinks, setLoadingLinks] = useState(false);
+  const [translations, setTranslations] = useState<Translation[]>([]);
+  const [loadingTranslations, setLoadingTranslations] = useState(false);
+  const [selectedTargetLanguage, setSelectedTargetLanguage] = useState('en');
   const { toast } = useToast();
 
   // Fetch intent classification on component mount
@@ -115,6 +132,9 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
   useEffect(() => {
     if (activeTab === 'internal-links') {
       fetchInternalLinks();
+    }
+    if (activeTab === 'multilang') {
+      fetchTranslations();
     }
   }, [activeTab]);
 
@@ -257,6 +277,147 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
         variant: "destructive"
       });
     }
+  };
+
+  // Translation functions
+  const fetchTranslations = async () => {
+    if (!scanData?.id) return;
+    
+    try {
+      setLoadingTranslations(true);
+      
+      const { data, error } = await supabase
+        .from('translations')
+        .select('*')
+        .eq('original_id', scanData.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setTranslations(data || []);
+    } catch (error) {
+      console.error('Error fetching translations:', error);
+      setTranslations([]);
+    } finally {
+      setLoadingTranslations(false);
+    }
+  };
+
+  const translateContent = async () => {
+    if (!scanData?.id) return;
+    
+    try {
+      setLoadingTranslations(true);
+      
+      const { data, error } = await supabase.functions.invoke('translate-content', {
+        body: {
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          original_id: scanData.id,
+          target_language: selectedTargetLanguage,
+          content: {
+            title: scanData.seo?.title || 'Untitled',
+            content: scanData.seo?.content || scanData.ai_analysis?.content || '',
+            meta_description: scanData.seo?.meta_description || '',
+            keywords: scanData.seo?.keywords || [],
+            url_slug: scanData.url
+          },
+          preserve_keywords: ['SEO', 'AI', 'HTML', 'CSS', 'JavaScript'],
+          auto_publish: false
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Dịch thuật hoàn thành",
+        description: `Nội dung đã được dịch sang ${getLanguageName(selectedTargetLanguage)} với chất lượng ${Math.round((data.ai_quality_score || 0.8) * 100)}%`
+      });
+
+      // Refresh translations
+      fetchTranslations();
+    } catch (error) {
+      console.error('Error translating content:', error);
+      toast({
+        title: "Lỗi dịch thuật",
+        description: error.message || "Không thể dịch nội dung",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingTranslations(false);
+    }
+  };
+
+  const publishTranslation = async (translationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('translations')
+        .update({ 
+          status: 'published',
+          published_at: new Date().toISOString()
+        })
+        .eq('id', translationId);
+
+      if (error) throw error;
+
+      // Update local state
+      setTranslations(prev => prev.map(t => 
+        t.id === translationId 
+          ? { ...t, status: 'published', published_at: new Date().toISOString() } 
+          : t
+      ));
+
+      toast({
+        title: "Xuất bản thành công",
+        description: "Bản dịch đã được xuất bản"
+      });
+    } catch (error) {
+      console.error('Error publishing translation:', error);
+      toast({
+        title: "Lỗi xuất bản",
+        description: "Không thể xuất bản bản dịch",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getLanguageName = (code: string) => {
+    const languages: { [key: string]: string } = {
+      'en': 'English',
+      'vi': 'Tiếng Việt',
+      'zh': '中文',
+      'ja': '日本語',
+      'ko': '한국어',
+      'es': 'Español',
+      'fr': 'Français',
+      'de': 'Deutsch',
+      'it': 'Italiano',
+      'pt': 'Português',
+      'ru': 'Русский',
+      'ar': 'العربية',
+      'hi': 'हिन्दी',
+      'th': 'ไทย'
+    };
+    return languages[code] || code;
+  };
+
+  const getLanguageFlag = (code: string) => {
+    const flags: { [key: string]: string } = {
+      'en': '🇺🇸',
+      'vi': '🇻🇳',
+      'zh': '🇨🇳',
+      'ja': '🇯🇵',
+      'ko': '🇰🇷',
+      'es': '🇪🇸',
+      'fr': '🇫🇷',
+      'de': '🇩🇪',
+      'it': '🇮🇹',
+      'pt': '🇵🇹',
+      'ru': '🇷🇺',
+      'ar': '🇸🇦',
+      'hi': '🇮🇳',
+      'th': '🇹🇭'
+    };
+    return flags[code] || '🌐';
   };
 
   const classifyIntent = async () => {
@@ -547,7 +708,7 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="map" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
             Semantic Topic Map
@@ -563,6 +724,10 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
           <TabsTrigger value="internal-links" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
             Internal Links
+          </TabsTrigger>
+          <TabsTrigger value="multilang" className="flex items-center gap-2">
+            <Languages className="h-4 w-4" />
+            Đa ngôn ngữ
           </TabsTrigger>
           <TabsTrigger value="compare" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
@@ -985,6 +1150,198 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
                     </p>
                   </div>
                   <Badge variant="secondary">Hàng tuần</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="multilang" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Languages className="h-5 w-5" />
+                  Dịch thuật đa ngôn ngữ
+                </div>
+                <div className="flex gap-2">
+                  <Select value={selectedTargetLanguage} onValueChange={setSelectedTargetLanguage}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Chọn ngôn ngữ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">🇺🇸 English</SelectItem>
+                      <SelectItem value="zh">🇨🇳 中文</SelectItem>
+                      <SelectItem value="ja">🇯🇵 日本語</SelectItem>
+                      <SelectItem value="ko">🇰🇷 한국어</SelectItem>
+                      <SelectItem value="es">🇪🇸 Español</SelectItem>
+                      <SelectItem value="fr">🇫🇷 Français</SelectItem>
+                      <SelectItem value="de">🇩🇪 Deutsch</SelectItem>
+                      <SelectItem value="it">🇮🇹 Italiano</SelectItem>
+                      <SelectItem value="pt">🇵🇹 Português</SelectItem>
+                      <SelectItem value="ru">🇷🇺 Русский</SelectItem>
+                      <SelectItem value="ar">🇸🇦 العربية</SelectItem>
+                      <SelectItem value="hi">🇮🇳 हिन्दी</SelectItem>
+                      <SelectItem value="th">🇹🇭 ไทย</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    onClick={translateContent} 
+                    disabled={loadingTranslations || !scanData?.id}
+                    size="sm"
+                  >
+                    {loadingTranslations ? 'Đang dịch...' : (
+                      <>
+                        <Globe className="h-4 w-4 mr-2" />
+                        Dịch nội dung
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                AI dịch thuật thông minh với tối ưu SEO và giữ ngữ cảnh
+              </p>
+            </CardHeader>
+            <CardContent>
+              {loadingTranslations ? (
+                <div className="h-64 flex items-center justify-center">
+                  <div className="text-muted-foreground">Đang thực hiện dịch thuật...</div>
+                </div>
+              ) : translations.length === 0 ? (
+                <div className="h-64 flex items-center justify-center">
+                  <div className="text-center text-muted-foreground">
+                    <Globe className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                    <div className="mb-2">Chưa có bản dịch nào</div>
+                    <div className="text-sm">
+                      Chọn ngôn ngữ và nhấn "Dịch nội dung" để tạo bản dịch
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <ScrollArea className="h-96">
+                  <div className="space-y-4">
+                    {translations.map((translation) => (
+                      <div key={translation.id} className="p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 text-lg">
+                              {getLanguageFlag(translation.lang)}
+                              <span className="font-medium">{getLanguageName(translation.lang)}</span>
+                            </div>
+                            <Badge 
+                              variant={translation.status === 'published' ? 'default' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {translation.status === 'published' ? 'Đã xuất bản' : 'Bản nháp'}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              Quality: {Math.round(translation.ai_quality_score * 100)}%
+                            </Badge>
+                          </div>
+                          {translation.status === 'draft' && (
+                            <Button
+                              size="sm"
+                              onClick={() => publishTranslation(translation.id)}
+                            >
+                              Xuất bản
+                            </Button>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <div>
+                            <h4 className="font-medium text-sm mb-1">Tiêu đề dịch:</h4>
+                            <p className="text-sm bg-blue-50 dark:bg-blue-900/30 p-2 rounded">
+                              {translation.translated_title}
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <h4 className="font-medium text-sm mb-1">Meta description:</h4>
+                            <p className="text-xs text-muted-foreground">
+                              {translation.translated_meta?.description || 'Chưa có'}
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <h4 className="font-medium text-sm mb-1">Keywords:</h4>
+                            <div className="flex flex-wrap gap-1">
+                              {(translation.translated_meta?.keywords || []).map((keyword: string, index: number) => (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  {keyword}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <div className="text-xs text-muted-foreground pt-2 border-t">
+                            <div className="flex justify-between items-center">
+                              <span>
+                                Tạo: {new Date(translation.created_at).toLocaleDateString('vi-VN', { 
+                                  year: 'numeric', 
+                                  month: 'short', 
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                              {translation.translated_meta?.preserved_elements && (
+                                <span>
+                                  Giữ nguyên: {translation.translated_meta.preserved_elements.length} từ khóa
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Translation Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Cài đặt dịch thuật
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Tự động xuất bản</p>
+                    <p className="text-sm text-muted-foreground">
+                      Tự động xuất bản bản dịch có chất lượng cao (&gt;85%)
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm">
+                    Bật tự động
+                  </Button>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Giữ nguyên từ khóa SEO</p>
+                    <p className="text-sm text-muted-foreground">
+                      Danh sách từ khóa không dịch: SEO, AI, HTML, CSS, JavaScript
+                    </p>
+                  </div>
+                  <Badge variant="outline">5 từ khóa</Badge>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Ngưỡng chất lượng tối thiểu</p>
+                    <p className="text-sm text-muted-foreground">
+                      Chỉ lưu bản dịch có chất lượng từ 70% trở lên
+                    </p>
+                  </div>
+                  <Badge variant="secondary">70%</Badge>
                 </div>
               </div>
             </CardContent>

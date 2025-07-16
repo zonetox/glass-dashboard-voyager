@@ -1235,6 +1235,51 @@ export type Database = {
         }
         Relationships: []
       }
+      translations: {
+        Row: {
+          ai_quality_score: number
+          created_at: string
+          id: string
+          lang: string
+          original_id: string
+          published_at: string | null
+          status: string
+          translated_content: string
+          translated_meta: Json | null
+          translated_title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_quality_score?: number
+          created_at?: string
+          id?: string
+          lang: string
+          original_id: string
+          published_at?: string | null
+          status?: string
+          translated_content: string
+          translated_meta?: Json | null
+          translated_title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_quality_score?: number
+          created_at?: string
+          id?: string
+          lang?: string
+          original_id?: string
+          published_at?: string | null
+          status?: string
+          translated_content?: string
+          translated_meta?: Json | null
+          translated_title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_activity_logs: {
         Row: {
           action: string
