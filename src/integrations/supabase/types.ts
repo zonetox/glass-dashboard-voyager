@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      ab_tests: {
+        Row: {
+          created_at: string
+          ctr_data: Json | null
+          end_date: string | null
+          id: string
+          original_description: string
+          original_title: string
+          start_date: string
+          status: string
+          updated_at: string
+          url: string
+          user_id: string
+          version_a: Json
+          version_b: Json
+          winner_version: string | null
+        }
+        Insert: {
+          created_at?: string
+          ctr_data?: Json | null
+          end_date?: string | null
+          id?: string
+          original_description: string
+          original_title: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+          url: string
+          user_id: string
+          version_a: Json
+          version_b: Json
+          winner_version?: string | null
+        }
+        Update: {
+          created_at?: string
+          ctr_data?: Json | null
+          end_date?: string | null
+          id?: string
+          original_description?: string
+          original_title?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+          version_a?: Json
+          version_b?: Json
+          winner_version?: string | null
+        }
+        Relationships: []
+      }
       admin_settings: {
         Row: {
           created_at: string | null

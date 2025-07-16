@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -30,7 +33,9 @@ import {
   Settings,
   RotateCcw,
   Globe,
-  Languages
+  Languages,
+  BarChart3,
+  Loader2
 } from "lucide-react";
 import IntentCoverageChart from './IntentCoverageChart';
 import TopicalAuthorityHeatmap from './TopicalAuthorityHeatmap';
@@ -116,6 +121,11 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
   const [contentGaps, setContentGaps] = useState<any[]>([]);
   const [loadingGaps, setLoadingGaps] = useState(false);
   const [competitorUrls, setCompetitorUrls] = useState('');
+  const [abTests, setAbTests] = useState<any[]>([]);
+  const [isCreatingABTest, setIsCreatingABTest] = useState(false);
+  const [newTestUrl, setNewTestUrl] = useState('');
+  const [originalTitle, setOriginalTitle] = useState('');
+  const [originalDescription, setOriginalDescription] = useState('');
   const { toast } = useToast();
 
   // Fetch intent classification on component mount
@@ -141,6 +151,9 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
     }
     if (activeTab === 'market-gaps') {
       fetchContentGaps();
+    }
+    if (activeTab === 'abtest') {
+      fetchABTests();
     }
   }, [activeTab]);
 
@@ -500,6 +513,99 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
     }
   };
 
+  // A/B Testing functions
+  const fetchABTests = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ab_tests')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setAbTests(data || []);
+    } catch (error) {
+      console.error('Error loading A/B tests:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách A/B test",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const createABTest = async () => {
+    if (!newTestUrl.trim()) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCreatingABTest(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('run-ab-meta-test', {
+        body: {
+          url: newTestUrl.trim(),
+          original_title: originalTitle.trim() || undefined,
+          original_description: originalDescription.trim() || undefined,
+          user_id: (await supabase.auth.getUser()).data.user?.id
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Thành công",
+        description: "Đã tạo A/B test thành công!",
+      });
+
+      setNewTestUrl('');
+      setOriginalTitle('');
+      setOriginalDescription('');
+      fetchABTests();
+    } catch (error) {
+      console.error('Error creating A/B test:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể tạo A/B test",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingABTest(false);
+    }
+  };
+
+  const chooseWinner = async (testId: string, winner: 'a' | 'b') => {
+    try {
+      const { error } = await supabase
+        .from('ab_tests')
+        .update({ 
+          winner_version: winner,
+          status: 'completed',
+          end_date: new Date().toISOString()
+        })
+        .eq('id', testId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Thành công",
+        description: `Đã chọn phiên bản ${winner.toUpperCase()} là winner!`,
+      });
+
+      fetchABTests();
+    } catch (error) {
+      console.error('Error choosing winner:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật kết quả",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getOpportunityColor = (score: number) => {
     if (score >= 80) return 'text-green-600 bg-green-50';
     if (score >= 60) return 'text-yellow-600 bg-yellow-50';
@@ -802,7 +908,7 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="map" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
             Semantic Topic Map
@@ -826,6 +932,10 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
         <TabsTrigger value="market-gaps" className="flex items-center gap-2">
           <Target className="h-4 w-4" />
           Cơ hội thị trường
+        </TabsTrigger>
+        <TabsTrigger value="abtest" className="flex items-center gap-2">
+          <BarChart3 className="h-4 w-4" />
+          AI A/B Testing
         </TabsTrigger>
           <TabsTrigger value="compare" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
@@ -1546,6 +1656,197 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* A/B Testing Tab */}
+        <TabsContent value="abtest" className="space-y-6">
+          <div className="space-y-6">
+            {/* Create new A/B test */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Tạo A/B Test mới</CardTitle>
+                <CardDescription>
+                  Tạo 2 phiên bản title và meta description để kiểm tra hiệu quả
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="test-url">URL cần test *</Label>
+                  <Input
+                    id="test-url"
+                    value={newTestUrl}
+                    onChange={(e) => setNewTestUrl(e.target.value)}
+                    placeholder="https://example.com/page"
+                    disabled={isCreatingABTest}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="original-title">Title hiện tại (tùy chọn)</Label>
+                  <Input
+                    id="original-title"
+                    value={originalTitle}
+                    onChange={(e) => setOriginalTitle(e.target.value)}
+                    placeholder="Để trống để tự động lấy từ trang"
+                    disabled={isCreatingABTest}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="original-desc">Meta Description hiện tại (tùy chọn)</Label>
+                  <Textarea
+                    id="original-desc"
+                    value={originalDescription}
+                    onChange={(e) => setOriginalDescription(e.target.value)}
+                    placeholder="Để trống để tự động lấy từ trang"
+                    disabled={isCreatingABTest}
+                    rows={3}
+                  />
+                </div>
+                <Button 
+                  onClick={createABTest} 
+                  disabled={isCreatingABTest || !newTestUrl.trim()}
+                  className="w-full"
+                >
+                  {isCreatingABTest && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Tạo A/B Test
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* A/B Tests list */}
+            <div className="space-y-4">
+              {abTests.map((test) => (
+                <Card key={test.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-lg">{test.url}</CardTitle>
+                        <CardDescription>
+                          Tạo lúc: {new Date(test.created_at).toLocaleDateString('vi-VN')}
+                          {test.end_date && ` • Kết thúc: ${new Date(test.end_date).toLocaleDateString('vi-VN')}`}
+                        </CardDescription>
+                      </div>
+                      <Badge variant={test.status === 'running' ? 'default' : 'secondary'}>
+                        {test.status === 'running' ? 'Đang chạy' : 'Hoàn thành'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Version A */}
+                      <div className={`p-4 border rounded-lg ${test.winner_version === 'a' ? 'border-green-500 bg-green-50' : ''}`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-lg">Phiên bản A</h4>
+                          {test.winner_version === 'a' && (
+                            <Badge variant="default" className="bg-green-500">Winner</Badge>
+                          )}
+                        </div>
+                        <div className="space-y-3">
+                          <div>
+                            <Label className="text-sm font-medium">Title:</Label>
+                            <p className="mt-1 text-sm bg-muted p-2 rounded">
+                              {test.version_a.title}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium">Description:</Label>
+                            <p className="mt-1 text-sm bg-muted p-2 rounded">
+                              {test.version_a.description}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium">Lý do:</Label>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {test.version_a.reasoning}
+                            </p>
+                          </div>
+                          {test.ctr_data?.version_a && (
+                            <div className="text-sm">
+                              <strong>CTR:</strong> {
+                                test.ctr_data.version_a.impressions > 0 
+                                  ? ((test.ctr_data.version_a.clicks / test.ctr_data.version_a.impressions) * 100).toFixed(2)
+                                  : 0
+                              }% 
+                              ({test.ctr_data.version_a.clicks}/{test.ctr_data.version_a.impressions})
+                            </div>
+                          )}
+                          {test.status === 'running' && !test.winner_version && (
+                            <Button 
+                              size="sm" 
+                              onClick={() => chooseWinner(test.id, 'a')}
+                              variant="outline"
+                            >
+                              Chọn phiên bản này
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Version B */}
+                      <div className={`p-4 border rounded-lg ${test.winner_version === 'b' ? 'border-green-500 bg-green-50' : ''}`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-lg">Phiên bản B</h4>
+                          {test.winner_version === 'b' && (
+                            <Badge variant="default" className="bg-green-500">Winner</Badge>
+                          )}
+                        </div>
+                        <div className="space-y-3">
+                          <div>
+                            <Label className="text-sm font-medium">Title:</Label>
+                            <p className="mt-1 text-sm bg-muted p-2 rounded">
+                              {test.version_b.title}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium">Description:</Label>
+                            <p className="mt-1 text-sm bg-muted p-2 rounded">
+                              {test.version_b.description}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium">Lý do:</Label>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {test.version_b.reasoning}
+                            </p>
+                          </div>
+                          {test.ctr_data?.version_b && (
+                            <div className="text-sm">
+                              <strong>CTR:</strong> {
+                                test.ctr_data.version_b.impressions > 0 
+                                  ? ((test.ctr_data.version_b.clicks / test.ctr_data.version_b.impressions) * 100).toFixed(2)
+                                  : 0
+                              }% 
+                              ({test.ctr_data.version_b.clicks}/{test.ctr_data.version_b.impressions})
+                            </div>
+                          )}
+                          {test.status === 'running' && !test.winner_version && (
+                            <Button 
+                              size="sm" 
+                              onClick={() => chooseWinner(test.id, 'b')}
+                              variant="outline"
+                            >
+                              Chọn phiên bản này
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {abTests.length === 0 && (
+                <Card>
+                  <CardContent className="text-center py-8">
+                    <BarChart3 className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">Chưa có A/B test nào</h3>
+                    <p className="text-muted-foreground">
+                      Tạo A/B test đầu tiên để kiểm tra hiệu quả title và meta description
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="compare" className="space-y-6">
