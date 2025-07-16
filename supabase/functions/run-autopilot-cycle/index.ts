@@ -299,60 +299,141 @@ async function sendAutoPilotSummary(userId: string, results: any) {
       return;
     }
 
+    // Get the first domain for the subject line
+    const firstDomain = results.reports_generated[0]?.domain || 'Website của bạn';
+
     const emailContent = `
-      <h2>🤖 AutoPilot SEO Summary</h2>
-      <p>Your AutoPilot SEO cycle has completed successfully!</p>
-      
-      <h3>📊 Summary</h3>
-      <ul>
-        <li><strong>Domains Processed:</strong> ${results.domains_processed}</li>
-        <li><strong>Actions Taken:</strong> ${results.actions_taken.length}</li>
-        <li><strong>Reports Generated:</strong> ${results.reports_generated.length}</li>
-      </ul>
-      
-      ${results.actions_taken.length > 0 ? `
-      <h3>🔧 Actions Taken</h3>
-      <ul>
-        ${results.actions_taken.map((action: string) => `<li>${action}</li>`).join('')}
-      </ul>
-      ` : ''}
-      
-      ${results.reports_generated.length > 0 ? `
-      <h3>📄 Generated Reports</h3>
-      <ul>
-        ${results.reports_generated.map((report: any) => 
-          `<li><a href="${report.report_url}" target="_blank">${report.domain} Report</a></li>`
-        ).join('')}
-      </ul>
-      ` : ''}
-      
-      ${results.errors.length > 0 ? `
-      <h3>⚠️ Issues</h3>
-      <ul>
-        ${results.errors.map((error: string) => `<li style="color: #f56565;">${error}</li>`).join('')}
-      </ul>
-      ` : ''}
-      
-      <p>Visit your <a href="${Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'lovable.app') || '#'}/dashboard">dashboard</a> to view detailed results.</p>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+          .content { background: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px; }
+          .stat-box { background: white; padding: 15px; margin: 10px 0; border-radius: 6px; border-left: 4px solid #667eea; }
+          .success { border-left-color: #48bb78; }
+          .warning { border-left-color: #ed8936; }
+          .error { border-left-color: #f56565; }
+          .btn { background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 10px 5px; }
+          .report-link { background: #48bb78; }
+          ul { padding-left: 20px; }
+          li { margin-bottom: 5px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>✅ Báo cáo SEO Auto-Pilot tuần này</h1>
+            <p>Website: <strong>${firstDomain}</strong></p>
+            <p>Ngày: ${new Date().toLocaleDateString('vi-VN', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}</p>
+          </div>
+          
+          <div class="content">
+            <div class="stat-box success">
+              <h3>📊 Tổng quan</h3>
+              <ul>
+                <li><strong>Số website đã xử lý:</strong> ${results.domains_processed}</li>
+                <li><strong>Tổng số hành động:</strong> ${results.actions_taken.length}</li>
+                <li><strong>Báo cáo được tạo:</strong> ${results.reports_generated.length}</li>
+              </ul>
+            </div>
+
+            ${results.actions_taken.length > 0 ? `
+            <div class="stat-box">
+              <h3>🔧 Các hành động đã thực hiện</h3>
+              <ul>
+                ${results.actions_taken.map((action: string) => `<li>${action}</li>`).join('')}
+              </ul>
+            </div>
+            ` : ''}
+
+            ${results.reports_generated.length > 0 ? `
+            <div class="stat-box success">
+              <h3>📄 Báo cáo PDF đã tạo</h3>
+              ${results.reports_generated.map((report: any) => `
+                <div style="margin: 10px 0; padding: 10px; background: white; border-radius: 4px;">
+                  <strong>🌐 ${report.domain}</strong><br>
+                  <a href="${report.report_url}" class="btn report-link" target="_blank">📥 Tải báo cáo PDF</a>
+                </div>
+              `).join('')}
+            </div>
+            ` : ''}
+
+            ${results.backup_info ? `
+            <div class="stat-box">
+              <h3>💾 Tình trạng backup</h3>
+              <p>✅ Đã tạo backup trước khi thực hiện thay đổi</p>
+              <p>📅 Thời gian backup: ${new Date().toLocaleString('vi-VN')}</p>
+            </div>
+            ` : ''}
+
+            ${results.errors.length > 0 ? `
+            <div class="stat-box error">
+              <h3>⚠️ Vấn đề gặp phải</h3>
+              <ul>
+                ${results.errors.map((error: string) => `<li style="color: #f56565;">${error}</li>`).join('')}
+              </ul>
+            </div>
+            ` : ''}
+
+            <div style="text-align: center; margin-top: 30px;">
+              <a href="${Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'lovable.app') || '#'}/dashboard" class="btn">
+                🎯 Xem Dashboard
+              </a>
+              <a href="${Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'lovable.app') || '#'}/account" class="btn">
+                ⚙️ Cài đặt AutoPilot
+              </a>
+            </div>
+
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #666; font-size: 14px;">
+              <p>AutoPilot SEO sẽ tiếp tục theo dõi và tối ưu website của bạn.</p>
+              <p>Lần kiểm tra tiếp theo: <strong>${new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('vi-VN')}</strong></p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
     `;
 
-    // Send email using the send-email-event function
-    const { error: emailError } = await supabase.functions.invoke('send-email-event', {
-      body: {
-        to: user.email,
-        subject: '🤖 AutoPilot SEO Summary - Actions Completed',
+    // Use Resend to send email
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY not configured');
+      return;
+    }
+
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'SEO AutoPilot <autopilot@resend.dev>',
+        to: [user.email],
+        subject: `✅ Báo cáo SEO Auto-Pilot tuần này – ${firstDomain}`,
         html: emailContent,
-        type: 'autopilot_summary'
-      }
+      }),
     });
 
-    if (emailError) {
-      console.error('Failed to send autopilot summary email:', emailError);
-    } else {
-      console.log(`📧 AutoPilot summary sent to ${user.email}`);
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Failed to send email via Resend:', error);
+      throw new Error(`Email sending failed: ${error}`);
     }
+
+    const result = await response.json();
+    console.log(`📧 AutoPilot summary sent to ${user.email}:`, result.id);
 
   } catch (error) {
     console.error('Error in sendAutoPilotSummary:', error);
+    throw error;
   }
 }
