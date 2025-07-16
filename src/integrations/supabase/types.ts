@@ -217,6 +217,45 @@ export type Database = {
           },
         ]
       }
+      auto_links: {
+        Row: {
+          ai_score: number
+          anchor_text: string
+          created_at: string
+          from_article_id: string
+          id: string
+          position: number
+          status: string
+          to_article_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_score?: number
+          anchor_text: string
+          created_at?: string
+          from_article_id: string
+          id?: string
+          position: number
+          status?: string
+          to_article_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_score?: number
+          anchor_text?: string
+          created_at?: string
+          from_article_id?: string
+          id?: string
+          position?: number
+          status?: string
+          to_article_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       backups: {
         Row: {
           ai_suggested_data: Json

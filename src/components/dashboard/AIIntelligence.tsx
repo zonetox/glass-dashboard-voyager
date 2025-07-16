@@ -24,7 +24,11 @@ import {
   Navigation,
   ShoppingCart,
   Briefcase,
-  Filter
+  Filter,
+  Link,
+  Plus,
+  Settings,
+  RotateCcw
 } from "lucide-react";
 import IntentCoverageChart from './IntentCoverageChart';
 import TopicalAuthorityHeatmap from './TopicalAuthorityHeatmap';
@@ -64,6 +68,19 @@ interface ContentWithIntent {
   created_at: string;
 }
 
+interface InternalLinkSuggestion {
+  id: string;
+  from_article_id: string;
+  to_article_id: string;
+  anchor_text: string;
+  position: number;
+  ai_score: number;
+  status: string;
+  created_at: string;
+  from_article?: { id: string; title: string; url: string };
+  to_article?: { id: string; title: string; url: string };
+}
+
 interface AIIntelligenceProps {
   className?: string;
   scanData?: any;
@@ -77,6 +94,8 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
   const [contentWithIntent, setContentWithIntent] = useState<ContentWithIntent[]>([]);
   const [selectedIntentFilter, setSelectedIntentFilter] = useState<string>('all');
   const [loadingContent, setLoadingContent] = useState(false);
+  const [internalLinks, setInternalLinks] = useState<InternalLinkSuggestion[]>([]);
+  const [loadingLinks, setLoadingLinks] = useState(false);
   const { toast } = useToast();
 
   // Fetch intent classification on component mount
@@ -91,6 +110,13 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
   useEffect(() => {
     fetchAllContentWithIntent();
   }, [selectedIntentFilter]);
+
+  // Fetch internal links when tab is switched
+  useEffect(() => {
+    if (activeTab === 'internal-links') {
+      fetchInternalLinks();
+    }
+  }, [activeTab]);
 
   const fetchContentIntent = async (contentId: string) => {
     try {
@@ -150,6 +176,86 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
       setContentWithIntent([]);
     } finally {
       setLoadingContent(false);
+    }
+  };
+
+  const fetchInternalLinks = async () => {
+    try {
+      setLoadingLinks(true);
+      
+      const { data, error } = await supabase
+        .from('auto_links')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setInternalLinks(data || []);
+    } catch (error) {
+      console.error('Error fetching internal links:', error);
+      setInternalLinks([]);
+    } finally {
+      setLoadingLinks(false);
+    }
+  };
+
+  const generateInternalLinks = async () => {
+    try {
+      setLoadingLinks(true);
+      
+      const { data, error } = await supabase.functions.invoke('auto-internal-links', {
+        body: {
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          auto_publish: false
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Phân tích hoàn thành",
+        description: `Tìm thấy ${data.total_suggestions || 0} gợi ý liên kết nội bộ`
+      });
+
+      // Refresh the internal links list
+      fetchInternalLinks();
+    } catch (error) {
+      console.error('Error generating internal links:', error);
+      toast({
+        title: "Lỗi phân tích",
+        description: error.message || "Không thể tạo gợi ý liên kết",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingLinks(false);
+    }
+  };
+
+  const updateLinkStatus = async (linkId: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from('auto_links')
+        .update({ status })
+        .eq('id', linkId);
+
+      if (error) throw error;
+
+      // Update local state
+      setInternalLinks(prev => prev.map(link => 
+        link.id === linkId ? { ...link, status } : link
+      ));
+
+      toast({
+        title: "Cập nhật thành công",
+        description: `Trạng thái liên kết đã được ${status === 'applied' ? 'áp dụng' : 'từ chối'}`
+      });
+    } catch (error) {
+      console.error('Error updating link status:', error);
+      toast({
+        title: "Lỗi cập nhật",
+        description: "Không thể cập nhật trạng thái liên kết",
+        variant: "destructive"
+      });
     }
   };
 
@@ -441,7 +547,7 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="map" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
             Semantic Topic Map
@@ -453,6 +559,10 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
           <TabsTrigger value="authority" className="flex items-center gap-2">
             <Target className="h-4 w-4" />
             Topical Authority
+          </TabsTrigger>
+          <TabsTrigger value="internal-links" className="flex items-center gap-2">
+            <Network className="h-4 w-4" />
+            Internal Links
           </TabsTrigger>
           <TabsTrigger value="compare" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
@@ -707,6 +817,178 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
 
         <TabsContent value="authority" className="space-y-6">
           <TopicalAuthorityHeatmap />
+        </TabsContent>
+
+        <TabsContent value="internal-links" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Link className="h-5 w-5" />
+                  Gợi ý liên kết nội bộ
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={fetchInternalLinks} 
+                    disabled={loadingLinks}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Tải lại
+                  </Button>
+                  <Button 
+                    onClick={generateInternalLinks} 
+                    disabled={loadingLinks}
+                    size="sm"
+                  >
+                    {loadingLinks ? 'Đang phân tích...' : (
+                      <>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Tạo gợi ý
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                AI phân tích và đề xuất vị trí chèn liên kết nội bộ tự nhiên
+              </p>
+            </CardHeader>
+            <CardContent>
+              {loadingLinks ? (
+                <div className="h-64 flex items-center justify-center">
+                  <div className="text-muted-foreground">Đang phân tích liên kết...</div>
+                </div>
+              ) : internalLinks.length === 0 ? (
+                <div className="h-64 flex items-center justify-center">
+                  <div className="text-center text-muted-foreground">
+                    <Link className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                    <div className="mb-2">Chưa có gợi ý liên kết nội bộ</div>
+                    <div className="text-sm">
+                      Nhấn "Tạo gợi ý" để AI phân tích và đề xuất liên kết
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <ScrollArea className="h-96">
+                  <div className="space-y-4">
+                    {internalLinks.map((link) => (
+                      <div key={link.id} className="p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant={link.status === 'applied' ? 'default' : 
+                                       link.status === 'rejected' ? 'destructive' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {link.status === 'applied' ? 'Đã áp dụng' :
+                               link.status === 'rejected' ? 'Đã từ chối' : 'Gợi ý'}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              AI Score: {Math.round(link.ai_score * 100)}%
+                            </Badge>
+                          </div>
+                          {link.status === 'suggested' && (
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => updateLinkStatus(link.id, 'rejected')}
+                                className="text-xs"
+                              >
+                                Từ chối
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => updateLinkStatus(link.id, 'applied')}
+                                className="text-xs"
+                              >
+                                Áp dụng
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="text-sm">
+                            <strong>Anchor text:</strong> 
+                            <span className="ml-2 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 rounded text-blue-700 dark:text-blue-300">
+                              "{link.anchor_text}"
+                            </span>
+                          </div>
+                          
+                          <div className="text-sm text-muted-foreground">
+                            <strong>Vị trí chèn:</strong> {link.position}% vào bài viết
+                          </div>
+                          
+                          <div className="text-xs text-muted-foreground">
+                            Từ bài: {link.from_article?.title || link.from_article_id} → 
+                            Đến bài: {link.to_article?.title || link.to_article_id}
+                          </div>
+                          
+                          <div className="text-xs text-muted-foreground">
+                            Tạo: {new Date(link.created_at).toLocaleDateString('vi-VN', { 
+                              year: 'numeric', 
+                              month: 'short', 
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Settings Panel */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Cài đặt liên kết tự động
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Tự động chèn liên kết</p>
+                    <p className="text-sm text-muted-foreground">
+                      Tự động áp dụng các gợi ý có AI Score cao
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm">
+                    Bật tính năng
+                  </Button>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Ngưỡng AI Score tối thiểu</p>
+                    <p className="text-sm text-muted-foreground">
+                      Chỉ hiển thị gợi ý có độ tin cậy từ 70% trở lên
+                    </p>
+                  </div>
+                  <Badge variant="outline">70%</Badge>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Kiểm tra định kỳ</p>
+                    <p className="text-sm text-muted-foreground">
+                      Tự động tạo gợi ý cho nội dung mới
+                    </p>
+                  </div>
+                  <Badge variant="secondary">Hàng tuần</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="compare" className="space-y-6">
