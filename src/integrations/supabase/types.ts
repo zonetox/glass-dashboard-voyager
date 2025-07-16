@@ -1036,6 +1036,84 @@ export type Database = {
         }
         Relationships: []
       }
+      posts: {
+        Row: {
+          ai_score: number | null
+          categories: string[] | null
+          content: string
+          created_at: string
+          excerpt: string | null
+          id: string
+          keyword: string
+          language: string
+          meta_description: string | null
+          meta_title: string | null
+          outline: Json | null
+          published_at: string | null
+          reading_time: number | null
+          scheduled_at: string | null
+          slug: string | null
+          status: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+          word_count: number | null
+          wordpress_post_id: number | null
+          wordpress_url: string | null
+        }
+        Insert: {
+          ai_score?: number | null
+          categories?: string[] | null
+          content: string
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          keyword: string
+          language?: string
+          meta_description?: string | null
+          meta_title?: string | null
+          outline?: Json | null
+          published_at?: string | null
+          reading_time?: number | null
+          scheduled_at?: string | null
+          slug?: string | null
+          status?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+          word_count?: number | null
+          wordpress_post_id?: number | null
+          wordpress_url?: string | null
+        }
+        Update: {
+          ai_score?: number | null
+          categories?: string[] | null
+          content?: string
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          keyword?: string
+          language?: string
+          meta_description?: string | null
+          meta_title?: string | null
+          outline?: Json | null
+          published_at?: string | null
+          reading_time?: number | null
+          scheduled_at?: string | null
+          slug?: string | null
+          status?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          word_count?: number | null
+          wordpress_post_id?: number | null
+          wordpress_url?: string | null
+        }
+        Relationships: []
+      }
       projects: {
         Row: {
           created_at: string | null

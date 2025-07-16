@@ -46,10 +46,12 @@ import {
   BarChart4,
   TrendingDown,
   Search,
-  MapPin
+  MapPin,
+  PenTool
 } from "lucide-react";
 import IntentCoverageChart from './IntentCoverageChart';
 import TopicalAuthorityHeatmap from './TopicalAuthorityHeatmap';
+import MultiLangContentWriter from './MultiLangContentWriter';
 
 interface TopicNode {
   id: string;
@@ -1340,7 +1342,11 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-10">
+        <TabsList className="grid w-full grid-cols-11">
+          <TabsTrigger value="content" className="flex items-center gap-2">
+            <PenTool className="h-4 w-4" />
+            AI Writer
+          </TabsTrigger>
           <TabsTrigger value="map" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
             Semantic Topic Map
@@ -1390,6 +1396,10 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
             SEO Comparison
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="content" className="space-y-6">
+          <MultiLangContentWriter />
+        </TabsContent>
 
         <TabsContent value="map" className="space-y-6">
           <Card>
