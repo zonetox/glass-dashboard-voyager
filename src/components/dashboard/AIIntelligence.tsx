@@ -54,6 +54,7 @@ import IntentCoverageChart from './IntentCoverageChart';
 import TopicalAuthorityHeatmap from './TopicalAuthorityHeatmap';
 import MultiLangContentWriter from './MultiLangContentWriter';
 import CRMConnect from './CRMConnect';
+import { SEOTimelineView } from './SEOTimelineView';
 
 interface TopicNode {
   id: string;
@@ -1344,22 +1345,22 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-12">
+        <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12">
           <TabsTrigger value="content" className="flex items-center gap-2">
             <PenTool className="h-4 w-4" />
             AI Writer
           </TabsTrigger>
           <TabsTrigger value="map" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
-            Semantic Topic Map
+            Topic Map
           </TabsTrigger>
           <TabsTrigger value="intent" className="flex items-center gap-2">
             <Target className="h-4 w-4" />
-            Search Intent Map
+            Intent Map
           </TabsTrigger>
           <TabsTrigger value="authority" className="flex items-center gap-2">
             <Target className="h-4 w-4" />
-            Topical Authority
+            Authority
           </TabsTrigger>
           <TabsTrigger value="internal-links" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
@@ -1367,19 +1368,19 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
           </TabsTrigger>
         <TabsTrigger value="multilang" className="flex items-center gap-2">
           <Languages className="h-4 w-4" />
-          Đa ngôn ngữ
+          Multi-Lang
         </TabsTrigger>
         <TabsTrigger value="market-gaps" className="flex items-center gap-2">
           <Target className="h-4 w-4" />
-          Cơ hội thị trường
+          Gaps
         </TabsTrigger>
         <TabsTrigger value="abtest" className="flex items-center gap-2">
           <BarChart3 className="h-4 w-4" />
-          AI A/B Testing
+          A/B Test
         </TabsTrigger>
         <TabsTrigger value="alerts" className="flex items-center gap-2">
           <Bell className="h-4 w-4" />
-          Smart Alerts
+          Alerts
         </TabsTrigger>
         <TabsTrigger value="voice-seo" className="flex items-center gap-2">
           <Mic className="h-4 w-4" />
@@ -1387,19 +1388,23 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
         </TabsTrigger>
         <TabsTrigger value="keyword-tracker" className="flex items-center gap-2">
           <BarChart4 className="h-4 w-4" />
-          Keyword Tracker
+          Keywords
         </TabsTrigger>
         <TabsTrigger value="predictive-seo" className="flex items-center gap-2">
           <TrendingUp className="h-4 w-4" />
-          Predictive SEO
+          Predictive
         </TabsTrigger>
           <TabsTrigger value="compare" className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
-            SEO Comparison
+            Compare
           </TabsTrigger>
           <TabsTrigger value="crm" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
-            CRM Connect
+            CRM
+          </TabsTrigger>
+          <TabsTrigger value="seo-journey" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            SEO Journey
           </TabsTrigger>
         </TabsList>
 
@@ -3125,6 +3130,10 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
 
         <TabsContent value="crm" className="space-y-6">
           <CRMConnect />
+        </TabsContent>
+
+        <TabsContent value="seo-journey" className="space-y-6">
+          <SEOTimelineView />
         </TabsContent>
       </Tabs>
 
