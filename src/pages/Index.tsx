@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { PricingSection } from "@/components/PricingSection";
 import { useAuth } from '@/hooks/useAuth';
 import { trackPageView } from '@/lib/tracking';
+import { DemoVideo } from '@/components/ui/demo-video';
 import { Search, Zap, BarChart3, Globe, CheckCircle, Star, Users, TrendingUp, Shield, LogIn, Settings, ArrowRight } from "lucide-react";
 
 export default function Index() {
@@ -230,6 +231,22 @@ export default function Index() {
               </CardDescription>
             </CardContent>
           </Card>
+        </div>
+      </section>
+
+      {/* Demo Video Section */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="text-center mb-12">
+          <h3 className="text-3xl font-bold text-foreground mb-4">
+            See SEO Auto Tool in Action
+          </h3>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Watch how our AI analyzes and optimizes your website in real-time. 
+            From analysis to optimization in just minutes.
+          </p>
+        </div>
+        <div className="max-w-5xl mx-auto">
+          <DemoVideo />
         </div>
       </section>
 
