@@ -4,6 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { ErrorMessage } from '@/components/ui/error-message';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { useLoadingState } from '@/hooks/useLoadingState';
 import { 
   Wand2, 
   Shield, 
@@ -50,9 +54,10 @@ interface OneClickFixProps {
 
 export function OneClickFix({ url, content, onBackupCreated }: OneClickFixProps) {
   const { toast } = useToast();
+  const { error, isError, clearError, withErrorHandling } = useErrorHandler();
+  const { isLoading, progress, startLoading, updateProgress, stopLoading } = useLoadingState();
   
   // Process states
-  const [isProcessing, setIsProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [reviewStep, setReviewStep] = useState(0);
   const [isInReviewMode, setIsInReviewMode] = useState(false);
@@ -101,35 +106,32 @@ export function OneClickFix({ url, content, onBackupCreated }: OneClickFixProps)
     ));
   };
 
-  const executeBackup = async () => {
+  const executeBackup = withErrorHandling(async () => {
     updateStepStatus('backup', 'loading');
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      const response = await supabase.functions.invoke('backup-site', {
-        body: {
-          url,
-          original_data: {
-            content: content || '',
-            timestamp: new Date().toISOString()
-          },
-          type: 'one_click_fix',
-          user_id: user?.id
-        }
-      });
+    updateProgress(10, 'Creating backup...');
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const response = await supabase.functions.invoke('backup-site', {
+      body: {
+        url,
+        original_data: {
+          content: content || '',
+          timestamp: new Date().toISOString()
+        },
+        type: 'one_click_fix',
+        user_id: user?.id
+      }
+    });
 
-      if (response.error) throw new Error(response.error.message);
-      
-      setBackupId(response.data.id);
-      updateStepStatus('backup', 'completed');
-      onBackupCreated?.();
-      
-      return response.data;
-    } catch (error) {
-      updateStepStatus('backup', 'error');
-      throw error;
-    }
-  };
+    if (response.error) throw new Error(response.error.message);
+    
+    setBackupId(response.data.id);
+    updateStepStatus('backup', 'completed');
+    onBackupCreated?.();
+    
+    return response.data;
+  });
 
   const executeAnalysis = async () => {
     updateStepStatus('analyze', 'loading');
@@ -249,7 +251,7 @@ export function OneClickFix({ url, content, onBackupCreated }: OneClickFixProps)
     }
   };
 
-  const handleStartOptimization = async () => {
+  const handleStartOptimization = withErrorHandling(async () => {
     if (!content) {
       toast({
         title: "Content required",
@@ -259,46 +261,40 @@ export function OneClickFix({ url, content, onBackupCreated }: OneClickFixProps)
       return;
     }
 
-    setIsProcessing(true);
+    startLoading('Starting optimization...');
     setCurrentStep(0);
+    clearError();
     
-    try {
-      // Step 1: Backup
-      await executeBackup();
-      setCurrentStep(1);
-      
-      // Step 2: Analysis
-      const analysis = await executeAnalysis();
-      setCurrentStep(2);
-      
-      // Step 3: Semantic Analysis
-      const semantic = await executeSemanticAnalysis();
-      setCurrentStep(3);
-      
-      // Step 4: Generate Suggestions
-      await generateSuggestions(analysis, semantic);
-      setCurrentStep(4);
-      
-      // Move to review mode
-      setIsInReviewMode(true);
-      setReviewStep(0);
-      
-      toast({
-        title: "Analysis Complete",
-        description: "Review the AI suggestions to optimize your content"
-      });
-      
-    } catch (error) {
-      console.error('Optimization process failed:', error);
-      toast({
-        title: "Optimization Failed",
-        description: error instanceof Error ? error.message : 'Failed to complete optimization',
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+    // Step 1: Backup
+    await executeBackup();
+    setCurrentStep(1);
+    updateProgress(25, 'Analyzing content...');
+    
+    // Step 2: Analysis
+    const analysis = await executeAnalysis();
+    setCurrentStep(2);
+    updateProgress(50, 'Running semantic analysis...');
+    
+    // Step 3: Semantic Analysis
+    const semantic = await executeSemanticAnalysis();
+    setCurrentStep(3);
+    updateProgress(75, 'Generating suggestions...');
+    
+    // Step 4: Generate Suggestions
+    await generateSuggestions(analysis, semantic);
+    setCurrentStep(4);
+    updateProgress(100, 'Complete!');
+    
+    // Move to review mode
+    setIsInReviewMode(true);
+    setReviewStep(0);
+    stopLoading();
+    
+    toast({
+      title: "Analysis Complete",
+      description: "Review the AI suggestions to optimize your content"
+    });
+  });
 
   const handleSuggestionAction = (suggestionId: string, action: 'accepted' | 'skipped') => {
     setSuggestions(prev => prev.map(s => 
@@ -393,7 +389,20 @@ export function OneClickFix({ url, content, onBackupCreated }: OneClickFixProps)
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {!isProcessing && !isInReviewMode && (
+        {/* Error Message */}
+        {isError && (
+          <ErrorMessage
+            title="Optimization Error"
+            message={error?.message || 'An error occurred during optimization'}
+            onRetry={() => {
+              clearError();
+              handleStartOptimization();
+            }}
+            onDismiss={clearError}
+          />
+        )}
+
+        {!isLoading && !isInReviewMode && (
           <div className="text-center py-8">
             <div className="mb-6">
               <div className="mx-auto w-16 h-16 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center mb-4">
@@ -409,7 +418,7 @@ export function OneClickFix({ url, content, onBackupCreated }: OneClickFixProps)
             
             <Button
               onClick={handleStartOptimization}
-              disabled={!content}
+              disabled={!content || isLoading}
               className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
               size="lg"
             >
@@ -420,14 +429,18 @@ export function OneClickFix({ url, content, onBackupCreated }: OneClickFixProps)
         )}
 
         {/* Processing Steps */}
-        {isProcessing && (
+        {isLoading && (
           <div className="space-y-6">
+            <LoadingSpinner 
+              size="lg" 
+              text="Optimizing Your Content"
+              progress={progress}
+              className="py-8"
+            />
+            
             <div className="text-center">
-              <h3 className="text-white font-semibold mb-2">
-                Optimizing Your Content
-              </h3>
               <Progress 
-                value={(currentStep / steps.length) * 100} 
+                value={progress} 
                 className="w-full mb-4"
               />
             </div>

@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { Website, SEOIssue, projectToWebsite } from '@/lib/types';
 import { SEOAnalyzer } from '@/lib/seo-analyzer';
 import { useAuth } from '@/hooks/useAuth';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { useLoadingState } from '@/hooks/useLoadingState';
 import { 
   createProject, 
   getProjectsByUser, 
@@ -13,11 +15,12 @@ import type { Project } from '@/lib/types';
 
 export function useSEOAnalysis() {
   const { user } = useAuth();
+  const { error, isError, clearError, withErrorHandling } = useErrorHandler();
+  const { isLoading, progress, startLoading, updateProgress, stopLoading, withLoading } = useLoadingState('Loading projects...');
+  
   const [projects, setProjects] = useState<Project[]>([]);
   const [websites, setWebsites] = useState<Website[]>([]);
   const [issues, setIssues] = useState<SEOIssue[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Load user's projects on mount
   useEffect(() => {
@@ -40,34 +43,28 @@ export function useSEOAnalysis() {
     }
   }, [user?.id]);
 
-  const loadProjects = async () => {
-    if (!user?.id) return;
+  const loadProjects = withLoading(
+    withErrorHandling(async () => {
+      if (!user?.id) return;
 
-    try {
-      setIsLoading(true);
       const userProjects = await getProjectsByUser(user.id);
       setProjects(userProjects);
       setWebsites(userProjects.map(projectToWebsite));
-    } catch (err) {
-      setError('Failed to load projects');
-      console.error('Error loading projects:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    }),
+    'Loading projects...'
+  );
 
-  const analyzeWebsite = async (url: string) => {
+  const analyzeWebsite = withErrorHandling(async (url: string) => {
     if (!user?.id) {
-      setError('User must be logged in');
-      return;
+      throw new Error('User must be logged in');
     }
 
-    setIsLoading(true);
-    setError(null);
+    startLoading('Analyzing website...');
 
     try {
       // Validate URL
       new URL(url);
+      updateProgress(10, 'Creating project...');
       
       // Create project in database
       const project = await createProject(user.id, url);
@@ -75,12 +72,15 @@ export function useSEOAnalysis() {
         throw new Error('Failed to create project');
       }
 
+      updateProgress(25, 'Starting analysis...');
       // Update project status to analyzing
       await updateProjectStatus(project.id, 'analyzing');
       
+      updateProgress(50, 'Running SEO analysis...');
       // Perform analysis with project ID so results are saved
       const analysisResult = await SEOAnalyzer.analyzeWebsite(url, project.id);
       
+      updateProgress(75, 'Saving results...');
       // Update project with results
       await updateProjectStatus(
         project.id, 
@@ -100,16 +100,15 @@ export function useSEOAnalysis() {
           : website
       ));
 
+      updateProgress(90, 'Finalizing...');
       // Reload projects to get updated data
       await loadProjects();
+      updateProgress(100, 'Complete!');
 
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Analysis failed');
-      console.error('Analysis error:', err);
     } finally {
-      setIsLoading(false);
+      stopLoading();
     }
-  };
+  });
 
   const getWebsiteIssues = (websiteId: string) => {
     return issues.filter(issue => issue.websiteId === websiteId);
@@ -131,7 +130,10 @@ export function useSEOAnalysis() {
     websites,
     issues,
     isLoading,
-    error,
+    progress,
+    error: error?.message || null,
+    isError,
+    clearError,
     overallScore,
     totalIssues,
     fixedIssues,
