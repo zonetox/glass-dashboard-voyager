@@ -1876,6 +1876,7 @@ export type Database = {
       user_profiles: {
         Row: {
           ai_rewrites_limit: number
+          backup_codes: string[] | null
           business_address: string | null
           business_category: string | null
           business_description: string | null
@@ -1893,11 +1894,14 @@ export type Database = {
           optimizations_limit: number
           scans_limit: number
           tier: Database["public"]["Enums"]["user_tier"]
+          two_factor_enabled: boolean | null
+          two_factor_secret: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           ai_rewrites_limit?: number
+          backup_codes?: string[] | null
           business_address?: string | null
           business_category?: string | null
           business_description?: string | null
@@ -1915,11 +1919,14 @@ export type Database = {
           optimizations_limit?: number
           scans_limit?: number
           tier?: Database["public"]["Enums"]["user_tier"]
+          two_factor_enabled?: boolean | null
+          two_factor_secret?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           ai_rewrites_limit?: number
+          backup_codes?: string[] | null
           business_address?: string | null
           business_category?: string | null
           business_description?: string | null
@@ -1937,6 +1944,8 @@ export type Database = {
           optimizations_limit?: number
           scans_limit?: number
           tier?: Database["public"]["Enums"]["user_tier"]
+          two_factor_enabled?: boolean | null
+          two_factor_secret?: string | null
           updated_at?: string | null
           user_id?: string
         }

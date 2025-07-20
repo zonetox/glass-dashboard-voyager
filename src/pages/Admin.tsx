@@ -14,6 +14,10 @@ import { Settings, Users, Key, Database, Activity, Package, Info, BarChart3 } fr
 import { APIHealthPanel } from '@/components/dashboard/api-health-panel';
 import { AdminDashboard } from '@/components/dashboard/AdminDashboard';
 import { AdminTestRunner } from '@/components/dashboard/admin-test-runner';
+import AdvancedAdminControls from '@/components/dashboard/AdvancedAdminControls';
+import TwoFactorAuth from '@/components/dashboard/TwoFactorAuth';
+import ContentWorkflowManager from '@/components/dashboard/ContentWorkflowManager';
+import PerformanceMonitor from '@/components/dashboard/PerformanceMonitor';
 
 interface AdminSetting {
   id: string;
@@ -209,7 +213,7 @@ export default function Admin() {
 
         <TooltipProvider>
           <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-7 bg-white/10">
+            <TabsList className="grid w-full grid-cols-11 bg-white/10">
               <TabsTrigger value="dashboard" className="data-[state=active]:bg-white/20">
                 <BarChart3 className="h-4 w-4 mr-2" />
                 Dashboard
@@ -237,6 +241,22 @@ export default function Admin() {
               <TabsTrigger value="api-health" className="data-[state=active]:bg-white/20">
                 <Activity className="h-4 w-4 mr-2" />
                 Hệ thống API
+              </TabsTrigger>
+              <TabsTrigger value="advanced" className="data-[state=active]:bg-white/20">
+                <Settings className="h-4 w-4 mr-2" />
+                Advanced
+              </TabsTrigger>
+              <TabsTrigger value="2fa" className="data-[state=active]:bg-white/20">
+                <Key className="h-4 w-4 mr-2" />
+                2FA
+              </TabsTrigger>
+              <TabsTrigger value="workflow" className="data-[state=active]:bg-white/20">
+                <Users className="h-4 w-4 mr-2" />
+                Workflow
+              </TabsTrigger>
+              <TabsTrigger value="performance" className="data-[state=active]:bg-white/20">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Performance
               </TabsTrigger>
             </TabsList>
 
@@ -394,6 +414,26 @@ export default function Admin() {
               {/* API Health Panel */}
               <APIHealthPanel />
             </div>
+          </TabsContent>
+
+          {/* Advanced Admin Controls */}
+          <TabsContent value="advanced">
+            <AdvancedAdminControls />
+          </TabsContent>
+
+          {/* Two-Factor Authentication */}
+          <TabsContent value="2fa">
+            <TwoFactorAuth />
+          </TabsContent>
+
+          {/* Content Workflow Management */}
+          <TabsContent value="workflow">
+            <ContentWorkflowManager />
+          </TabsContent>
+
+          {/* Performance Monitor */}
+          <TabsContent value="performance">
+            <PerformanceMonitor />
           </TabsContent>
           </Tabs>
         </TooltipProvider>

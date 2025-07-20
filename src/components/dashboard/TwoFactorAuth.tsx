@@ -39,7 +39,7 @@ export default function TwoFactorAuth() {
         .from('user_profiles')
         .select('two_factor_enabled')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (!error && data) {
         setIsEnabled(data.two_factor_enabled || false);
@@ -83,12 +83,12 @@ export default function TwoFactorAuth() {
         // Save 2FA settings to database
         const { error } = await supabase
           .from('user_profiles')
-          .upsert({
-            user_id: user?.id,
+          .update({
             two_factor_enabled: true,
             two_factor_secret: setupData.secret,
             backup_codes: setupData.backupCodes
-          });
+          })
+          .eq('user_id', user?.id);
 
         if (error) throw error;
 
