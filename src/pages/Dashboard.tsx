@@ -301,7 +301,24 @@ export default function Dashboard() {
         throw new Error('No analysis data received');
       }
 
+      console.log('Raw analysis response data:', response.data);
       setAnalysisResult(response.data);
+      
+      // Also save to database for persistence
+      const scanData = {
+        user_id: user.id,
+        url: targetUrl.startsWith('http') ? targetUrl : `https://${targetUrl}`,
+        seo: response.data,
+        ai_analysis: response.data.ai_analysis || {}
+      };
+
+      console.log('Saving scan data:', scanData);
+      const { error: insertError } = await supabase.from('scans').insert(scanData);
+      if (insertError) {
+        console.error('Error saving scan data:', insertError);
+      }
+      
+      console.log('Updated analysisResult state:', response.data);
       notifications.showSEOAnalysisComplete(targetUrl, response.data?.seo_score || 0);
     } catch (error) {
       console.error('Analysis failed:', error);
@@ -460,9 +477,9 @@ export default function Dashboard() {
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">
-                          {analysisResult?.seo_score ?? 0}/100
+                          {analysisResult?.seo_score || seoMetrics.overview.totalScore}/100
                         </div>
-                        <Progress value={analysisResult?.seo_score ?? 0} className="mt-2" />
+                        <Progress value={analysisResult?.seo_score || seoMetrics.overview.totalScore} className="mt-2" />
                       </CardContent>
                     </Card>
 
@@ -473,10 +490,10 @@ export default function Dashboard() {
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold text-red-600">
-                          {analysisResult?.issues?.length ?? 0}
+                          {analysisResult?.issues?.length || seoMetrics.overview.totalIssues}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {analysisResult?.critical_issues ?? 0} nghiêm trọng
+                          {analysisResult?.critical_issues || seoMetrics.overview.criticalIssues} nghiêm trọng
                         </p>
                       </CardContent>
                     </Card>
@@ -487,9 +504,9 @@ export default function Dashboard() {
                         <CheckCircle className="h-4 w-4 text-green-500" />
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-bold text-green-600">{analysisResult?.fixed_issues ?? 0}</div>
+                        <div className="text-2xl font-bold text-green-600">{analysisResult?.fixed_issues || seoMetrics.overview.fixedIssues}</div>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {analysisResult?.good_items ?? 0} mục tốt
+                          {analysisResult?.good_items || seoMetrics.overview.goodItems} mục tốt
                         </p>
                       </CardContent>
                     </Card>
@@ -500,7 +517,7 @@ export default function Dashboard() {
                         <Globe className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent>
-                        <div className="text-sm font-medium truncate">{selectedWebsite || analysisResult?.url || 'Chưa có website'}</div>
+                        <div className="text-sm font-medium truncate">{selectedWebsite || analysisResult?.url || currentWebsite?.url || 'Chưa có website'}</div>
                         <Badge variant="outline" className="mt-2">
                           {analysisResult ? 'completed' : 'pending'}
                         </Badge>

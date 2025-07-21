@@ -400,8 +400,49 @@ serve(async (req) => {
     console.log('AI Analysis status:', aiAnalysis ? 'Success' : 'Failed');
     console.log('Schema generation status:', schemaMarkup ? 'Success' : 'Failed');
 
-    const analysisResult: AnalysisResult = {
+    // Calculate SEO score and issues
+    const issues = [];
+    let seoScore = 100;
+    
+    // Check for missing title
+    if (!crawlResult.title) {
+      issues.push({ type: 'critical', message: 'Missing page title', priority: 'high' });
+      seoScore -= 20;
+    }
+    
+    // Check for missing meta description
+    if (!crawlResult.metaDescription) {
+      issues.push({ type: 'warning', message: 'Missing meta description', priority: 'medium' });
+      seoScore -= 15;
+    }
+    
+    // Check for missing H1 tags
+    if (crawlResult.headings?.h1.length === 0) {
+      issues.push({ type: 'critical', message: 'Missing H1 heading', priority: 'high' });
+      seoScore -= 20;
+    }
+    
+    // Check for images without alt text
+    const missingAlt = crawlResult.images?.missingAlt || 0;
+    if (missingAlt > 0) {
+      issues.push({ type: 'warning', message: `${missingAlt} images missing alt text`, priority: 'medium' });
+      seoScore -= Math.min(missingAlt * 5, 25);
+    }
+    
+    // Ensure score doesn't go below 0
+    seoScore = Math.max(0, seoScore);
+    
+    const criticalIssues = issues.filter(issue => issue.type === 'critical').length;
+    const warningIssues = issues.filter(issue => issue.type === 'warning').length;
+
+    const analysisResult = {
       url: crawlResult.url!,
+      seo_score: seoScore,
+      issues: issues,
+      critical_issues: criticalIssues,
+      warning_issues: warningIssues,
+      fixed_issues: 0,
+      good_items: 0,
       title: crawlResult.title,
       metaDescription: crawlResult.metaDescription,
       headings: crawlResult.headings!,
@@ -409,51 +450,30 @@ serve(async (req) => {
       pageSpeedInsights: pageSpeedResult,
       aiAnalysis,
       schemaMarkup,
+      ai_analysis: aiAnalysis,
+      // Legacy fields for compatibility
+      hasTitle: !!crawlResult.title,
+      hasMetaDescription: !!crawlResult.metaDescription,
+      h1Count: crawlResult.headings?.h1.length || 0,
+      imageCount: crawlResult.images?.total || 0,
+      hasPageSpeed: !!pageSpeedResult,
+      hasAI: !!aiAnalysis,
+      hasSchema: !!schemaMarkup
     };
-
-    // If we have a project ID, save the results to Supabase
-    if (projectId) {
-      const supabase = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
-
-      const issues_found = 
-        (crawlResult.images?.missingAlt || 0) +
-        (!crawlResult.title ? 1 : 0) +
-        (!crawlResult.metaDescription ? 1 : 0) +
-        (crawlResult.headings?.h1.length === 0 ? 1 : 0);
-
-      const recommendations = {
-        high_priority: issues_found > 5 ? ['Fix critical SEO issues'] : [],
-        medium_priority: pageSpeedResult ? ['Improve page speed'] : [],
-        low_priority: ['Optimize images', 'Add structured data'],
-        ai_suggestions: aiAnalysis?.improvementSuggestions || [],
-        schema_markup: schemaMarkup ? [schemaMarkup] : []
-      };
-
-      await supabase
-        .from('seo_analysis')
-        .insert({
-          project_id: projectId,
-          analysis_data: analysisResult,
-          issues_found,
-          recommendations
-        });
-
-      console.log(`Analysis results saved for project: ${projectId}`);
-    }
 
     console.log('=== ANALYSIS COMPLETED SUCCESSFULLY ===');
     console.log('Final result summary:', {
       url: analysisResult.url,
-      hasTitle: !!analysisResult.title,
-      hasMetaDescription: !!analysisResult.metaDescription,
-      h1Count: analysisResult.headings.h1.length,
-      imageCount: analysisResult.images.total,
-      hasPageSpeed: !!analysisResult.pageSpeedInsights,
-      hasAI: !!analysisResult.aiAnalysis,
-      hasSchema: !!analysisResult.schemaMarkup
+      seo_score: analysisResult.seo_score,
+      issues_count: analysisResult.issues.length,
+      critical_issues: analysisResult.critical_issues,
+      hasTitle: analysisResult.hasTitle,
+      hasMetaDescription: analysisResult.hasMetaDescription,
+      h1Count: analysisResult.h1Count,
+      imageCount: analysisResult.imageCount,
+      hasPageSpeed: analysisResult.hasPageSpeed,
+      hasAI: analysisResult.hasAI,
+      hasSchema: analysisResult.hasSchema
     });
 
     return new Response(
