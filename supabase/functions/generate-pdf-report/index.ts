@@ -63,7 +63,7 @@ serve(async (req) => {
         scanQuery = scanQuery.eq('id', scan_id);
       }
 
-      const { data: scanResult, error: scanError } = await scanQuery.single();
+      const { data: scanResults, error: scanError } = await scanQuery.order('created_at', { ascending: false });
 
       if (scanError) {
         console.error('Error fetching scan data:', scanError);
@@ -72,6 +72,17 @@ serve(async (req) => {
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+
+      if (!scanResults || scanResults.length === 0) {
+        console.error('No scan data found for URL:', url);
+        return new Response(
+          JSON.stringify({ error: 'No scan data found for this URL' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Take the most recent scan if no specific scan_id is provided
+      const scanResult = scan_id ? scanResults.find(scan => scan.id === scan_id) || scanResults[0] : scanResults[0];
       scanData = scanResult;
 
       // Fetch semantic analysis data if requested

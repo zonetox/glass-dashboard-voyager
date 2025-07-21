@@ -38,7 +38,7 @@ export function SimplifiedDashboard({
 }: SimplifiedDashboardProps) {
   const [url, setUrl] = useState('');
   const [currentStep, setCurrentStep] = useState(1);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(true); // Always show advanced features - competitive advantage
 
   const handleAnalyze = () => {
     if (url.trim()) {
@@ -276,38 +276,30 @@ export function SimplifiedDashboard({
           </Card>
         )}
 
-        {/* Advanced Features Toggle */}
+        {/* Advanced Features - Always Visible */}
         <Card>
           <CardHeader>
-            <CardTitle 
-              className="flex items-center justify-between cursor-pointer"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-            >
-              <div className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Tính năng nâng cao
-              </div>
-              {showAdvanced ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Tính năng nâng cao
             </CardTitle>
           </CardHeader>
-          {showAdvanced && (
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button variant="outline" className="h-20 flex-col">
-                  <TrendingUp className="h-6 w-6 mb-2" />
-                  <span>Phân tích đối thủ</span>
-                </Button>
-                <Button variant="outline" className="h-20 flex-col">
-                  <Sparkles className="h-6 w-6 mb-2" />
-                  <span>AI Content</span>
-                </Button>
-                <Button variant="outline" className="h-20 flex-col">
-                  <Target className="h-6 w-6 mb-2" />
-                  <span>Từ khóa AI</span>
-                </Button>
-              </div>
-            </CardContent>
-          )}
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Button variant="outline" className="h-20 flex-col">
+                <TrendingUp className="h-6 w-6 mb-2" />
+                <span>Phân tích đối thủ</span>
+              </Button>
+              <Button variant="outline" className="h-20 flex-col">
+                <Sparkles className="h-6 w-6 mb-2" />
+                <span>AI Content</span>
+              </Button>
+              <Button variant="outline" className="h-20 flex-col">
+                <Target className="h-6 w-6 mb-2" />
+                <span>Từ khóa AI</span>
+              </Button>
+            </div>
+          </CardContent>
         </Card>
 
         {/* Help Section */}
