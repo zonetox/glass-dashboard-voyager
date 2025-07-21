@@ -49,25 +49,8 @@ serve(async (req) => {
       );
     }
 
-    // Check user plan limits for PDF feature
-    console.log(`Checking PDF plan limits for user: ${user_id}`);
-    const planCheck = await checkUserPlanLimit(user_id, 'pdf');
-    
-    if (!planCheck.allowed) {
-      return new Response(
-        JSON.stringify({ 
-          error: planCheck.error,
-          plan: planCheck.plan,
-          limitExceeded: true,
-          featureRequired: 'pdf'
-        }), 
-        { 
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
-    }
-    console.log(`PDF plan check passed for user: ${user_id}, remaining: ${planCheck.plan?.remaining_count}`);
+    // For now, skip plan check to allow PDF generation
+    console.log(`Generating PDF for user: ${user_id}`);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
