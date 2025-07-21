@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { OnboardingTour } from '@/components/OnboardingTour';
+import { SimplifiedDashboard } from '@/components/SimplifiedDashboard';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -34,7 +35,8 @@ import {
   Bot,
   PenLine,
   LineChart,
-  Calendar
+  Calendar,
+  Settings2
 } from 'lucide-react';
 import EnhancedAutoFixStepper from '@/components/dashboard/EnhancedAutoFixStepper';
 import { OneClickFix } from '@/components/dashboard/OneClickFix';
@@ -68,6 +70,7 @@ export default function Dashboard() {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [selectedWebsite, setSelectedWebsite] = useState<string>('');
+  const [useSimplifiedView, setUseSimplifiedView] = useState(true);
   
   const { toast } = useToast();
   const notifications = useNotifications();
@@ -370,21 +373,57 @@ export default function Dashboard() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-background p-6">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">SEO Dashboard</h1>
-            <p className="text-muted-foreground">Quản lý và tối ưu SEO cho website của bạn</p>
-            {isNewUser && (
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 max-w-md mt-4">
-                <p className="text-blue-300 text-sm">
-                  🎉 Chào mừng bạn đến với SEO AI Tool! 
-                  Hướng dẫn sẽ bắt đầu trong giây lát...
-                </p>
+      {useSimplifiedView ? (
+        <SimplifiedDashboard
+          onAnalyze={(url) => {
+            setSelectedWebsite(url);
+            handleAnalyze();
+          }}
+          isAnalyzing={isAnalyzing}
+          analysisResult={analysisResult}
+          onGeneratePDF={handleGeneratePDF}
+          isGeneratingPDF={isGeneratingPDF}
+        />
+      ) : (
+        <div className="min-h-screen bg-background p-6">
+          <div className="max-w-7xl mx-auto">
+            {/* Header with View Toggle */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold text-foreground mb-2">SEO Dashboard</h1>
+                  <p className="text-muted-foreground">Quản lý và tối ưu SEO cho website của bạn</p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => setUseSimplifiedView(!useSimplifiedView)}
+                  className="flex items-center gap-2"
+                >
+                  <Settings2 className="h-4 w-4" />
+                  {useSimplifiedView ? 'Chế độ nâng cao' : 'Chế độ đơn giản'}
+                </Button>
               </div>
-            )}
-          </div>
+              {isNewUser && (
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 max-w-md mt-4">
+                  <p className="text-blue-300 text-sm">
+                    🎉 Chào mừng bạn đến với SEO AI Tool! 
+                    Hướng dẫn sẽ bắt đầu trong giây lát...
+                  </p>
+                </div>
+              )}
+              
+              {/* View Toggle Button */}
+              <div className="mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setUseSimplifiedView(!useSimplifiedView)}
+                  className="flex items-center gap-2"
+                >
+                  <Settings2 className="h-4 w-4" />
+                  Chuyển sang chế độ đơn giản
+                </Button>
+              </div>
+            </div>
 
           {/* Quick Domain Input */}
           <div className="mb-6">
@@ -908,6 +947,7 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+      )}
       
       <OnboardingTour 
         runTour={showOnboarding}
