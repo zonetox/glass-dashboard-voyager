@@ -63,8 +63,8 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/landing" element={<LandingPage />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/landing" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/scan/:id" element={<SharedScanView />} />
             <Route path="/upgrade" element={<Upgrade />} />
