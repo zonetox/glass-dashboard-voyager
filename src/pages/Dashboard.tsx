@@ -465,9 +465,9 @@ export default function Dashboard() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">
-                        {analysisResult?.seo_score || seoMetrics.overview.totalScore}/100
+                        {analysisResult?.seo_score ?? 0}/100
                       </div>
-                      <Progress value={analysisResult?.seo_score || seoMetrics.overview.totalScore} className="mt-2" />
+                      <Progress value={analysisResult?.seo_score ?? 0} className="mt-2" />
                     </CardContent>
                   </Card>
 
@@ -478,10 +478,10 @@ export default function Dashboard() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold text-red-600">
-                        {analysisResult?.issues?.length || seoMetrics.overview.totalIssues}
+                        {analysisResult?.issues?.length ?? 0}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {analysisResult?.critical_issues || seoMetrics.overview.criticalIssues} nghiêm trọng
+                        {analysisResult?.critical_issues ?? 0} nghiêm trọng
                       </p>
                     </CardContent>
                   </Card>
@@ -492,9 +492,9 @@ export default function Dashboard() {
                       <CheckCircle className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold text-green-600">{seoMetrics.overview.fixedIssues}</div>
+                      <div className="text-2xl font-bold text-green-600">{analysisResult?.fixed_issues ?? 0}</div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {seoMetrics.overview.goodItems} mục tốt
+                        {analysisResult?.good_items ?? 0} mục tốt
                       </p>
                     </CardContent>
                   </Card>
@@ -505,9 +505,9 @@ export default function Dashboard() {
                       <Globe className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-sm font-medium truncate">{selectedWebsite || currentWebsite?.url || 'Chưa có website'}</div>
+                      <div className="text-sm font-medium truncate">{selectedWebsite || analysisResult?.url || 'Chưa có website'}</div>
                       <Badge variant="outline" className="mt-2">
-                        {currentWebsite?.status || 'Pending'}
+                        {analysisResult ? 'completed' : 'pending'}
                       </Badge>
                     </CardContent>
                   </Card>
