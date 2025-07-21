@@ -137,23 +137,44 @@ export default function Dashboard() {
     setShowOnboarding(true);
   };
 
-  // Mock data
-  const mockWebsite: Website = {
-    id: 'demo-1',
-    url: 'https://example.com',
-    name: 'Example Website',
-    description: 'Demo website for SEO analysis',
-    category: 'Business',
-    lastScanDate: new Date().toISOString(),
-    lastAnalyzed: new Date().toISOString(),
-    seoScore: 75,
-    pageSpeedScore: 85,
-    mobileFriendlinessScore: 90,
-    securityScore: 95,
-    technologies: ['React', 'Tailwind CSS'],
-    status: 'completed',
-    content: '<html><head><title>Example</title></head><body><h1>Welcome</h1></body></html>'
-  };
+  // Get real website data from latest scan
+  const [currentWebsite, setCurrentWebsite] = useState<Website | null>(null);
+  
+  useEffect(() => {
+    const loadLatestScan = async () => {
+      const { data: latestScan } = await supabase
+        .from('scans')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (latestScan) {
+        const seoData = latestScan.seo as any;
+        setCurrentWebsite({
+          id: latestScan.id,
+          url: latestScan.url,
+          name: new URL(latestScan.url).hostname,
+          description: `SEO analysis for ${latestScan.url}`,
+          category: 'Website',
+          lastScanDate: latestScan.created_at,
+          lastAnalyzed: latestScan.created_at,
+          seoScore: seoData?.score || 0,
+          pageSpeedScore: seoData?.pageSpeed || 0,
+          mobileFriendlinessScore: seoData?.mobile || 0,
+          securityScore: seoData?.security || 0,
+          technologies: seoData?.technologies || [],
+          status: 'completed',
+          content: seoData?.content || ''
+        });
+      }
+    };
+    
+    if (user?.id) {
+      loadLatestScan();
+    }
+  }, [user?.id]);
 
   const seoMetrics = {
     overview: {
@@ -231,7 +252,7 @@ export default function Dashboard() {
   };
 
   const handleAnalyze = async () => {
-    const targetUrl = selectedWebsite || mockWebsite.url;
+    const targetUrl = selectedWebsite || currentWebsite?.url || 'https://example.com';
     if (!targetUrl) return;
     
     setIsAnalyzing(true);
@@ -263,7 +284,7 @@ export default function Dashboard() {
   const handleGeneratePDF = async () => {
     if (!analysisResult) return;
     
-    const targetUrl = selectedWebsite || mockWebsite.url;
+    const targetUrl = selectedWebsite || currentWebsite?.url || 'https://example.com';
     setIsGeneratingPDF(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -325,7 +346,7 @@ export default function Dashboard() {
           {/* Quick Actions Panel */}
           <div className="mb-8">
             <QuickActions
-              currentDomain={selectedWebsite || mockWebsite.url}
+              currentDomain={selectedWebsite || currentWebsite?.url || 'https://example.com'}
               seoScore={seoMetrics.overview.totalScore}
               totalIssues={seoMetrics.overview.totalIssues}
               criticalIssues={seoMetrics.overview.criticalIssues}
@@ -443,9 +464,9 @@ export default function Dashboard() {
                       <Globe className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-sm font-medium truncate">{selectedWebsite || mockWebsite.url}</div>
+                      <div className="text-sm font-medium truncate">{selectedWebsite || currentWebsite?.url || 'Chưa có website'}</div>
                       <Badge variant="outline" className="mt-2">
-                        {mockWebsite.status}
+                        {currentWebsite?.status || 'Pending'}
                       </Badge>
                     </CardContent>
                   </Card>
@@ -681,10 +702,10 @@ export default function Dashboard() {
                   </Card>
 
                   <OneClickFix
-                    url={mockWebsite.url}
-                    content={mockWebsite.content}
+                    url={currentWebsite?.url || 'https://example.com'}
+                    content={currentWebsite?.content || ''}
                     onBackupCreated={() => {
-                      notifications.showBackupCreated(mockWebsite.url);
+                      notifications.showBackupCreated(currentWebsite?.url || 'website');
                     }}
                   />
                 </div>
@@ -815,7 +836,7 @@ export default function Dashboard() {
           <EnhancedAutoFixStepper
             open={autoFixOpen}
             onClose={() => setAutoFixOpen(false)}
-            websiteUrl={mockWebsite.url}
+            websiteUrl={currentWebsite?.url || 'https://example.com'}
             aiAnalysis={analysisResult}
             onComplete={handleAutoFixComplete}
           />

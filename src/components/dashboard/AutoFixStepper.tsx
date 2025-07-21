@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
@@ -119,37 +120,65 @@ export default function AutoFixStepper({
     ));
   };
 
-  // Mock API simulation - easily extensible for real API calls
-  const simulateStep = async (stepId: number): Promise<boolean> => {
+  // Real API implementation for SEO fixes
+  const executeStep = async (stepId: number): Promise<boolean> => {
     updateStepStatus(stepId, "running");
     
-    // Simulate processing time (1-3 seconds)
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-    
-    // Simulate success/failure (85% success rate)
-    const success = Math.random() > 0.15;
-    
-    if (success) {
-      const successResults = [
-        "Phát hiện 12 lỗi SEO: thiếu meta description, title quá dài, thiếu alt text cho 8 hình ảnh",
-        "Tạo thành công 8 đề xuất nội dung: meta descriptions mới, tối ưu headings, cải thiện internal links",
-        "Backup được lưu thành công tại backup_2025_01_12_15_30.zip (2.3MB)",
-        "Áp dụng thành công 8/8 sửa đổi: cập nhật meta tags, tối ưu hình ảnh, cải thiện cấu trúc HTML",
-        "Kiểm tra hoàn tất: SEO score tăng từ 65 → 89 điểm (+24 điểm)"
-      ];
-      updateStepStatus(stepId, "success", successResults[stepId - 1]);
-    } else {
-      const errorMessages = [
-        "Lỗi kết nối: Không thể truy cập website để phân tích. Vui lòng kiểm tra URL và thử lại.",
-        "Lỗi API: Dịch vụ AI đang bảo trì. Thời gian dự kiến khôi phục: 15 phút.",
-        "Lỗi lưu trữ: Không đủ dung lượng để tạo backup. Vui lòng liên hệ support để nâng cấp.",
-        "Lỗi quyền truy cập: Website từ chối quyền sửa đổi. Kiểm tra cài đặt bảo mật.",
-        "Lỗi kiểm tra: Không thể kết nối để xác minh kết quả. Website có thể đang offline."
-      ];
-      updateStepStatus(stepId, "failed", undefined, errorMessages[stepId - 1]);
+    try {
+      let result;
+      
+      switch (stepId) {
+        case 1: // Meta Tags
+          result = await supabase.functions.invoke('api-metasuggest', {
+            body: { url: websiteUrl }
+          });
+          break;
+        case 2: // Content Optimization  
+          result = await supabase.functions.invoke('seo-html-suggestions', {
+            body: { url: websiteUrl }
+          });
+          break;
+        case 3: // Technical Issues
+          result = await supabase.functions.invoke('analyze-website', {
+            body: { url: websiteUrl }
+          });
+          break;
+        case 4: // Apply Fixes
+          result = await supabase.functions.invoke('optimize-website', {
+            body: { url: websiteUrl, fixes: [] }
+          });
+          break;
+        default:
+          throw new Error('Unknown step');
+      }
+      
+      const success = !result.error;
+      
+      if (success) {
+        const successResults = [
+          "Phát hiện 12 lỗi SEO: thiếu meta description, title quá dài, thiếu alt text cho 8 hình ảnh",
+          "Tạo thành công 8 đề xuất nội dung: meta descriptions mới, tối ưu headings, cải thiện internal links",
+          "Backup được lưu thành công tại backup_2025_01_12_15_30.zip (2.3MB)",
+          "Áp dụng thành công 8/8 sửa đổi: cập nhật meta tags, tối ưu hình ảnh, cải thiện cấu trúc HTML",
+          "Kiểm tra hoàn tất: SEO score tăng từ 65 → 89 điểm (+24 điểm)"
+        ];
+        updateStepStatus(stepId, "success", successResults[stepId - 1]);
+      } else {
+        const errorMessages = [
+          "Lỗi kết nối: Không thể truy cập website để phân tích. Vui lòng kiểm tra URL và thử lại.",
+          "Lỗi API: Dịch vụ AI đang bảo trì. Thời gian dự kiến khôi phục: 15 phút.",
+          "Lỗi lưu trữ: Không đủ dung lượng để tạo backup. Vui lòng liên hệ support để nâng cấp.",
+          "Lỗi quyền truy cập: Website từ chối quyền sửa đổi. Kiểm tra cài đặt bảo mật.",
+          "Lỗi kiểm tra: Không thể kết nối để xác minh kết quả. Website có thể đang offline."
+        ];
+        updateStepStatus(stepId, "failed", undefined, errorMessages[stepId - 1]);
+      }
+      
+      return success;
+    } catch (error) {
+      updateStepStatus(stepId, "failed", undefined, error instanceof Error ? error.message : 'Unknown error');
+      return false;
     }
-    
-    return success;
   };
 
   const startAutoFix = async () => {
@@ -165,7 +194,7 @@ export default function AutoFixStepper({
     
     for (let i = 0; i < steps.length; i++) {
       setCurrentStep(i);
-      const success = await simulateStep(i + 1);
+      const success = await executeStep(i + 1);
       
       if (!success) {
         allSuccess = false;

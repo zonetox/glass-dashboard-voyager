@@ -80,19 +80,21 @@ export default function PerformanceMonitor() {
 
   const loadSystemMetrics = async () => {
     try {
-      // Simulate real system metrics - in production, these would come from actual monitoring
-      const mockMetrics: SystemMetrics = {
-        cpu_usage: Math.floor(Math.random() * 30) + 15, // 15-45%
-        memory_usage: Math.floor(Math.random() * 25) + 35, // 35-60%
-        disk_usage: 45,
-        database_connections: Math.floor(Math.random() * 10) + 5,
-        api_response_time: Math.floor(Math.random() * 100) + 150, // 150-250ms
-        uptime: 99.8,
-        errors_last_hour: Math.floor(Math.random() * 3),
-        requests_per_minute: Math.floor(Math.random() * 50) + 100
+      // Get real system metrics from API logs and health endpoint
+      const { data: healthData } = await supabase.functions.invoke('check-api-health');
+      
+      const metrics: SystemMetrics = {
+        cpu_usage: healthData?.systemMetrics?.cpu || 0,
+        memory_usage: healthData?.systemMetrics?.memory || 0, 
+        disk_usage: healthData?.systemMetrics?.disk || 0,
+        database_connections: healthData?.database?.connections || 0,
+        api_response_time: healthData?.performance?.avgResponseTime || 0,
+        uptime: healthData?.systemMetrics?.uptime || 0,
+        errors_last_hour: healthData?.errors?.lastHour || 0,
+        requests_per_minute: healthData?.performance?.requestsPerMinute || 0
       };
 
-      setSystemMetrics(mockMetrics);
+      setSystemMetrics(metrics);
     } catch (error) {
       console.error('Error loading system metrics:', error);
     }
@@ -100,23 +102,38 @@ export default function PerformanceMonitor() {
 
   const loadPerformanceData = async () => {
     try {
-      // Generate mock performance data for the last 24 hours
-      const data: PerformanceData[] = [];
-      const now = new Date();
-      
-      for (let i = 23; i >= 0; i--) {
-        const timestamp = new Date(now.getTime() - i * 60 * 60 * 1000);
-        data.push({
-          timestamp: timestamp.toISOString(),
-          response_time: Math.floor(Math.random() * 100) + 150,
-          requests: Math.floor(Math.random() * 1000) + 500,
-          errors: Math.floor(Math.random() * 10),
-          cpu: Math.floor(Math.random() * 30) + 20,
-          memory: Math.floor(Math.random() * 25) + 40
-        });
-      }
+      // Get real performance data from API logs
+      const { data: apiLogs } = await supabase
+        .from('api_logs')
+        .select('created_at, response_time_ms, success')
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        .order('created_at', { ascending: true });
 
-      setPerformanceData(data);
+      // Group by hour and calculate metrics
+      const hourlyData: PerformanceData[] = [];
+      const groupedByHour: { [hour: string]: any[] } = {};
+      
+      apiLogs?.forEach(log => {
+        const hour = new Date(log.created_at).toISOString().substring(0, 13) + ':00:00.000Z';
+        if (!groupedByHour[hour]) groupedByHour[hour] = [];
+        groupedByHour[hour].push(log);
+      });
+
+      Object.entries(groupedByHour).forEach(([hour, logs]) => {
+        const avgResponseTime = logs.reduce((sum, log) => sum + (log.response_time_ms || 0), 0) / logs.length;
+        const errorCount = logs.filter(log => !log.success).length;
+        
+        hourlyData.push({
+          timestamp: hour,
+          response_time: Math.round(avgResponseTime),
+          requests: logs.length,
+          errors: errorCount,
+          cpu: 0, // Would need system monitoring for real CPU data
+          memory: 0 // Would need system monitoring for real memory data
+        });
+      });
+
+      setPerformanceData(hourlyData);
     } catch (error) {
       console.error('Error loading performance data:', error);
     }
@@ -133,16 +150,22 @@ export default function PerformanceMonitor() {
 
       const avgResponseTime = apiLogs?.reduce((acc, log) => acc + (log.response_time_ms || 0), 0) / (apiLogs?.length || 1);
 
-      const mockDbMetrics: DatabaseMetrics = {
-        active_connections: Math.floor(Math.random() * 5) + 3,
-        idle_connections: Math.floor(Math.random() * 10) + 5,
-        query_duration_avg: avgResponseTime || 45,
-        slow_queries: Math.floor(Math.random() * 3),
-        cache_hit_ratio: 95.2,
-        database_size: 1.8 // GB
+      const { data: slowQueries } = await supabase
+        .from('api_logs')
+        .select('*')
+        .gte('response_time_ms', 1000)
+        .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString());
+
+      const realDbMetrics: DatabaseMetrics = {
+        active_connections: 0, // Would need real DB monitoring
+        idle_connections: 0, // Would need real DB monitoring
+        query_duration_avg: avgResponseTime || 0,
+        slow_queries: slowQueries?.length || 0,
+        cache_hit_ratio: 0, // Would need real DB monitoring  
+        database_size: 0 // Would need real DB monitoring
       };
 
-      setDatabaseMetrics(mockDbMetrics);
+      setDatabaseMetrics(realDbMetrics);
     } catch (error) {
       console.error('Error loading database metrics:', error);
     }

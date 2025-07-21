@@ -10,6 +10,7 @@ import { StandardizedSEOAnalysis } from '@/lib/seo-schemas';
 import { useToast } from '@/hooks/use-toast';
 import { useScanHistory } from '@/hooks/useScanHistory';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Search, 
   CheckCircle2, 
@@ -89,11 +90,15 @@ export function SEOStandardization() {
     setLoading(true);
     
     try {
-      // Mock analysis for demonstration
-      const mockAnalysis = createMockAnalysis(url);
+      // Call real analysis API
+      const { data, error } = await supabase.functions.invoke('analyze-website', {
+        body: { url }
+      });
+
+      if (error) throw error;
       
-      // Validate the analysis
-      const validation = await SEOValidator.validateAnalysis(mockAnalysis, url);
+      // Validate the real analysis
+      const validation = await SEOValidator.validateAnalysis(data, url);
       
       if (validation.standardized) {
         setAnalysis(validation.standardized);
@@ -304,32 +309,4 @@ export function SEOStandardization() {
       </div>
     </div>
   );
-}
-
-// Mock analysis data for demonstration
-function createMockAnalysis(url: string): any {
-  return {
-    url,
-    id: crypto.randomUUID(),
-    user_id: 'user-123',
-    created_at: new Date().toISOString(),
-    seo: {
-      title: "Trang chủ - Website chất lượng cao",
-      description: "Khám phá dịch vụ chất lượng cao của chúng tôi. Liên hệ ngay để được tư vấn miễn phí và nhận ưu đại hấp dẫn.",
-      suggested_title: "Dịch vụ chất lượng cao - Tư vấn miễn phí | Website",
-      suggested_description: "Dịch vụ chuyên nghiệp với chất lượng cao. Tư vấn miễn phí 24/7. Đăng ký ngay để nhận ưu đãi đặc biệt lên đến 50%."
-    },
-    ai_analysis: {
-      rewrite: {
-        original: "Chúng tôi cung cấp dịch vụ tốt nhất",
-        improved: "Chúng tôi mang đến các giải pháp dịch vụ chuyên nghiệp, tối ưu chi phí và đảm bảo chất lượng cao nhất cho khách hàng",
-        confidence: 92,
-        keyword_density: 3.2,
-        readability: 85,
-        cta_added: true,
-        grammar_fixes: 2
-      },
-      score: 85
-    }
-  };
 }

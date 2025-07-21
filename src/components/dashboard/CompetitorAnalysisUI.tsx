@@ -51,6 +51,97 @@ interface CompetitorAnalysisUIProps {
   onAnalysisComplete?: (data: any) => void;
 }
 
+// Helper component for competitor comparison
+function CompetitorComparison({ competitor, getScoreColor, getComparisonIcon, formatNumber }: any) {
+  const [currentSite, setCurrentSite] = useState({
+    seoScore: 0,
+    organicKeywords: 0,
+    monthlyTraffic: 0,
+    backlinks: 0
+  });
+
+  useEffect(() => {
+    const loadCurrentSite = async () => {
+      const { data: latestScan } = await supabase
+        .from('scans')
+        .select('seo')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      const seoData = latestScan?.seo as any;
+      setCurrentSite({
+        seoScore: seoData?.score || 0,
+        organicKeywords: seoData?.keywords?.length || 0,
+        monthlyTraffic: seoData?.traffic || 0,
+        backlinks: seoData?.backlinks || 0
+      });
+    };
+    
+    loadCurrentSite();
+  }, []);
+
+  return (
+    <div className="grid md:grid-cols-2 gap-6">
+      <div className="space-y-4">
+        <h4 className="text-white font-medium">Your Website</h4>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+            <span className="text-gray-300">SEO Score</span>
+            <div className="flex items-center gap-2">
+              <span className={getScoreColor(currentSite.seoScore)}>{currentSite.seoScore}</span>
+              {getComparisonIcon(currentSite.seoScore, competitor.seoScore)}
+            </div>
+          </div>
+          <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
+            <span className="text-gray-300">Keywords</span>
+            <div className="flex items-center gap-2">
+              <span className="text-white">{formatNumber(currentSite.organicKeywords)}</span>
+              {getComparisonIcon(currentSite.organicKeywords, competitor.organicKeywords)}
+            </div>
+          </div>
+          <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
+            <span className="text-gray-300">Monthly Traffic</span>
+            <div className="flex items-center gap-2">
+              <span className="text-white">{formatNumber(currentSite.monthlyTraffic)}</span>
+              {getComparisonIcon(currentSite.monthlyTraffic, competitor.monthlyTraffic)}
+            </div>
+          </div>
+          <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
+            <span className="text-gray-300">Backlinks</span>
+            <div className="flex items-center gap-2">
+              <span className="text-white">{formatNumber(currentSite.backlinks)}</span>
+              {getComparisonIcon(currentSite.backlinks, competitor.backlinks)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h4 className="text-white font-medium">{competitor.domain}</h4>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+            <span className="text-gray-300">SEO Score</span>
+            <span className={getScoreColor(competitor.seoScore)}>{competitor.seoScore}</span>
+          </div>
+          <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
+            <span className="text-gray-300">Keywords</span>
+            <span className="text-white">{formatNumber(competitor.organicKeywords)}</span>
+          </div>
+          <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
+            <span className="text-gray-300">Monthly Traffic</span>
+            <span className="text-white">{formatNumber(competitor.monthlyTraffic)}</span>
+          </div>
+          <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
+            <span className="text-gray-300">Backlinks</span>
+            <span className="text-white">{formatNumber(competitor.backlinks)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function CompetitorAnalysisUI({ userDomain, onAnalysisComplete }: CompetitorAnalysisUIProps) {
   const { error, isError, clearError, withErrorHandling } = useErrorHandler();
   const { isLoading, progress, startLoading, updateProgress, stopLoading } = useLoadingState();
@@ -61,51 +152,6 @@ export function CompetitorAnalysisUI({ userDomain, onAnalysisComplete }: Competi
   const [comparisonMetric, setComparisonMetric] = useState('seoScore');
   const [filterStrength, setFilterStrength] = useState('all');
 
-  // Mock competitor data for demo
-  const mockCompetitors: CompetitorData[] = [
-    {
-      id: '1',
-      domain: 'competitor1.com',
-      title: 'Leading SEO Agency',
-      seoScore: 92,
-      organicKeywords: 15420,
-      monthlyTraffic: 125000,
-      backlinks: 8900,
-      topKeywords: ['seo services', 'digital marketing', 'website optimization', 'local seo', 'content marketing'],
-      contentGaps: ['voice search optimization', 'mobile-first indexing', 'core web vitals'],
-      strengthAreas: ['Technical SEO', 'Content Strategy', 'Link Building'],
-      weakAreas: ['Page Speed', 'Mobile Optimization'],
-      lastUpdated: '2024-01-15'
-    },
-    {
-      id: '2', 
-      domain: 'competitor2.com',
-      title: 'Digital Marketing Pro',
-      seoScore: 87,
-      organicKeywords: 12100,
-      monthlyTraffic: 98000,
-      backlinks: 6700,
-      topKeywords: ['ppc management', 'social media marketing', 'seo audit', 'keyword research', 'analytics'],
-      contentGaps: ['schema markup', 'international seo', 'technical audits'],
-      strengthAreas: ['PPC Campaign', 'Social Media', 'Analytics'],
-      weakAreas: ['Technical SEO', 'Content Depth'],
-      lastUpdated: '2024-01-14'
-    },
-    {
-      id: '3',
-      domain: 'competitor3.com', 
-      title: 'Growth Marketing Hub',
-      seoScore: 83,
-      organicKeywords: 9800,
-      monthlyTraffic: 76000,
-      backlinks: 5200,
-      topKeywords: ['growth hacking', 'conversion optimization', 'email marketing', 'lead generation', 'marketing automation'],
-      contentGaps: ['local seo strategies', 'e-commerce seo', 'video optimization'],
-      strengthAreas: ['Conversion Rate', 'Email Marketing', 'Lead Generation'],
-      weakAreas: ['Local SEO', 'Video Content'],
-      lastUpdated: '2024-01-13'
-    }
-  ];
 
   const analyzeCompetitors = withErrorHandling(async () => {
     if (!analysisUrl.trim()) {
@@ -117,19 +163,38 @@ export function CompetitorAnalysisUI({ userDomain, onAnalysisComplete }: Competi
     try {
       updateProgress(20, 'Finding competitors...');
       
-      // Simulate API call to competitor analysis
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call real competitor analysis API
+      const { data, error } = await supabase.functions.invoke('competitor-analysis', {
+        body: { 
+          userWebsiteUrl: analysisUrl,
+          competitorUrls: [] // Will auto-discover competitors
+        }
+      });
+
+      if (error) throw error;
       
-      updateProgress(50, 'Analyzing competitor strengths...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      updateProgress(50, 'Processing competitor data...');
       
-      updateProgress(80, 'Identifying content gaps...');
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
+      // Process real competitor data
+      const realCompetitors: CompetitorData[] = data?.competitors?.map((comp: any, index: number) => ({
+        id: `comp-${index + 1}`,
+        domain: comp.domain || '',
+        title: comp.title || comp.domain,
+        seoScore: comp.seoScore || 0,
+        organicKeywords: comp.organicKeywords || 0,
+        monthlyTraffic: comp.monthlyTraffic || 0,
+        backlinks: comp.backlinks || 0,
+        topKeywords: comp.topKeywords || [],
+        contentGaps: comp.contentGaps || [],
+        strengthAreas: comp.strengthAreas || [],
+        weakAreas: comp.weakAreas || [],
+        lastUpdated: new Date().toISOString().split('T')[0]
+      })) || [];
+
       updateProgress(100, 'Analysis complete!');
       
-      setCompetitors(mockCompetitors);
-      onAnalysisComplete?.(mockCompetitors);
+      setCompetitors(realCompetitors);
+      onAnalysisComplete?.(realCompetitors);
       
     } finally {
       stopLoading();
@@ -440,78 +505,12 @@ export function CompetitorAnalysisUI({ userDomain, onAnalysisComplete }: Competi
               <CardContent>
                 {selectedCompetitor && (
                   <div className="space-y-6">
-                    {(() => {
-                      const competitor = competitors.find(c => c.id === selectedCompetitor);
-                      if (!competitor) return null;
-                      
-                      // Mock current site data for comparison
-                      const currentSite = {
-                        seoScore: 75,
-                        organicKeywords: 8500,
-                        monthlyTraffic: 45000,
-                        backlinks: 3200
-                      };
-
-                      return (
-                        <div className="grid md:grid-cols-2 gap-6">
-                          <div className="space-y-4">
-                            <h4 className="text-white font-medium">Your Website</h4>
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                                <span className="text-gray-300">SEO Score</span>
-                                <div className="flex items-center gap-2">
-                                  <span className={getScoreColor(currentSite.seoScore)}>{currentSite.seoScore}</span>
-                                  {getComparisonIcon(currentSite.seoScore, competitor.seoScore)}
-                                </div>
-                              </div>
-                              <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
-                                <span className="text-gray-300">Keywords</span>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-white">{formatNumber(currentSite.organicKeywords)}</span>
-                                  {getComparisonIcon(currentSite.organicKeywords, competitor.organicKeywords)}
-                                </div>
-                              </div>
-                              <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
-                                <span className="text-gray-300">Monthly Traffic</span>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-white">{formatNumber(currentSite.monthlyTraffic)}</span>
-                                  {getComparisonIcon(currentSite.monthlyTraffic, competitor.monthlyTraffic)}
-                                </div>
-                              </div>
-                              <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
-                                <span className="text-gray-300">Backlinks</span>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-white">{formatNumber(currentSite.backlinks)}</span>
-                                  {getComparisonIcon(currentSite.backlinks, competitor.backlinks)}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="space-y-4">
-                            <h4 className="text-white font-medium">{competitor.domain}</h4>
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                                <span className="text-gray-300">SEO Score</span>
-                                <span className={getScoreColor(competitor.seoScore)}>{competitor.seoScore}</span>
-                              </div>
-                              <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
-                                <span className="text-gray-300">Keywords</span>
-                                <span className="text-white">{formatNumber(competitor.organicKeywords)}</span>
-                              </div>
-                              <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
-                                <span className="text-gray-300">Monthly Traffic</span>
-                                <span className="text-white">{formatNumber(competitor.monthlyTraffic)}</span>
-                              </div>
-                              <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
-                                <span className="text-gray-300">Backlinks</span>
-                                <span className="text-white">{formatNumber(competitor.backlinks)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
+                    <CompetitorComparison 
+                      competitor={competitors.find(c => c.id === selectedCompetitor)!}
+                      getScoreColor={getScoreColor}
+                      getComparisonIcon={getComparisonIcon}
+                      formatNumber={formatNumber}
+                    />
                   </div>
                 )}
               </CardContent>
