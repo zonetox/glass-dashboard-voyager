@@ -400,488 +400,484 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Main Tabs */}
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-12 lg:w-auto lg:inline-flex">{/* Changed from grid-cols-11 to grid-cols-12 */}
-              <TabsTrigger value="overview" className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                <span className="hidden sm:inline">Tổng quan</span>
-              </TabsTrigger>
-              <TabsTrigger value="analyzer" className="flex items-center gap-2">
-                <Search className="h-4 w-4" />
-                <span className="hidden sm:inline">Phân tích SEO</span>
-              </TabsTrigger>
-              <TabsTrigger value="ai-seo" className="flex items-center gap-2 seo-comparison">
-                <Sparkles className="h-4 w-4" />
-                <span className="hidden sm:inline">AI Intelligence</span>
-              </TabsTrigger>
-              <TabsTrigger value="auto-fix" className="flex items-center gap-2">
-                <Wrench className="h-4 w-4" />
-                <span className="hidden sm:inline">Auto Fix</span>
-              </TabsTrigger>
-              <TabsTrigger value="one-click" className="flex items-center gap-2">
-                <Zap className="h-4 w-4" />
-                <span className="hidden sm:inline">Tối ưu 1 lần</span>
-              </TabsTrigger>
-              <TabsTrigger value="keywords" className="flex items-center gap-2">
-                <Hash className="h-4 w-4" />
-                <span className="hidden sm:inline">AI Keywords</span>
-              </TabsTrigger>
-              <TabsTrigger value="ai-search" className="flex items-center gap-2">
-                <Bot className="h-4 w-4" />
-                <span className="hidden sm:inline">SEO for AI Search</span>
-              </TabsTrigger>
-              <TabsTrigger value="content" className="flex items-center gap-2">
-                <PenLine className="h-4 w-4" />
-                <span className="hidden sm:inline">AI Content Studio</span>
-              </TabsTrigger>
-              <TabsTrigger value="content-planner" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span className="hidden sm:inline">Kế hoạch nội dung</span>
-              </TabsTrigger>
-              <TabsTrigger value="reports" className="flex items-center gap-2 pdf-report-button">
-                <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">Báo cáo PDF</span>
-              </TabsTrigger>
-              <TabsTrigger value="predictive" className="flex items-center gap-2">
-                <LineChart className="h-4 w-4" />
-                <span className="hidden sm:inline">Predictive SEO</span>
-              </TabsTrigger>
-              <TabsTrigger value="account" className="flex items-center gap-2">
-                <Search className="h-4 w-4" />
-                <span className="hidden sm:inline">Tài khoản</span>
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Tab Content */}
-            <div className="mt-8">
-              {/* Overview Tab */}
-              <TabsContent value="overview" className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">SEO Score</CardTitle>
-                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
-                        {analysisResult?.seo_score ?? 0}/100
-                      </div>
-                      <Progress value={analysisResult?.seo_score ?? 0} className="mt-2" />
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Tổng số lỗi</CardTitle>
-                      <XCircle className="h-4 w-4 text-red-500" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-red-600">
-                        {analysisResult?.issues?.length ?? 0}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {analysisResult?.critical_issues ?? 0} nghiêm trọng
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Đã sửa</CardTitle>
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold text-green-600">{analysisResult?.fixed_issues ?? 0}</div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {analysisResult?.good_items ?? 0} mục tốt
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Website</CardTitle>
-                      <Globe className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-sm font-medium truncate">{selectedWebsite || analysisResult?.url || 'Chưa có website'}</div>
-                      <Badge variant="outline" className="mt-2">
-                        {analysisResult ? 'completed' : 'pending'}
-                      </Badge>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Bắt đầu phân tích mới</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col gap-4">
-                      <div className="flex items-center gap-4">
-                        <Button 
-                          onClick={handleAnalyze} 
-                          disabled={isAnalyzing}
-                          size="lg" 
-                          className="analyze-button"
+          {/* Main Layout with Vertical Sidebar */}
+          <div className="flex gap-6">
+            {/* Vertical Sidebar Menu */}
+            <div className="w-80 space-y-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Menu chức năng</CardTitle>
+                </CardHeader>
+                <CardContent className="p-3">
+                  <nav className="space-y-1">
+                    {[
+                      { value: "overview", icon: BarChart3, label: "Tổng quan" },
+                      { value: "analyzer", icon: Search, label: "Phân tích SEO" },
+                      { value: "ai-seo", icon: Sparkles, label: "AI Intelligence" },
+                      { value: "auto-fix", icon: Wrench, label: "Auto Fix" },
+                      { value: "one-click", icon: Zap, label: "Tối ưu 1 lần" },
+                      { value: "keywords", icon: Hash, label: "AI Keywords" },
+                      { value: "ai-search", icon: Bot, label: "SEO for AI Search" },
+                      { value: "content", icon: PenLine, label: "AI Content Studio" },
+                      { value: "content-planner", icon: Calendar, label: "Kế hoạch nội dung" },
+                      { value: "reports", icon: FileText, label: "Báo cáo PDF" },
+                      { value: "predictive", icon: LineChart, label: "Predictive SEO" },
+                      { value: "api-health", icon: Shield, label: "API Status" }
+                    ].map((item) => {
+                      const Icon = item.icon;
+                      const isActive = activeTab === item.value;
+                      return (
+                        <button
+                          key={item.value}
+                          onClick={() => handleTabChange(item.value)}
+                          className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-200 ${
+                            isActive 
+                              ? 'bg-primary text-primary-foreground shadow-md' 
+                              : 'hover:bg-muted/50 hover:shadow-sm'
+                          }`}
                         >
-                          {isAnalyzing ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Analyzing...
-                            </>
-                          ) : (
-                            <>
-                              <Play className="h-4 w-4 mr-2" />
-                              Bắt đầu phân tích
-                            </>
-                          )}
-                        </Button>
-                        <p className="text-sm text-muted-foreground">
-                          Quét toàn bộ website để phát hiện lỗi SEO mới nhất
-                        </p>
-                      </div>
-                      
-                      {isAnalyzing && (
-                        <StatusIndicator 
-                          status="loading" 
-                          message="Analyzing website SEO..." 
-                          size="sm"
-                        />
-                      )}
+                          <Icon className={`h-5 w-5 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
+                          <span className={`font-medium ${isActive ? 'text-primary-foreground' : 'text-foreground'}`}>
+                            {item.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </nav>
+                </CardContent>
+              </Card>
+            </div>
 
-                      {analysisResult && (
-                        <div className="flex gap-3">
-                          <Button
-                            onClick={handleGeneratePDF}
-                            disabled={isGeneratingPDF}
-                            variant="outline"
-                            className="border-green-500/20 text-green-400 hover:bg-green-500/10"
-                          >
-                            {isGeneratingPDF ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Generating PDF...
-                              </>
-                            ) : (
-                              <>
-                                <FileText className="mr-2 h-4 w-4" />
-                                Generate PDF Report
-                              </>
-                            )}
-                          </Button>
-                          
-                          {isGeneratingPDF && (
-                            <StatusIndicator 
-                              status="loading" 
-                              message="Generating PDF report..." 
-                              size="sm"
-                            />
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* SEO Analyzer Tab */}
-              <TabsContent value="analyzer" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Chỉ số kỹ thuật SEO</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-4">
-                      {seoMetrics.technical.map((metric, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 rounded-lg border">
-                          <div className="flex items-center gap-3">
-                            {getStatusIcon(metric.status)}
-                            <div>
-                              <div className="font-medium">{metric.name}</div>
-                              <div className="text-sm text-muted-foreground">{metric.description}</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <Badge variant={metric.status === 'success' ? 'default' : metric.status === 'warning' ? 'secondary' : 'destructive'}>
-                              {metric.score}/100
-                            </Badge>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <Info className="h-4 w-4 text-muted-foreground" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Điểm số dựa trên tiêu chuẩn SEO</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* AI Intelligence Tab */}
-              <TabsContent value="ai-seo" className="space-y-6">
-                <AIIntelligence />
-              </TabsContent>
-
-              {/* Auto Fix Tab */}
-              <TabsContent value="auto-fix" className="space-y-6">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Lỗi có thể sửa tự động</CardTitle>
-                    <div className="flex flex-col gap-3">
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => {
-                            handleAutoFix();
-                            setIsProcessingAI(true);
-                          }}
-                          disabled={selectedIssues.length === 0 || isProcessingAI}
-                          className="bg-primary ai-optimize-button"
-                        >
-                          {isProcessingAI ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Processing...
-                            </>
-                          ) : (
-                            <>
-                              <Wrench className="h-4 w-4 mr-2" />
-                              Fix tự động ({selectedIssues.length})
-                            </>
-                          )}
-                        </Button>
-                        <Button variant="outline">
-                          <RotateCcw className="h-4 w-4 mr-2" />
-                          Khôi phục bản cũ
-                        </Button>
-                      </div>
-                      
-                      {isProcessingAI && (
-                        <StatusIndicator 
-                          status="loading" 
-                          message="AI is processing optimizations..." 
-                          size="sm"
-                        />
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {seoMetrics.fixableIssues.map((issue) => (
-                        <div key={issue.id} className="flex items-center justify-between p-4 rounded-lg border">
-                          <div className="flex items-center gap-3">
-                            <Checkbox
-                              checked={selectedIssues.includes(issue.id)}
-                              onCheckedChange={() => handleIssueToggle(issue.id)}
-                              disabled={!issue.canAutoFix}
-                            />
-                            <div>
-                              <div className="font-medium">{issue.title}</div>
-                              <div className="text-sm text-muted-foreground">{issue.description}</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {issue.canAutoFix ? (
-                              <Badge variant="default">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Có thể fix
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary">
-                                <AlertTriangle className="h-3 w-3 mr-1" />
-                                Cần thủ công
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* One-Click SEO Tab */}
-              <TabsContent value="one-click" className="space-y-6">
-                <div className="max-w-4xl mx-auto space-y-6">
-                  {/* Hero Section */}
-                  <Card className="text-center">
-                    <CardHeader className="pb-4">
-                      <CardTitle className="text-2xl">Tối ưu SEO một lần</CardTitle>
-                      <p className="text-muted-foreground">
-                        Hệ thống sẽ tự động phân tích, đề xuất, viết lại và tối ưu mọi lỗi SEO hiện tại bằng AI Semantic
-                      </p>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            size="lg"
-                            className="h-16 text-lg px-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 ai-optimize-button"
-                            onClick={() => setOneClickFixOpen(true)}
-                          >
-                            <Wrench className="h-6 w-6 mr-3" />
-                            🔧 Tối ưu toàn bộ bằng AI
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p>Hệ thống sẽ tự động phân tích, đề xuất, viết lại và tối ưu mọi lỗi SEO hiện tại bằng AI Semantic</p>
-                        </TooltipContent>
-                      </Tooltip>
-
-                      <div className="text-sm text-muted-foreground space-y-1">
-                        <p>✅ Phân tích semantic và search intent</p>
-                        <p>✅ Tối ưu meta title, description, headings</p>
-                        <p>✅ Viết lại nội dung theo AI suggestions</p>
-                        <p>✅ Tự động backup trước khi thay đổi</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {currentWebsite?.url ? (
-                    <OneClickFix
-                      url={currentWebsite.url}
-                      content={currentWebsite.content || ''}
-                      onBackupCreated={() => {
-                        notifications.showBackupCreated(currentWebsite.url);
-                      }}
-                    />
-                  ) : (
+            {/* Content Area */}
+            <div className="flex-1">
+              <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+                <TabsContent value="overview" className="space-y-6 mt-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <Card>
-                      <CardContent className="text-center py-8">
-                        <p className="text-muted-foreground">
-                          Please analyze a website first to use One-Click optimization
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">SEO Score</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {analysisResult?.seo_score ?? 0}/100
+                        </div>
+                        <Progress value={analysisResult?.seo_score ?? 0} className="mt-2" />
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Tổng số lỗi</CardTitle>
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold text-red-600">
+                          {analysisResult?.issues?.length ?? 0}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {analysisResult?.critical_issues ?? 0} nghiêm trọng
                         </p>
                       </CardContent>
                     </Card>
-                  )}
-                </div>
-              </TabsContent>
 
-              {/* Keywords Tab */}
-              <TabsContent value="keywords" className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                  <Card className="glass-card">
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Đã sửa</CardTitle>
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold text-green-600">{analysisResult?.fixed_issues ?? 0}</div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {analysisResult?.good_items ?? 0} mục tốt
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Website</CardTitle>
+                        <Globe className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-sm font-medium truncate">{selectedWebsite || analysisResult?.url || 'Chưa có website'}</div>
+                        <Badge variant="outline" className="mt-2">
+                          {analysisResult ? 'completed' : 'pending'}
+                        </Badge>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Hash className="h-5 w-5 text-purple-500" />
-                        AI Keywords
-                      </CardTitle>
+                      <CardTitle>Bắt đầu phân tích mới</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-muted-foreground text-sm">
-                        Phân tích từ khóa thông minh với AI
-                      </p>
-                      <Button
-                        onClick={() => navigate('/ai-keywords')}
-                        className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-                      >
-                        <Hash className="h-4 w-4 mr-2" />
-                        AI Keywords
-                      </Button>
+                    <CardContent>
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-4">
+                          <Button 
+                            onClick={handleAnalyze} 
+                            disabled={isAnalyzing}
+                            size="lg" 
+                            className="analyze-button"
+                          >
+                            {isAnalyzing ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Analyzing...
+                              </>
+                            ) : (
+                              <>
+                                <Play className="h-4 w-4 mr-2" />
+                                Bắt đầu phân tích
+                              </>
+                            )}
+                          </Button>
+                          <p className="text-sm text-muted-foreground">
+                            Quét toàn bộ website để phát hiện lỗi SEO mới nhất
+                          </p>
+                        </div>
+                        
+                        {isAnalyzing && (
+                          <StatusIndicator 
+                            status="loading" 
+                            message="Analyzing website SEO..." 
+                            size="sm"
+                          />
+                        )}
+
+                        {analysisResult && (
+                          <div className="flex gap-3">
+                            <Button
+                              onClick={handleGeneratePDF}
+                              disabled={isGeneratingPDF}
+                              variant="outline"
+                              className="border-green-500/20 text-green-400 hover:bg-green-500/10"
+                            >
+                              {isGeneratingPDF ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Generating PDF...
+                                </>
+                              ) : (
+                                <>
+                                  <FileText className="mr-2 h-4 w-4" />
+                                  Generate PDF Report
+                                </>
+                              )}
+                            </Button>
+                            
+                            {isGeneratingPDF && (
+                              <StatusIndicator 
+                                status="loading" 
+                                message="Generating PDF report..." 
+                                size="sm"
+                              />
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
+                </TabsContent>
 
-                  <Card className="glass-card">
+                {/* SEO Analyzer Tab */}
+                <TabsContent value="analyzer" className="space-y-6">
+                  <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <TrendingUp className="h-5 w-5 text-blue-500" />
-                        So sánh đối thủ
-                      </CardTitle>
+                      <CardTitle>Chỉ số kỹ thuật SEO</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-muted-foreground text-sm">
-                        Phân tích đối thủ cạnh tranh
-                      </p>
-                      <Button
-                        onClick={() => navigate('/competitor-analysis')}
-                        className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
-                      >
-                        <TrendingUp className="h-4 w-4 mr-2" />
-                        So sánh
-                      </Button>
+                    <CardContent>
+                      <div className="grid gap-4">
+                        {seoMetrics.technical.map((metric, index) => (
+                          <div key={index} className="flex items-center justify-between p-4 rounded-lg border">
+                            <div className="flex items-center gap-3">
+                              {getStatusIcon(metric.status)}
+                              <div>
+                                <div className="font-medium">{metric.name}</div>
+                                <div className="text-sm text-muted-foreground">{metric.description}</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <Badge variant={metric.status === 'success' ? 'default' : metric.status === 'warning' ? 'secondary' : 'destructive'}>
+                                {metric.score}/100
+                              </Badge>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <Info className="h-4 w-4 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Điểm số dựa trên tiêu chuẩn SEO</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </CardContent>
                   </Card>
+                </TabsContent>
 
-                  <Card className="glass-card">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <BarChart3 className="h-5 w-5 text-green-500" />
-                        Dự báo trends
-                      </CardTitle>
+                {/* AI Intelligence Tab */}
+                <TabsContent value="ai-seo" className="space-y-6">
+                  <AIIntelligence />
+                </TabsContent>
+
+                {/* Auto Fix Tab */}
+                <TabsContent value="auto-fix" className="space-y-6">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle>Lỗi có thể sửa tự động</CardTitle>
+                      <div className="flex flex-col gap-3">
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => {
+                              handleAutoFix();
+                              setIsProcessingAI(true);
+                            }}
+                            disabled={selectedIssues.length === 0 || isProcessingAI}
+                            className="bg-primary ai-optimize-button"
+                          >
+                            {isProcessingAI ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                <Wrench className="h-4 w-4 mr-2" />
+                                Fix tự động ({selectedIssues.length})
+                              </>
+                            )}
+                          </Button>
+                          <Button variant="outline">
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Khôi phục bản cũ
+                          </Button>
+                        </div>
+                        
+                        {isProcessingAI && (
+                          <StatusIndicator 
+                            status="loading" 
+                            message="AI is processing optimizations..." 
+                            size="sm"
+                          />
+                        )}
+                      </div>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-muted-foreground text-sm">
-                        AI dự đoán xu hướng content
-                      </p>
-                      <Button
-                        onClick={() => navigate('/content-trends')}
-                        className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
-                      >
-                        <BarChart3 className="h-4 w-4 mr-2" />
-                        Trends
-                      </Button>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {seoMetrics.fixableIssues.map((issue) => (
+                          <div key={issue.id} className="flex items-center justify-between p-4 rounded-lg border">
+                            <div className="flex items-center gap-3">
+                              <Checkbox
+                                checked={selectedIssues.includes(issue.id)}
+                                onCheckedChange={() => handleIssueToggle(issue.id)}
+                                disabled={!issue.canAutoFix}
+                              />
+                              <div>
+                                <div className="font-medium">{issue.title}</div>
+                                <div className="text-sm text-muted-foreground">{issue.description}</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {issue.canAutoFix ? (
+                                <Badge variant="default">
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Có thể fix
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary">
+                                  <AlertTriangle className="h-3 w-3 mr-1" />
+                                  Cần thủ công
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </CardContent>
                   </Card>
+                </TabsContent>
 
-                  <Card className="glass-card">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Globe className="h-5 w-5 text-orange-500" />
-                        Local Business
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-muted-foreground text-sm">
-                        Tối ưu doanh nghiệp địa phương
-                      </p>
-                      <Button
-                        onClick={() => navigate('/local-business')}
-                        className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
-                      >
-                        <Globe className="h-4 w-4 mr-2" />
-                        Local SEO
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
+                {/* One-Click SEO Tab */}
+                <TabsContent value="one-click" className="space-y-6">
+                  <div className="max-w-4xl mx-auto space-y-6">
+                    {/* Hero Section */}
+                    <Card className="text-center">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-2xl">Tối ưu SEO một lần</CardTitle>
+                        <p className="text-muted-foreground">
+                          Hệ thống sẽ tự động phân tích, đề xuất, viết lại và tối ưu mọi lỗi SEO hiện tại bằng AI Semantic
+                        </p>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="lg"
+                              className="h-16 text-lg px-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 ai-optimize-button"
+                              onClick={() => setOneClickFixOpen(true)}
+                            >
+                              <Wrench className="h-6 w-6 mr-3" />
+                              🔧 Tối ưu toàn bộ bằng AI
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>Hệ thống sẽ tự động phân tích, đề xuất, viết lại và tối ưu mọi lỗi SEO hiện tại bằng AI Semantic</p>
+                          </TooltipContent>
+                        </Tooltip>
 
-              {/* AI Search Tab */}
-              <TabsContent value="ai-search" className="space-y-6">
-                <AISEOAnalysis />
-              </TabsContent>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <p>✅ Phân tích semantic và search intent</p>
+                          <p>✅ Tối ưu meta title, description, headings</p>
+                          <p>✅ Viết lại nội dung theo AI suggestions</p>
+                          <p>✅ Tự động backup trước khi thay đổi</p>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-              {/* AI Content Studio Tab */}
-              <TabsContent value="content" className="space-y-6">
-                <AIContentStudio />
-              </TabsContent>
+                    {currentWebsite?.url ? (
+                      <OneClickFix
+                        url={currentWebsite.url}
+                        content={currentWebsite.content || ''}
+                        onBackupCreated={() => {
+                          notifications.showBackupCreated(currentWebsite.url);
+                        }}
+                      />
+                    ) : (
+                      <Card>
+                        <CardContent className="text-center py-8">
+                          <p className="text-muted-foreground">
+                            Please analyze a website first to use One-Click optimization
+                          </p>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                </TabsContent>
 
-              {/* Content Planner Tab */}
-              <TabsContent value="content-planner" className="space-y-6">
-                <ContentPlanner />
-              </TabsContent>
+                {/* Keywords Tab */}
+                <TabsContent value="keywords" className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <Card className="glass-card">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Hash className="h-5 w-5 text-purple-500" />
+                          AI Keywords
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <p className="text-muted-foreground text-sm">
+                          Phân tích từ khóa thông minh với AI
+                        </p>
+                        <Button
+                          onClick={() => navigate('/ai-keywords')}
+                          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                        >
+                          <Hash className="h-4 w-4 mr-2" />
+                          AI Keywords
+                        </Button>
+                      </CardContent>
+                    </Card>
 
-              {/* Reports Tab */}
-              <TabsContent value="reports" className="space-y-6">
-                <ReportViewer />
-              </TabsContent>
+                    <Card className="glass-card">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <TrendingUp className="h-5 w-5 text-blue-500" />
+                          So sánh đối thủ
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <p className="text-muted-foreground text-sm">
+                          Phân tích đối thủ cạnh tranh
+                        </p>
+                        <Button
+                          onClick={() => navigate('/competitor-analysis')}
+                          className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
+                        >
+                          <TrendingUp className="h-4 w-4 mr-2" />
+                          So sánh
+                        </Button>
+                      </CardContent>
+                    </Card>
 
-              {/* Predictive SEO Tab */}
-              <TabsContent value="predictive" className="space-y-6">
-                <PredictiveDashboard />
-              </TabsContent>
+                    <Card className="glass-card">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <BarChart3 className="h-5 w-5 text-green-500" />
+                          Dự báo trends
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <p className="text-muted-foreground text-sm">
+                          AI dự đoán xu hướng content
+                        </p>
+                        <Button
+                          onClick={() => navigate('/content-trends')}
+                          className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+                        >
+                          <BarChart3 className="h-4 w-4 mr-2" />
+                          Trends
+                        </Button>
+                      </CardContent>
+                    </Card>
 
-              {/* Account Tab */}
-              <TabsContent value="account" className="space-y-6">
-                <AccountPage />
-              </TabsContent>
+                    <Card className="glass-card">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Globe className="h-5 w-5 text-orange-500" />
+                          Local Business
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <p className="text-muted-foreground text-sm">
+                          Tối ưu doanh nghiệp địa phương
+                        </p>
+                        <Button
+                          onClick={() => navigate('/local-business')}
+                          className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
+                        >
+                          <Globe className="h-4 w-4 mr-2" />
+                          Local SEO
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+
+                {/* AI Search Tab */}
+                <TabsContent value="ai-search" className="space-y-6">
+                  <AISEOAnalysis />
+                </TabsContent>
+
+                {/* AI Content Studio Tab */}
+                <TabsContent value="content" className="space-y-6">
+                  <AIContentStudio />
+                </TabsContent>
+
+                {/* Content Planner Tab */}
+                <TabsContent value="content-planner" className="space-y-6">
+                  <ContentPlanner />
+                </TabsContent>
+
+                {/* Reports Tab */}
+                <TabsContent value="reports" className="space-y-6">
+                  <ReportViewer />
+                </TabsContent>
+
+                {/* Predictive SEO Tab */}
+                <TabsContent value="predictive" className="space-y-6">
+                  <PredictiveDashboard />
+                </TabsContent>
+
+                {/* API Health Tab */}
+                <TabsContent value="api-health" className="space-y-6">
+                  <APIHealthPanel />
+                </TabsContent>
+              </Tabs>
             </div>
-          </Tabs>
+          </div>
 
           {/* Auto Fix Dialog */}
           {currentWebsite?.url && (
