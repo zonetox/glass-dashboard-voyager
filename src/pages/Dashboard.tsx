@@ -265,8 +265,16 @@ export default function Dashboard() {
 
   const handleAnalyze = async () => {
     const targetUrl = selectedWebsite || currentWebsite?.url;
-    if (!targetUrl) {
+    if (!targetUrl || targetUrl.trim() === '') {
       notifications.showError("URL Required", "Please enter a website URL to analyze");
+      return;
+    }
+
+    // Basic URL validation
+    try {
+      new URL(targetUrl.startsWith('http') ? targetUrl : `https://${targetUrl}`);
+    } catch (error) {
+      notifications.showError("Invalid URL", "Please enter a valid website URL (e.g., example.com)");
       return;
     }
     
@@ -278,19 +286,26 @@ export default function Dashboard() {
         return;
       }
 
+      console.log('Starting analysis for:', targetUrl);
       const response = await supabase.functions.invoke('analyze-website', {
-        body: { url: targetUrl }
+        body: { url: targetUrl.startsWith('http') ? targetUrl : `https://${targetUrl}` }
       });
 
+      console.log('Analysis response:', response);
+
       if (response.error) {
-        throw new Error(response.error.message);
+        throw new Error(response.error.message || 'Analysis failed');
+      }
+
+      if (!response.data) {
+        throw new Error('No analysis data received');
       }
 
       setAnalysisResult(response.data);
-      notifications.showSEOAnalysisComplete(targetUrl, response.data?.seo_score);
+      notifications.showSEOAnalysisComplete(targetUrl, response.data?.seo_score || 0);
     } catch (error) {
       console.error('Analysis failed:', error);
-      notifications.showError("Analysis Failed", error instanceof Error ? error.message : "Failed to analyze website");
+      notifications.showError("Analysis Failed", error instanceof Error ? error.message : "Failed to analyze website. Please try again.");
     } finally {
       setIsAnalyzing(false);
     }
