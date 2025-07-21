@@ -39,7 +39,7 @@ import {
   Settings2
 } from 'lucide-react';
 import EnhancedAutoFixStepper from '@/components/dashboard/EnhancedAutoFixStepper';
-import { OneClickFix } from '@/components/dashboard/OneClickFix';
+
 import AIIntelligence from '@/components/dashboard/AIIntelligence';
 import { ReportViewer } from '@/components/dashboard/ReportViewer';
 import { AccountPage } from '@/pages/AccountPage';
@@ -70,7 +70,7 @@ export default function Dashboard() {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [selectedWebsite, setSelectedWebsite] = useState<string>('');
-  const [useSimplifiedView, setUseSimplifiedView] = useState(true);
+  const [useSimplifiedView, setUseSimplifiedView] = useState(false);
   
   const { toast } = useToast();
   const notifications = useNotifications();
@@ -226,9 +226,13 @@ export default function Dashboard() {
     <TooltipProvider>
       <div className="min-h-screen bg-background">
         {/* View Toggle */}
-        <div className="flex justify-end p-4">
+        <div className="flex justify-between items-center p-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">SEO Dashboard - Advanced Mode</h1>
+            <p className="text-muted-foreground">Công cụ SEO chuyên nghiệp với đầy đủ tính năng</p>
+          </div>
           <Button
-            variant={useSimplifiedView ? "default" : "outline"}
+            variant="outline"
             onClick={() => setUseSimplifiedView(!useSimplifiedView)}
             className="gap-2"
           >
@@ -265,54 +269,54 @@ export default function Dashboard() {
 
             {/* Main Content */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-11">
+              <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12">
                 <TabsTrigger value="overview" className="flex items-center gap-2">
                   <BarChart3 className="h-4 w-4" />
-                  Tổng quan
+                  <span className="hidden lg:inline">Tổng quan</span>
                 </TabsTrigger>
                 <TabsTrigger value="analyzer" className="flex items-center gap-2">
                   <Search className="h-4 w-4" />
-                  SEO Analyzer
+                  <span className="hidden lg:inline">SEO Analyzer</span>
                 </TabsTrigger>
                 <TabsTrigger value="ai-intelligence" className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4" />
-                  AI Intelligence
+                  <span className="hidden lg:inline">AI Intelligence</span>
                 </TabsTrigger>
                 <TabsTrigger value="auto-fix" className="flex items-center gap-2">
                   <Wrench className="h-4 w-4" />
-                  Auto Fix
-                </TabsTrigger>
-                <TabsTrigger value="one-click" className="flex items-center gap-2">
-                  <Zap className="h-4 w-4" />
-                  One-Click SEO
-                </TabsTrigger>
-                <TabsTrigger value="keywords" className="flex items-center gap-2">
-                  <Hash className="h-4 w-4" />
-                  Keywords
+                  <span className="hidden lg:inline">Auto Fix</span>
                 </TabsTrigger>
                 <TabsTrigger value="ai-search" className="flex items-center gap-2">
                   <Bot className="h-4 w-4" />
-                  AI Search
+                  <span className="hidden lg:inline">AI Search</span>
                 </TabsTrigger>
                 <TabsTrigger value="content" className="flex items-center gap-2">
                   <PenLine className="h-4 w-4" />
-                  Content Studio
+                  <span className="hidden lg:inline">Content Studio</span>
                 </TabsTrigger>
                 <TabsTrigger value="content-planner" className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Content Planner
+                  <span className="hidden lg:inline">Content Planner</span>
                 </TabsTrigger>
                 <TabsTrigger value="reports" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
-                  Reports
+                  <span className="hidden lg:inline">Reports</span>
                 </TabsTrigger>
                 <TabsTrigger value="predictive" className="flex items-center gap-2">
                   <LineChart className="h-4 w-4" />
-                  Predictive SEO
+                  <span className="hidden lg:inline">Predictive SEO</span>
+                </TabsTrigger>
+                <TabsTrigger value="keywords" className="flex items-center gap-2">
+                  <Hash className="h-4 w-4" />
+                  <span className="hidden lg:inline">Keywords</span>
+                </TabsTrigger>
+                <TabsTrigger value="one-click" className="flex items-center gap-2">
+                  <Zap className="h-4 w-4" />
+                  <span className="hidden lg:inline">One-Click SEO</span>
                 </TabsTrigger>
                 <TabsTrigger value="api-health" className="flex items-center gap-2">
                   <Shield className="h-4 w-4" />
-                  API Status
+                  <span className="hidden lg:inline">API Status</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -411,6 +415,74 @@ export default function Dashboard() {
                 )}
               </TabsContent>
 
+              {/* Analyzer Tab */}
+              <TabsContent value="analyzer" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>SEO Website Analyzer</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <QuickDomainInput onAnalyze={handleAnalyze} size="lg" />
+                    {isAnalyzing && (
+                      <div className="flex items-center gap-2 mt-4">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Đang phân tích website...</span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Auto Fix Tab */}
+              <TabsContent value="auto-fix" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Auto Fix SEO Issues</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground mb-4">
+                      Tự động sửa lỗi SEO được phát hiện từ quá trình phân tích
+                    </p>
+                    <Button onClick={() => setAutoFixOpen(true)} disabled={!analysisResult}>
+                      <Wrench className="h-4 w-4 mr-2" />
+                      Bắt đầu Auto Fix
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* One Click SEO Tab */}
+              <TabsContent value="one-click" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>One-Click SEO Optimization</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground mb-4">
+                      Tối ưu SEO một cách nhanh chóng với một cú click
+                    </p>
+                    <Button onClick={() => setOneClickFixOpen(true)} disabled={!analysisResult}>
+                      <Zap className="h-4 w-4 mr-2" />
+                      One-Click Optimize
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Keywords Tab */}
+              <TabsContent value="keywords" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Keyword Research & Analysis</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground">
+                      Tính năng nghiên cứu từ khóa đang được phát triển...
+                    </p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
               {/* AI Intelligence Tab */}
               <TabsContent value="ai-intelligence" className="space-y-6">
                 <AIIntelligence />
@@ -448,6 +520,21 @@ export default function Dashboard() {
             </Tabs>
           </div>
         )}
+
+        {/* Auto Fix Dialog */}
+        {selectedWebsite && (
+          <EnhancedAutoFixStepper
+            open={autoFixOpen}
+            onClose={() => setAutoFixOpen(false)}
+            websiteUrl={selectedWebsite}
+            aiAnalysis={analysisResult}
+            onComplete={() => {
+              setAutoFixOpen(false);
+              notifications.showAIFixComplete(5);
+            }}
+          />
+        )}
+
 
         <OnboardingTour 
           runTour={showOnboarding}

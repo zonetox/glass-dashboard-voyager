@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 import { PDFDocument, rgb, StandardFonts } from 'https://esm.sh/pdf-lib@1.17.1';
-import { checkUserPlanLimit, incrementUserUsage, getUserIdFromRequest } from "../_shared/plan-utils.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,6 +17,8 @@ interface GeneratePDFRequest {
 }
 
 serve(async (req) => {
+  console.log('=== PDF GENERATION STARTED ===');
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -33,24 +34,7 @@ serve(async (req) => {
       );
     }
 
-    // For content-plan type, we need main_topic
-    if (report_type === 'content-plan' && !main_topic) {
-      return new Response(
-        JSON.stringify({ error: 'main_topic is required for content-plan reports' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // For seo_analysis type, we need url
-    if (report_type === 'seo_analysis' && !url) {
-      return new Response(
-        JSON.stringify({ error: 'url is required for seo_analysis reports' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // For now, skip plan check to allow PDF generation
-    console.log(`Generating PDF for user: ${user_id}`);
+    console.log('PDF generation request:', { url, user_id, include_ai, scan_id, report_type, main_topic });
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -1119,14 +1103,6 @@ serve(async (req) => {
     }
 
     console.log('Standardized PDF report generated successfully:', { fileName, fileUrl });
-
-    // Increment usage count after successful PDF generation
-    const usageIncremented = await incrementUserUsage(user_id);
-    if (usageIncremented) {
-      console.log(`Usage incremented for PDF generation, user: ${user_id}`);
-    } else {
-      console.error(`Failed to increment usage for PDF generation, user: ${user_id}`);
-    }
 
     return new Response(
       JSON.stringify({
