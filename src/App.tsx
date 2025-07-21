@@ -22,6 +22,7 @@ import SharedScanView from "./pages/SharedScanView";
 import Upgrade from "./pages/Upgrade";
 import ThankYou from "./pages/ThankYou";
 import { SEOStandardization } from "./pages/SEOStandardization";
+import { AccountPage } from "./pages/AccountPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,7 +70,15 @@ const App = () => (
               <Route path="/scan/:id" element={<SharedScanView />} />
               <Route path="/upgrade" element={<Upgrade />} />
               <Route path="/thank-you" element={<ThankYou />} />
-              <Route path="/seo-standardization" element={<SEOStandardization />} />
+            <Route path="/seo-standardization" element={<SEOStandardization />} />
+            <Route 
+              path="/account" 
+              element={
+                <ProtectedRoute>
+                  <AccountPage />
+                </ProtectedRoute>
+              } 
+            />
             <Route 
               path="/dashboard" 
               element={
