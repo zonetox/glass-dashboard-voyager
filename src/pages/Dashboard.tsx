@@ -176,46 +176,58 @@ export default function Dashboard() {
     }
   }, [user?.id]);
 
-  const seoMetrics = {
+  // Get real SEO metrics from analysis result or database
+  const [seoMetrics, setSeoMetrics] = useState<any>({
     overview: {
-      totalScore: 75,
-      totalIssues: 12,
-      fixedIssues: 8,
-      criticalIssues: 3,
-      warningIssues: 6,
-      goodItems: 18
+      totalScore: 0,
+      totalIssues: 0,
+      fixedIssues: 0,
+      criticalIssues: 0,
+      warningIssues: 0,
+      goodItems: 0
     },
-    technical: [
-      { name: 'Meta Description', status: 'error', score: 45, description: 'Thiếu hoặc quá ngắn' },
-      { name: 'Title Tags', status: 'warning', score: 78, description: 'Một số trang bị trùng lặp' },
-      { name: 'Heading Structure', status: 'success', score: 95, description: 'Cấu trúc tốt' },
-      { name: 'Alt Text', status: 'error', score: 35, description: '8 hình ảnh thiếu alt text' },
-      { name: 'Schema Markup', status: 'warning', score: 65, description: 'Thiếu structured data' },
-      { name: 'Page Speed', status: 'success', score: 85, description: 'Tốc độ tải nhanh' },
-    ],
-    fixableIssues: [
-      { id: '1', title: 'Thiếu meta description', description: '5 trang thiếu meta description', canAutoFix: true },
-      { id: '2', title: 'Alt text cho hình ảnh', description: '8 hình ảnh không có alt text', canAutoFix: true },
-      { id: '3', title: 'Heading structure', description: '3 trang có h1 trùng lặp', canAutoFix: true },
-      { id: '4', title: 'Internal linking', description: 'Thiếu liên kết nội bộ', canAutoFix: false },
-      { id: '5', title: 'Schema markup', description: 'Thiếu structured data cho sản phẩm', canAutoFix: true },
-    ]
-  };
+    technical: [],
+    fixableIssues: []
+  });
 
-  const aiComparison = {
-    traditional: {
-      score: 65,
-      eeat: 45,
-      searchIntent: 60,
-      contentGap: 'Thiếu 12 chủ đề chính'
-    },
-    ai: {
-      score: 89,
-      eeat: 85,
-      searchIntent: 92,
-      contentGap: 'Đầy đủ với 24 chủ đề mở rộng'
-    }
-  };
+  // Load real SEO data
+  useEffect(() => {
+    const loadSEOMetrics = async () => {
+      if (!user?.id) return;
+
+      try {
+        // Get latest scan results
+        const { data: scans } = await supabase
+          .from('scans')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (scans && scans.length > 0) {
+          const latestScan = scans[0];
+          const seoData = latestScan.seo as any;
+
+          setSeoMetrics({
+            overview: {
+              totalScore: seoData?.score || 0,
+              totalIssues: seoData?.issues?.length || 0,
+              fixedIssues: seoData?.fixed_issues || 0,
+              criticalIssues: seoData?.critical_issues || 0,
+              warningIssues: seoData?.warning_issues || 0,
+              goodItems: seoData?.good_items || 0
+            },
+            technical: seoData?.technical_issues || [],
+            fixableIssues: seoData?.issues || []
+          });
+        }
+      } catch (error) {
+        console.error('Error loading SEO metrics:', error);
+      }
+    };
+
+    loadSEOMetrics();
+  }, [user?.id, analysisResult]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -252,8 +264,11 @@ export default function Dashboard() {
   };
 
   const handleAnalyze = async () => {
-    const targetUrl = selectedWebsite || currentWebsite?.url || 'https://example.com';
-    if (!targetUrl) return;
+    const targetUrl = selectedWebsite || currentWebsite?.url;
+    if (!targetUrl) {
+      notifications.showError("URL Required", "Please enter a website URL to analyze");
+      return;
+    }
     
     setIsAnalyzing(true);
     try {
@@ -282,9 +297,16 @@ export default function Dashboard() {
   };
 
   const handleGeneratePDF = async () => {
-    if (!analysisResult) return;
+    if (!analysisResult) {
+      notifications.showError("No Analysis Data", "Please analyze a website first before generating a PDF report");
+      return;
+    }
     
-    const targetUrl = selectedWebsite || currentWebsite?.url || 'https://example.com';
+    const targetUrl = selectedWebsite || currentWebsite?.url;
+    if (!targetUrl) {
+      notifications.showError("URL Required", "Website URL is required to generate report");
+      return;
+    }
     setIsGeneratingPDF(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -346,10 +368,10 @@ export default function Dashboard() {
           {/* Quick Actions Panel */}
           <div className="mb-8">
             <QuickActions
-              currentDomain={selectedWebsite || currentWebsite?.url || 'https://example.com'}
-              seoScore={seoMetrics.overview.totalScore}
-              totalIssues={seoMetrics.overview.totalIssues}
-              criticalIssues={seoMetrics.overview.criticalIssues}
+              currentDomain={selectedWebsite || currentWebsite?.url || ''}
+              seoScore={analysisResult?.seo_score || seoMetrics.overview.totalScore}
+              totalIssues={analysisResult?.issues?.length || seoMetrics.overview.totalIssues}
+              criticalIssues={analysisResult?.critical_issues || seoMetrics.overview.criticalIssues}
               fixedIssues={seoMetrics.overview.fixedIssues}
               onQuickScan={handleAnalyze}
               onGeneratePDF={handleGeneratePDF}
@@ -427,8 +449,10 @@ export default function Dashboard() {
                       <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{seoMetrics.overview.totalScore}/100</div>
-                      <Progress value={seoMetrics.overview.totalScore} className="mt-2" />
+                      <div className="text-2xl font-bold">
+                        {analysisResult?.seo_score || seoMetrics.overview.totalScore}/100
+                      </div>
+                      <Progress value={analysisResult?.seo_score || seoMetrics.overview.totalScore} className="mt-2" />
                     </CardContent>
                   </Card>
 
@@ -438,9 +462,11 @@ export default function Dashboard() {
                       <XCircle className="h-4 w-4 text-red-500" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold text-red-600">{seoMetrics.overview.totalIssues}</div>
+                      <div className="text-2xl font-bold text-red-600">
+                        {analysisResult?.issues?.length || seoMetrics.overview.totalIssues}
+                      </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {seoMetrics.overview.criticalIssues} nghiêm trọng
+                        {analysisResult?.critical_issues || seoMetrics.overview.criticalIssues} nghiêm trọng
                       </p>
                     </CardContent>
                   </Card>
@@ -701,13 +727,23 @@ export default function Dashboard() {
                     </CardContent>
                   </Card>
 
-                  <OneClickFix
-                    url={currentWebsite?.url || 'https://example.com'}
-                    content={currentWebsite?.content || ''}
-                    onBackupCreated={() => {
-                      notifications.showBackupCreated(currentWebsite?.url || 'website');
-                    }}
-                  />
+                  {currentWebsite?.url ? (
+                    <OneClickFix
+                      url={currentWebsite.url}
+                      content={currentWebsite.content || ''}
+                      onBackupCreated={() => {
+                        notifications.showBackupCreated(currentWebsite.url);
+                      }}
+                    />
+                  ) : (
+                    <Card>
+                      <CardContent className="text-center py-8">
+                        <p className="text-muted-foreground">
+                          Please analyze a website first to use One-Click optimization
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               </TabsContent>
 
@@ -833,13 +869,15 @@ export default function Dashboard() {
           </Tabs>
 
           {/* Auto Fix Dialog */}
-          <EnhancedAutoFixStepper
-            open={autoFixOpen}
-            onClose={() => setAutoFixOpen(false)}
-            websiteUrl={currentWebsite?.url || 'https://example.com'}
-            aiAnalysis={analysisResult}
-            onComplete={handleAutoFixComplete}
-          />
+          {currentWebsite?.url && (
+            <EnhancedAutoFixStepper
+              open={autoFixOpen}
+              onClose={() => setAutoFixOpen(false)}
+              websiteUrl={currentWebsite.url}
+              aiAnalysis={analysisResult}
+              onComplete={handleAutoFixComplete}
+            />
+          )}
         </div>
       </div>
       

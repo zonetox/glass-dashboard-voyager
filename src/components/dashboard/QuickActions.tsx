@@ -37,11 +37,11 @@ interface QuickActionsProps {
 }
 
 export function QuickActions({
-  currentDomain = 'example.com',
-  seoScore = 75,
-  totalIssues = 12,
-  criticalIssues = 3,
-  fixedIssues = 8,
+  currentDomain = '',
+  seoScore = 0,
+  totalIssues = 0,
+  criticalIssues = 0,
+  fixedIssues = 0,
   onQuickScan,
   onGeneratePDF,
   onQuickOptimize,
