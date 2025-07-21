@@ -42,8 +42,11 @@ export function SimplifiedDashboard({
 
   const handleAnalyze = () => {
     if (url.trim()) {
+      console.log('SimplifiedDashboard: Starting analysis for', url);
       onAnalyze(url);
       setCurrentStep(2);
+    } else {
+      alert('Vui lòng nhập địa chỉ website');
     }
   };
 

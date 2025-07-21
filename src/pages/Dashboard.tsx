@@ -101,18 +101,13 @@ export default function Dashboard() {
         if (profile) {
           const createdAt = new Date(profile.created_at);
           const now = new Date();
-          const timeDiff = now.getTime() - createdAt.getTime();
-          const minutesDiff = timeDiff / (1000 * 60);
-
-          const isRecentSignup = minutesDiff < 5;
-          const hasNeverLoggedIn = !profile.last_login_at;
-
-          if (isRecentSignup && hasNeverLoggedIn) {
+          const diffMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60);
+          
+          if (diffMinutes < 5 && !profile.last_login_at) {
             setIsNewUser(true);
-            // Small delay to ensure page is rendered
             setTimeout(() => {
               setShowOnboarding(true);
-            }, 1500);
+            }, 2000);
           }
         }
       } catch (error) {
@@ -123,836 +118,342 @@ export default function Dashboard() {
     checkOnboardingStatus();
   }, [user]);
 
-  const handleTabChange = (tabId: string) => {
-    setActiveTab(tabId);
-    if (tabId === 'overview') {
-      navigate('/dashboard');
-    } else {
-      navigate(`/dashboard?tab=${tabId}`);
-    }
-  };
-
-  const handleOnboardingEnd = () => {
-    setShowOnboarding(false);
-  };
-
-  const restartOnboarding = () => {
-    setShowOnboarding(true);
-  };
-
-  // Get real website data from latest scan
-  const [currentWebsite, setCurrentWebsite] = useState<Website | null>(null);
-  
-  useEffect(() => {
-    const loadLatestScan = async () => {
-      const { data: latestScan } = await supabase
-        .from('scans')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (latestScan) {
-        const seoData = latestScan.seo as any;
-        setCurrentWebsite({
-          id: latestScan.id,
-          url: latestScan.url,
-          name: new URL(latestScan.url).hostname,
-          description: `SEO analysis for ${latestScan.url}`,
-          category: 'Website',
-          lastScanDate: latestScan.created_at,
-          lastAnalyzed: latestScan.created_at,
-          seoScore: seoData?.score || 0,
-          pageSpeedScore: seoData?.pageSpeed || 0,
-          mobileFriendlinessScore: seoData?.mobile || 0,
-          securityScore: seoData?.security || 0,
-          technologies: seoData?.technologies || [],
-          status: 'completed',
-          content: seoData?.content || ''
-        });
-      }
-    };
-    
-    if (user?.id) {
-      loadLatestScan();
-    }
-  }, [user?.id]);
-
-  // Get real SEO metrics from analysis result or database
-  const [seoMetrics, setSeoMetrics] = useState<any>({
-    overview: {
-      totalScore: 0,
-      totalIssues: 0,
-      fixedIssues: 0,
-      criticalIssues: 0,
-      warningIssues: 0,
-      goodItems: 0
-    },
-    technical: [],
-    fixableIssues: []
-  });
-
-  // Load real SEO data
-  useEffect(() => {
-    const loadSEOMetrics = async () => {
-      if (!user?.id) return;
-
-      try {
-        // Get latest scan results
-        const { data: scans } = await supabase
-          .from('scans')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (scans && scans.length > 0) {
-          const latestScan = scans[0];
-          const seoData = latestScan.seo as any;
-
-          setSeoMetrics({
-            overview: {
-              totalScore: seoData?.score || 0,
-              totalIssues: seoData?.issues?.length || 0,
-              fixedIssues: seoData?.fixed_issues || 0,
-              criticalIssues: seoData?.critical_issues || 0,
-              warningIssues: seoData?.warning_issues || 0,
-              goodItems: seoData?.good_items || 0
-            },
-            technical: seoData?.technical_issues || [],
-            fixableIssues: seoData?.issues || []
-          });
-        }
-      } catch (error) {
-        console.error('Error loading SEO metrics:', error);
-      }
-    };
-
-    loadSEOMetrics();
-  }, [user?.id, analysisResult]);
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'success': return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'warning': return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
-      case 'error': return <XCircle className="h-5 w-5 text-red-500" />;
-      default: return <Info className="h-5 w-5 text-muted-foreground" />;
-    }
-  };
-
-  const handleIssueToggle = (issueId: string) => {
-    setSelectedIssues(prev => 
-      prev.includes(issueId) 
-        ? prev.filter(id => id !== issueId)
-        : [...prev, issueId]
-    );
-  };
-
-  const handleAutoFix = () => {
-    if (selectedIssues.length > 0) {
-      setAutoFixOpen(true);
-    }
-  };
-
-  const handleAutoFixComplete = (result: any) => {
-    setAutoFixOpen(false);
-    setIsProcessingAI(false);
-    setSelectedIssues([]);
-    
-    if (result?.success) {
-      const changesCount = result.changes?.length || 0;
-      notifications.showAIFixComplete(changesCount);
-    }
-  };
-
-  const handleAnalyze = async () => {
-    const targetUrl = selectedWebsite || currentWebsite?.url;
-    if (!targetUrl || targetUrl.trim() === '') {
-      notifications.showError("URL Required", "Please enter a website URL to analyze");
-      return;
-    }
-
-    // Basic URL validation
-    try {
-      new URL(targetUrl.startsWith('http') ? targetUrl : `https://${targetUrl}`);
-    } catch (error) {
-      notifications.showError("Invalid URL", "Please enter a valid website URL (e.g., example.com)");
+  // Website analysis
+  const handleAnalyze = async (url: string) => {
+    if (!url || !user) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập địa chỉ website và đảm bảo bạn đã đăng nhập",
+        variant: "destructive"
+      });
       return;
     }
     
     setIsAnalyzing(true);
+    setSelectedWebsite(url);
+    
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        notifications.showError("Authentication required", "Please sign in to analyze websites");
-        return;
-      }
-
-      console.log('Starting analysis for:', targetUrl);
-      const response = await supabase.functions.invoke('analyze-website', {
-        body: { url: targetUrl.startsWith('http') ? targetUrl : `https://${targetUrl}` }
+      console.log('Starting analysis for:', url);
+      
+      const { data, error } = await supabase.functions.invoke('analyze-website', {
+        body: { url }
       });
 
-      console.log('Analysis response:', response);
-
-      if (response.error) {
-        throw new Error(response.error.message || 'Analysis failed');
+      if (error) {
+        console.error('Analysis error:', error);
+        throw error;
       }
 
-      if (!response.data) {
-        throw new Error('No analysis data received');
-      }
-
-      console.log('Raw analysis response data:', response.data);
-      setAnalysisResult(response.data);
+      console.log('Analysis result:', data);
+      setAnalysisResult(data);
+      notifications.showSEOAnalysisComplete(url, data?.seo_score);
       
-      // Also save to database for persistence
-      const scanData = {
-        user_id: user.id,
-        url: targetUrl.startsWith('http') ? targetUrl : `https://${targetUrl}`,
-        seo: response.data,
-        ai_analysis: response.data.ai_analysis || {}
-      };
+      // Store in database
+      const { error: insertError } = await supabase
+        .from('scans')
+        .insert({
+          url: url,
+          user_id: user.id,
+          seo: data
+        });
 
-      console.log('Saving scan data:', scanData);
-      const { error: insertError } = await supabase.from('scans').insert(scanData);
       if (insertError) {
-        console.error('Error saving scan data:', insertError);
+        console.error('Error storing scan:', insertError);
       }
-      
-      console.log('Updated analysisResult state:', response.data);
-      notifications.showSEOAnalysisComplete(targetUrl, response.data?.seo_score || 0);
+
     } catch (error) {
-      console.error('Analysis failed:', error);
-      notifications.showError("Analysis Failed", error instanceof Error ? error.message : "Failed to analyze website. Please try again.");
+      console.error('Error analyzing website:', error);
+      notifications.showError('Lỗi phân tích', 'Không thể phân tích website. Vui lòng thử lại.');
     } finally {
       setIsAnalyzing(false);
     }
   };
 
+  // PDF generation
   const handleGeneratePDF = async () => {
-    if (!analysisResult) {
-      notifications.showError("No Analysis Data", "Please analyze a website first before generating a PDF report");
+    if (!analysisResult || !user || !selectedWebsite) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng thực hiện phân tích website trước khi tạo báo cáo PDF",
+        variant: "destructive"
+      });
       return;
     }
-    
-    const targetUrl = selectedWebsite || currentWebsite?.url;
-    if (!targetUrl) {
-      notifications.showError("URL Required", "Website URL is required to generate report");
-      return;
-    }
-    setIsGeneratingPDF(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        notifications.showError("Authentication required", "Please sign in to generate PDF reports");
-        return;
-      }
 
-      const response = await supabase.functions.invoke('generate-pdf-report', {
-        body: { 
-          url: targetUrl,
-          analysisData: analysisResult,
-          includeAI: true
+    setIsGeneratingPDF(true);
+    
+    try {
+      console.log('Generating PDF for:', selectedWebsite);
+      
+      const { data, error } = await supabase.functions.invoke('generate-pdf-report', {
+        body: {
+          url: selectedWebsite,
+          user_id: user.id,
+          include_ai: true
         }
       });
 
-      if (response.error) {
-        throw new Error(response.error.message);
+      if (error) {
+        console.error('PDF generation error:', error);
+        throw error;
       }
 
-      notifications.showPDFGenerationComplete(response.data?.downloadUrl);
+      console.log('PDF generated:', data);
+      
+      if (data?.file_url) {
+        // Open PDF in new tab
+        window.open(data.file_url, '_blank');
+        notifications.showPDFGenerationComplete(data.file_url);
+      }
+
     } catch (error) {
-      console.error('PDF generation failed:', error);
-      notifications.showError("PDF Generation Failed", error instanceof Error ? error.message : "Failed to generate PDF report");
+      console.error('Error generating PDF:', error);
+      notifications.showError('Lỗi tạo PDF', 'Không thể tạo báo cáo PDF. Vui lòng thử lại.');
     } finally {
       setIsGeneratingPDF(false);
     }
   };
 
+  const handleOnboardingEnd = () => {
+    setShowOnboarding(false);
+    if (user) {
+      // Just mark onboarding as complete locally
+      console.log('Onboarding completed for user:', user.id);
+    }
+  };
+
   return (
     <TooltipProvider>
-      {useSimplifiedView ? (
-        <SimplifiedDashboard
-          onAnalyze={(url) => {
-            setSelectedWebsite(url);
-            handleAnalyze();
-          }}
-          isAnalyzing={isAnalyzing}
-          analysisResult={analysisResult}
-          onGeneratePDF={handleGeneratePDF}
-          isGeneratingPDF={isGeneratingPDF}
-        />
-      ) : (
-        <div className="min-h-screen bg-background p-6">
-          <div className="max-w-7xl mx-auto">
-            {/* Header with View Toggle */}
-            <div className="mb-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-foreground mb-2">SEO Dashboard</h1>
-                  <p className="text-muted-foreground">Quản lý và tối ưu SEO cho website của bạn</p>
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={() => setUseSimplifiedView(!useSimplifiedView)}
-                  className="flex items-center gap-2"
-                >
-                  <Settings2 className="h-4 w-4" />
-                  {useSimplifiedView ? 'Chế độ nâng cao' : 'Chế độ đơn giản'}
-                </Button>
-              </div>
-              {isNewUser && (
-                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 max-w-md mt-4">
-                  <p className="text-blue-300 text-sm">
-                    🎉 Chào mừng bạn đến với SEO AI Tool! 
-                    Hướng dẫn sẽ bắt đầu trong giây lát...
-                  </p>
-                </div>
-              )}
-              
-              {/* View Toggle Button */}
-              <div className="mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setUseSimplifiedView(!useSimplifiedView)}
-                  className="flex items-center gap-2"
-                >
-                  <Settings2 className="h-4 w-4" />
-                  Chuyển sang chế độ đơn giản
-                </Button>
-              </div>
+      <div className="min-h-screen bg-background">
+        {/* View Toggle */}
+        <div className="flex justify-end p-4">
+          <Button
+            variant={useSimplifiedView ? "default" : "outline"}
+            onClick={() => setUseSimplifiedView(!useSimplifiedView)}
+            className="gap-2"
+          >
+            <Settings2 className="h-4 w-4" />
+            {useSimplifiedView ? "Chế độ nâng cao" : "Chế độ đơn giản"}
+          </Button>
+        </div>
+
+        {useSimplifiedView ? (
+          <SimplifiedDashboard 
+            onAnalyze={handleAnalyze}
+            isAnalyzing={isAnalyzing}
+            analysisResult={analysisResult}
+            onGeneratePDF={handleGeneratePDF}
+            isGeneratingPDF={isGeneratingPDF}
+          />
+        ) : (
+          <div className="container mx-auto p-6 space-y-6">
+            {/* Header */}
+            <div className="space-y-4">
+              <h1 className="text-3xl font-bold text-foreground">SEO Dashboard</h1>
+              <p className="text-muted-foreground">
+                Quản lý và tối ưu hóa SEO cho website của bạn
+              </p>
             </div>
 
-          {/* Quick Domain Input */}
-          <div className="mb-6">
-            <QuickDomainInput 
-              onAnalyze={(url) => {
-                setSelectedWebsite(url);
-                handleAnalyze();
-              }}
-              size="lg"
-            />
-          </div>
-
-          {/* Quick Actions Panel */}
-          <div className="mb-8">
-            <QuickActions
-              currentDomain={selectedWebsite || currentWebsite?.url || ''}
-              seoScore={analysisResult?.seo_score || seoMetrics.overview.totalScore}
-              totalIssues={analysisResult?.issues?.length || seoMetrics.overview.totalIssues}
-              criticalIssues={analysisResult?.critical_issues || seoMetrics.overview.criticalIssues}
-              fixedIssues={seoMetrics.overview.fixedIssues}
-              onQuickScan={handleAnalyze}
-              onGeneratePDF={handleGeneratePDF}
-              onQuickOptimize={() => {
-                setAutoFixOpen(true);
-                setIsProcessingAI(true);
-              }}
-              isAnalyzing={isAnalyzing}
-              isGeneratingPDF={isGeneratingPDF}
-              isOptimizing={isProcessingAI}
-            />
-          </div>
-
-          {/* Main Layout with Vertical Sidebar */}
-          <div className="flex gap-6">
-            {/* Vertical Sidebar Menu */}
-            <div className="w-80 space-y-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Menu chức năng</CardTitle>
-                </CardHeader>
-                <CardContent className="p-3">
-                  <nav className="space-y-1">
-                    {[
-                      { value: "overview", icon: BarChart3, label: "Tổng quan" },
-                      { value: "analyzer", icon: Search, label: "Phân tích SEO" },
-                      { value: "ai-seo", icon: Sparkles, label: "AI Intelligence" },
-                      { value: "auto-fix", icon: Wrench, label: "Auto Fix" },
-                      { value: "one-click", icon: Zap, label: "Tối ưu 1 lần" },
-                      { value: "keywords", icon: Hash, label: "AI Keywords" },
-                      { value: "ai-search", icon: Bot, label: "SEO for AI Search" },
-                      { value: "content", icon: PenLine, label: "AI Content Studio" },
-                      { value: "content-planner", icon: Calendar, label: "Kế hoạch nội dung" },
-                      { value: "reports", icon: FileText, label: "Báo cáo PDF" },
-                      { value: "predictive", icon: LineChart, label: "Predictive SEO" },
-                      { value: "api-health", icon: Shield, label: "API Status" }
-                    ].map((item) => {
-                      const Icon = item.icon;
-                      const isActive = activeTab === item.value;
-                      return (
-                        <button
-                          key={item.value}
-                          onClick={() => handleTabChange(item.value)}
-                          className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-200 ${
-                            isActive 
-                              ? 'bg-primary text-primary-foreground shadow-md' 
-                              : 'hover:bg-muted/50 hover:shadow-sm'
-                          }`}
-                        >
-                          <Icon className={`h-5 w-5 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
-                          <span className={`font-medium ${isActive ? 'text-primary-foreground' : 'text-foreground'}`}>
-                            {item.label}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </nav>
-                </CardContent>
-              </Card>
+            {/* Quick Domain Input */}
+            <div className="mb-6">
+              <QuickDomainInput 
+                onAnalyze={handleAnalyze}
+                size="lg"
+              />
             </div>
 
-            {/* Content Area */}
-            <div className="flex-1">
-              <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                <TabsContent value="overview" className="space-y-6 mt-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">SEO Score</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">
-                          {analysisResult?.seo_score || seoMetrics.overview.totalScore}/100
-                        </div>
-                        <Progress value={analysisResult?.seo_score || seoMetrics.overview.totalScore} className="mt-2" />
-                      </CardContent>
-                    </Card>
+            {/* Main Content */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <TabsList className="grid w-full grid-cols-11">
+                <TabsTrigger value="overview" className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Tổng quan
+                </TabsTrigger>
+                <TabsTrigger value="analyzer" className="flex items-center gap-2">
+                  <Search className="h-4 w-4" />
+                  SEO Analyzer
+                </TabsTrigger>
+                <TabsTrigger value="ai-intelligence" className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  AI Intelligence
+                </TabsTrigger>
+                <TabsTrigger value="auto-fix" className="flex items-center gap-2">
+                  <Wrench className="h-4 w-4" />
+                  Auto Fix
+                </TabsTrigger>
+                <TabsTrigger value="one-click" className="flex items-center gap-2">
+                  <Zap className="h-4 w-4" />
+                  One-Click SEO
+                </TabsTrigger>
+                <TabsTrigger value="keywords" className="flex items-center gap-2">
+                  <Hash className="h-4 w-4" />
+                  Keywords
+                </TabsTrigger>
+                <TabsTrigger value="ai-search" className="flex items-center gap-2">
+                  <Bot className="h-4 w-4" />
+                  AI Search
+                </TabsTrigger>
+                <TabsTrigger value="content" className="flex items-center gap-2">
+                  <PenLine className="h-4 w-4" />
+                  Content Studio
+                </TabsTrigger>
+                <TabsTrigger value="content-planner" className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Content Planner
+                </TabsTrigger>
+                <TabsTrigger value="reports" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Reports
+                </TabsTrigger>
+                <TabsTrigger value="predictive" className="flex items-center gap-2">
+                  <LineChart className="h-4 w-4" />
+                  Predictive SEO
+                </TabsTrigger>
+                <TabsTrigger value="api-health" className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  API Status
+                </TabsTrigger>
+              </TabsList>
 
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Tổng số lỗi</CardTitle>
-                        <XCircle className="h-4 w-4 text-red-500" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold text-red-600">
-                          {analysisResult?.issues?.length || seoMetrics.overview.totalIssues}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {analysisResult?.critical_issues || seoMetrics.overview.criticalIssues} nghiêm trọng
-                        </p>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Đã sửa</CardTitle>
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold text-green-600">{analysisResult?.fixed_issues || seoMetrics.overview.fixedIssues}</div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {analysisResult?.good_items || seoMetrics.overview.goodItems} mục tốt
-                        </p>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Website</CardTitle>
-                        <Globe className="h-4 w-4 text-muted-foreground" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-sm font-medium truncate">{selectedWebsite || analysisResult?.url || currentWebsite?.url || 'Chưa có website'}</div>
-                        <Badge variant="outline" className="mt-2">
-                          {analysisResult ? 'completed' : 'pending'}
-                        </Badge>
-                      </CardContent>
-                    </Card>
-                  </div>
-
+              {/* Overview Tab */}
+              <TabsContent value="overview" className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                   <Card>
-                    <CardHeader>
-                      <CardTitle>Bắt đầu phân tích mới</CardTitle>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">SEO Score</CardTitle>
+                      <BarChart3 className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="flex flex-col gap-4">
-                        <div className="flex items-center gap-4">
-                          <Button 
-                            onClick={handleAnalyze} 
-                            disabled={isAnalyzing}
-                            size="lg" 
-                            className="analyze-button"
-                          >
-                            {isAnalyzing ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Analyzing...
-                              </>
-                            ) : (
-                              <>
-                                <Play className="h-4 w-4 mr-2" />
-                                Bắt đầu phân tích
-                              </>
-                            )}
-                          </Button>
-                          <p className="text-sm text-muted-foreground">
-                            Quét toàn bộ website để phát hiện lỗi SEO mới nhất
-                          </p>
-                        </div>
-                        
-                        {isAnalyzing && (
-                          <StatusIndicator 
-                            status="loading" 
-                            message="Analyzing website SEO..." 
-                            size="sm"
-                          />
-                        )}
-
-                        {analysisResult && (
-                          <div className="flex gap-3">
-                            <Button
-                              onClick={handleGeneratePDF}
-                              disabled={isGeneratingPDF}
-                              variant="outline"
-                              className="border-green-500/20 text-green-400 hover:bg-green-500/10"
-                            >
-                              {isGeneratingPDF ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Generating PDF...
-                                </>
-                              ) : (
-                                <>
-                                  <FileText className="mr-2 h-4 w-4" />
-                                  Generate PDF Report
-                                </>
-                              )}
-                            </Button>
-                            
-                            {isGeneratingPDF && (
-                              <StatusIndicator 
-                                status="loading" 
-                                message="Generating PDF report..." 
-                                size="sm"
-                              />
-                            )}
-                          </div>
-                        )}
-                      </div>
+                      <div className="text-2xl font-bold">{analysisResult?.seo_score || 0}/100</div>
+                      <Progress value={analysisResult?.seo_score || 0} className="mt-2" />
                     </CardContent>
                   </Card>
-                </TabsContent>
 
-                {/* SEO Analyzer Tab */}
-                <TabsContent value="analyzer" className="space-y-6">
                   <Card>
-                    <CardHeader>
-                      <CardTitle>Chỉ số kỹ thuật SEO</CardTitle>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Tổng số lỗi</CardTitle>
+                      <AlertTriangle className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="grid gap-4">
-                        {seoMetrics.technical.map((metric, index) => (
-                          <div key={index} className="flex items-center justify-between p-4 rounded-lg border">
-                            <div className="flex items-center gap-3">
-                              {getStatusIcon(metric.status)}
-                              <div>
-                                <div className="font-medium">{metric.name}</div>
-                                <div className="text-sm text-muted-foreground">{metric.description}</div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <Badge variant={metric.status === 'success' ? 'default' : metric.status === 'warning' ? 'secondary' : 'destructive'}>
-                                {metric.score}/100
-                              </Badge>
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <Info className="h-4 w-4 text-muted-foreground" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Điểm số dựa trên tiêu chuẩn SEO</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      <div className="text-2xl font-bold">{analysisResult?.issues?.length || 0}</div>
                     </CardContent>
                   </Card>
-                </TabsContent>
 
-                {/* AI Intelligence Tab */}
-                <TabsContent value="ai-seo" className="space-y-6">
-                  <AIIntelligence />
-                </TabsContent>
-
-                {/* Auto Fix Tab */}
-                <TabsContent value="auto-fix" className="space-y-6">
                   <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                      <CardTitle>Lỗi có thể sửa tự động</CardTitle>
-                      <div className="flex flex-col gap-3">
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() => {
-                              handleAutoFix();
-                              setIsProcessingAI(true);
-                            }}
-                            disabled={selectedIssues.length === 0 || isProcessingAI}
-                            className="bg-primary ai-optimize-button"
-                          >
-                            {isProcessingAI ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Processing...
-                              </>
-                            ) : (
-                              <>
-                                <Wrench className="h-4 w-4 mr-2" />
-                                Fix tự động ({selectedIssues.length})
-                              </>
-                            )}
-                          </Button>
-                          <Button variant="outline">
-                            <RotateCcw className="h-4 w-4 mr-2" />
-                            Khôi phục bản cũ
-                          </Button>
-                        </div>
-                        
-                        {isProcessingAI && (
-                          <StatusIndicator 
-                            status="loading" 
-                            message="AI is processing optimizations..." 
-                            size="sm"
-                          />
-                        )}
-                      </div>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Đã sửa</CardTitle>
+                      <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">0</div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Nghiêm trọng</CardTitle>
+                      <XCircle className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{analysisResult?.critical_issues || 0}</div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Analysis Results */}
+                {analysisResult && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Kết quả phân tích SEO</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {seoMetrics.fixableIssues.map((issue) => (
-                          <div key={issue.id} className="flex items-center justify-between p-4 rounded-lg border">
-                            <div className="flex items-center gap-3">
-                              <Checkbox
-                                checked={selectedIssues.includes(issue.id)}
-                                onCheckedChange={() => handleIssueToggle(issue.id)}
-                                disabled={!issue.canAutoFix}
-                              />
-                              <div>
-                                <div className="font-medium">{issue.title}</div>
-                                <div className="text-sm text-muted-foreground">{issue.description}</div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {issue.canAutoFix ? (
-                                <Badge variant="default">
-                                  <CheckCircle className="h-3 w-3 mr-1" />
-                                  Có thể fix
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary">
-                                  <AlertTriangle className="h-3 w-3 mr-1" />
-                                  Cần thủ công
-                                </Badge>
-                              )}
-                            </div>
+                        <div className="flex justify-between items-center">
+                          <span>Website: {selectedWebsite}</span>
+                          <Badge variant={analysisResult.seo_score >= 80 ? "default" : "destructive"}>
+                            {analysisResult.seo_score}/100
+                          </Badge>
+                        </div>
+                        
+                        {analysisResult.issues && analysisResult.issues.length > 0 && (
+                          <div>
+                            <h4 className="font-medium mb-2">Vấn đề cần khắc phục:</h4>
+                            <ul className="space-y-1">
+                              {analysisResult.issues.slice(0, 5).map((issue: any, index: number) => (
+                                <li key={index} className="flex items-center gap-2 text-sm">
+                                  <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                                  {issue.message || issue.description || 'Vấn đề SEO'}
+                                </li>
+                              ))}
+                            </ul>
                           </div>
-                        ))}
+                        )}
+
+                        <div className="flex gap-2">
+                          <Button onClick={handleGeneratePDF} disabled={isGeneratingPDF}>
+                            {isGeneratingPDF ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                Đang tạo PDF...
+                              </>
+                            ) : (
+                              <>
+                                <FileText className="h-4 w-4 mr-2" />
+                                Tạo báo cáo PDF
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
-                </TabsContent>
+                )}
+              </TabsContent>
 
-                {/* One-Click SEO Tab */}
-                <TabsContent value="one-click" className="space-y-6">
-                  <div className="max-w-4xl mx-auto space-y-6">
-                    {/* Hero Section */}
-                    <Card className="text-center">
-                      <CardHeader className="pb-4">
-                        <CardTitle className="text-2xl">Tối ưu SEO một lần</CardTitle>
-                        <p className="text-muted-foreground">
-                          Hệ thống sẽ tự động phân tích, đề xuất, viết lại và tối ưu mọi lỗi SEO hiện tại bằng AI Semantic
-                        </p>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              size="lg"
-                              className="h-16 text-lg px-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 ai-optimize-button"
-                              onClick={() => setOneClickFixOpen(true)}
-                            >
-                              <Wrench className="h-6 w-6 mr-3" />
-                              🔧 Tối ưu toàn bộ bằng AI
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <p>Hệ thống sẽ tự động phân tích, đề xuất, viết lại và tối ưu mọi lỗi SEO hiện tại bằng AI Semantic</p>
-                          </TooltipContent>
-                        </Tooltip>
+              {/* AI Intelligence Tab */}
+              <TabsContent value="ai-intelligence" className="space-y-6">
+                <AIIntelligence />
+              </TabsContent>
 
-                        <div className="text-sm text-muted-foreground space-y-1">
-                          <p>✅ Phân tích semantic và search intent</p>
-                          <p>✅ Tối ưu meta title, description, headings</p>
-                          <p>✅ Viết lại nội dung theo AI suggestions</p>
-                          <p>✅ Tự động backup trước khi thay đổi</p>
-                        </div>
-                      </CardContent>
-                    </Card>
+              {/* AI Search Tab */}
+              <TabsContent value="ai-search" className="space-y-6">
+                <AISEOAnalysis />
+              </TabsContent>
 
-                    {currentWebsite?.url ? (
-                      <OneClickFix
-                        url={currentWebsite.url}
-                        content={currentWebsite.content || ''}
-                        onBackupCreated={() => {
-                          notifications.showBackupCreated(currentWebsite.url);
-                        }}
-                      />
-                    ) : (
-                      <Card>
-                        <CardContent className="text-center py-8">
-                          <p className="text-muted-foreground">
-                            Please analyze a website first to use One-Click optimization
-                          </p>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-                </TabsContent>
+              {/* AI Content Studio Tab */}
+              <TabsContent value="content" className="space-y-6">
+                <AIContentStudio />
+              </TabsContent>
 
-                {/* Keywords Tab */}
-                <TabsContent value="keywords" className="space-y-6">
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Hash className="h-5 w-5 text-purple-500" />
-                          AI Keywords
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <p className="text-muted-foreground text-sm">
-                          Phân tích từ khóa thông minh với AI
-                        </p>
-                        <Button
-                          onClick={() => navigate('/ai-keywords')}
-                          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-                        >
-                          <Hash className="h-4 w-4 mr-2" />
-                          AI Keywords
-                        </Button>
-                      </CardContent>
-                    </Card>
+              {/* Content Planner Tab */}
+              <TabsContent value="content-planner" className="space-y-6">
+                <ContentPlanner />
+              </TabsContent>
 
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <TrendingUp className="h-5 w-5 text-blue-500" />
-                          So sánh đối thủ
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <p className="text-muted-foreground text-sm">
-                          Phân tích đối thủ cạnh tranh
-                        </p>
-                        <Button
-                          onClick={() => navigate('/competitor-analysis')}
-                          className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
-                        >
-                          <TrendingUp className="h-4 w-4 mr-2" />
-                          So sánh
-                        </Button>
-                      </CardContent>
-                    </Card>
+              {/* Reports Tab */}
+              <TabsContent value="reports" className="space-y-6">
+                <ReportViewer />
+              </TabsContent>
 
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <BarChart3 className="h-5 w-5 text-green-500" />
-                          Dự báo trends
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <p className="text-muted-foreground text-sm">
-                          AI dự đoán xu hướng content
-                        </p>
-                        <Button
-                          onClick={() => navigate('/content-trends')}
-                          className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
-                        >
-                          <BarChart3 className="h-4 w-4 mr-2" />
-                          Trends
-                        </Button>
-                      </CardContent>
-                    </Card>
+              {/* Predictive SEO Tab */}
+              <TabsContent value="predictive" className="space-y-6">
+                <PredictiveDashboard />
+              </TabsContent>
 
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Globe className="h-5 w-5 text-orange-500" />
-                          Local Business
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <p className="text-muted-foreground text-sm">
-                          Tối ưu doanh nghiệp địa phương
-                        </p>
-                        <Button
-                          onClick={() => navigate('/local-business')}
-                          className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
-                        >
-                          <Globe className="h-4 w-4 mr-2" />
-                          Local SEO
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </TabsContent>
-
-                {/* AI Search Tab */}
-                <TabsContent value="ai-search" className="space-y-6">
-                  <AISEOAnalysis />
-                </TabsContent>
-
-                {/* AI Content Studio Tab */}
-                <TabsContent value="content" className="space-y-6">
-                  <AIContentStudio />
-                </TabsContent>
-
-                {/* Content Planner Tab */}
-                <TabsContent value="content-planner" className="space-y-6">
-                  <ContentPlanner />
-                </TabsContent>
-
-                {/* Reports Tab */}
-                <TabsContent value="reports" className="space-y-6">
-                  <ReportViewer />
-                </TabsContent>
-
-                {/* Predictive SEO Tab */}
-                <TabsContent value="predictive" className="space-y-6">
-                  <PredictiveDashboard />
-                </TabsContent>
-
-                {/* API Health Tab */}
-                <TabsContent value="api-health" className="space-y-6">
-                  <APIHealthPanel />
-                </TabsContent>
-              </Tabs>
-            </div>
+              {/* API Health Tab */}
+              <TabsContent value="api-health" className="space-y-6">
+                <APIHealthPanel />
+              </TabsContent>
+            </Tabs>
           </div>
+        )}
 
-          {/* Auto Fix Dialog */}
-          {currentWebsite?.url && (
-            <EnhancedAutoFixStepper
-              open={autoFixOpen}
-              onClose={() => setAutoFixOpen(false)}
-              websiteUrl={currentWebsite.url}
-              aiAnalysis={analysisResult}
-              onComplete={handleAutoFixComplete}
-            />
-          )}
-        </div>
+        <OnboardingTour 
+          runTour={showOnboarding}
+          onTourEnd={handleOnboardingEnd}
+        />
       </div>
-      )}
-      
-      <OnboardingTour 
-        runTour={showOnboarding}
-        onTourEnd={handleOnboardingEnd}
-      />
     </TooltipProvider>
   );
 }
