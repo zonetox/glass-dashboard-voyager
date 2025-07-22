@@ -17,24 +17,28 @@ interface GeneratePDFRequest {
 }
 
 serve(async (req) => {
-  console.log('=== PDF GENERATION STARTED ===');
+  console.log('🔥 === PDF GENERATION STARTED === 🔥');
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('🔥 CORS preflight request handled');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { url, user_id, include_ai = false, scan_id, report_type = 'seo_analysis', main_topic } = await req.json() as GeneratePDFRequest;
+    console.log('🔥 Reading request body...');
+    const requestBody = await req.json() as GeneratePDFRequest;
+    const { url, user_id, include_ai = false, scan_id, report_type = 'seo_analysis', main_topic } = requestBody;
+    
+    console.log('🔥 PDF generation request details:', { url, user_id, include_ai, scan_id, report_type, main_topic });
 
     if (!user_id) {
+      console.log('🔥 ERROR: user_id is missing!');
       return new Response(
         JSON.stringify({ error: 'user_id is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    console.log('PDF generation request:', { url, user_id, include_ai, scan_id, report_type, main_topic });
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
