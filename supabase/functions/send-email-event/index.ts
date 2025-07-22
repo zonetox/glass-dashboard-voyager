@@ -279,8 +279,8 @@ const handler = async (req: Request): Promise<Response> => {
       // or integrate with your preferred email service
       
       console.log(`Sending email to: ${email}`);
-      console.log(`Subject: ${subject}`);
-      console.log(`Content preview: ${content.substring(0, 100)}...`);
+      console.log(`Subject: ${finalSubject}`);
+      console.log(`Content preview: ${finalContent.substring(0, 100)}...`);
       
       // Simulate email sending delay
       await new Promise(resolve => setTimeout(resolve, 1000));
