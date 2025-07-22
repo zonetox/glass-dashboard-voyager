@@ -259,7 +259,8 @@ serve(async (req) => {
       });
 
       if (include_ai && semanticData) {
-        coverPage.drawText(`Chủ đề chính: ${semanticData.main_topic || 'Không xác định'}`, {
+        const safeTopic = (semanticData.main_topic || 'Không xác định').replace(/[^\x00-\x7F]/g, '?');
+        coverPage.drawText(`Chu de chinh: ${safeTopic}`, {
           x: margin + 20,
           y: yPosition - 100,
           size: 12,
@@ -492,7 +493,9 @@ serve(async (req) => {
       const titleLength = metaTitle.length;
       const titleStatus = titleLength >= 50 && titleLength <= 60 ? 'Tốt' : titleLength < 50 ? 'Quá ngắn' : 'Quá dài';
       
-      traditionalSeoPage.drawText(`• Title: ${metaTitle.substring(0, 80)}${metaTitle.length > 80 ? '...' : ''}`, {
+      // Replace Vietnamese characters to avoid encoding issues
+      const safeMetaTitle = metaTitle.replace(/[^\x00-\x7F]/g, '?');
+      traditionalSeoPage.drawText(`• Title: ${safeMetaTitle.substring(0, 80)}${safeMetaTitle.length > 80 ? '...' : ''}`, {
         x: margin + 10,
         y: yPosition,
         size: 11,
