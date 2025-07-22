@@ -2147,6 +2147,10 @@ export type Database = {
         Args: { _user_email: string }
         Returns: boolean
       }
+      promote_user_to_admin: {
+        Args: { _email: string }
+        Returns: boolean
+      }
       record_api_usage: {
         Args: { _token_id: string; _user_id: string; _endpoint: string }
         Returns: undefined
