@@ -171,7 +171,18 @@ export default function Dashboard() {
 
   // PDF generation
   const handleGeneratePDF = async () => {
-    if (!analysisResult || !user || !selectedWebsite) {
+    console.log('🔥 PDF Generation clicked:', { user: !!user, analysisResult: !!analysisResult, selectedWebsite });
+    
+    if (!user) {
+      toast({
+        title: "Chưa đăng nhập",
+        description: "Vui lòng đăng nhập để tạo báo cáo PDF",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!analysisResult || !selectedWebsite) {
       toast({
         title: "Lỗi",
         description: "Vui lòng thực hiện phân tích website trước khi tạo báo cáo PDF",
