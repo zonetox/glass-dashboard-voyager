@@ -255,9 +255,6 @@ export default function Dashboard() {
 
         {useSimplifiedView ? (
           <SimplifiedSEODashboard 
-            onAnalyze={handleAnalyze}
-            isAnalyzing={isAnalyzing}
-            analysisResult={analysisResult}
             onGeneratePDF={handleGeneratePDF}
             isGeneratingPDF={isGeneratingPDF}
           />
