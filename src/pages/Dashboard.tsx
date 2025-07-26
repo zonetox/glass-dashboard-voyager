@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { OnboardingTour } from '@/components/OnboardingTour';
 import { SimplifiedDashboard } from '@/components/SimplifiedDashboard';
+import { SimplifiedSEODashboard } from '@/components/SimplifiedSEODashboard';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -70,7 +71,7 @@ export default function Dashboard() {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [selectedWebsite, setSelectedWebsite] = useState<string>('');
-  const [useSimplifiedView, setUseSimplifiedView] = useState(false);
+  const [useSimplifiedView, setUseSimplifiedView] = useState(true); // Default to simplified
   
   const { toast } = useToast();
   const notifications = useNotifications();
@@ -237,10 +238,10 @@ export default function Dashboard() {
     <TooltipProvider>
       <div className="min-h-screen bg-background">
         {/* View Toggle */}
-        <div className="flex justify-between items-center p-4">
+        <div className="flex justify-between items-center p-4 bg-white border-b">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">SEO Dashboard - Advanced Mode</h1>
-            <p className="text-muted-foreground">Công cụ SEO chuyên nghiệp với đầy đủ tính năng</p>
+            <h1 className="text-2xl font-bold text-foreground">SEO Dashboard</h1>
+            <p className="text-muted-foreground">Công cụ phân tích và tối ưu SEO chuyên nghiệp</p>
           </div>
           <Button
             variant="outline"
@@ -253,7 +254,7 @@ export default function Dashboard() {
         </div>
 
         {useSimplifiedView ? (
-          <SimplifiedDashboard 
+          <SimplifiedSEODashboard 
             onAnalyze={handleAnalyze}
             isAnalyzing={isAnalyzing}
             analysisResult={analysisResult}
@@ -261,10 +262,11 @@ export default function Dashboard() {
             isGeneratingPDF={isGeneratingPDF}
           />
         ) : (
+          
           <div className="container mx-auto p-6 space-y-6">
-            {/* Header */}
+            {/* Keep all the existing advanced dashboard content unchanged */}
             <div className="space-y-4">
-              <h1 className="text-3xl font-bold text-foreground">SEO Dashboard</h1>
+              <h1 className="text-3xl font-bold text-foreground">SEO Dashboard - Advanced Mode</h1>
               <p className="text-muted-foreground">
                 Quản lý và tối ưu hóa SEO cho website của bạn
               </p>
@@ -545,7 +547,6 @@ export default function Dashboard() {
             }}
           />
         )}
-
 
         <OnboardingTour 
           runTour={showOnboarding}
