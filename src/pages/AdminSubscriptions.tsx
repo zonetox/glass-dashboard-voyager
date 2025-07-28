@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Settings, Package, Users, Star, Crown, Zap } from 'lucide-react';
+import { Plus, Settings, Package, Users, Star, Crown, Zap, Edit, Trash2, DollarSign } from 'lucide-react';
 
 interface SubscriptionFeature {
   id: string;
@@ -210,6 +210,91 @@ const AdminSubscriptions = () => {
     }
   };
 
+  const updatePackageSettings = async (packageId: string, updates: Partial<SubscriptionPackage>) => {
+    try {
+      const { error } = await supabase
+        .from('subscription_packages')
+        .update(updates)
+        .eq('id', packageId);
+      
+      if (error) throw error;
+      
+      setPackages(prev => prev.map(pkg => 
+        pkg.id === packageId ? { ...pkg, ...updates } : pkg
+      ));
+      
+      toast({
+        title: "Cập nhật thành công",
+        description: "Đã cập nhật thông tin gói"
+      });
+    } catch (error) {
+      console.error('Error updating package:', error);
+      toast({
+        title: "Lỗi cập nhật",
+        description: "Không thể cập nhật gói",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deletePackage = async (packageId: string) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa gói này?')) return;
+    
+    try {
+      // First delete package features
+      await supabase
+        .from('package_features')
+        .delete()
+        .eq('package_id', packageId);
+      
+      // Then delete package
+      const { error } = await supabase
+        .from('subscription_packages')
+        .delete()
+        .eq('id', packageId);
+      
+      if (error) throw error;
+      
+      setPackages(prev => prev.filter(pkg => pkg.id !== packageId));
+      
+      toast({
+        title: "Xóa thành công",
+        description: "Đã xóa gói thành viên"
+      });
+    } catch (error) {
+      console.error('Error deleting package:', error);
+      toast({
+        title: "Lỗi xóa gói",
+        description: "Không thể xóa gói thành viên",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const updateFeaturePrice = async (packageId: string, featureType: string, price: number) => {
+    try {
+      const { error } = await supabase
+        .from('package_features')
+        .update({ custom_price_vnd: price })
+        .eq('package_id', packageId)
+        .eq('feature_type', featureType as any);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Cập nhật thành công",
+        description: "Đã cập nhật giá tính năng"
+      });
+    } catch (error) {
+      console.error('Error updating price:', error);
+      toast({
+        title: "Lỗi cập nhật",
+        description: "Không thể cập nhật giá",
+        variant: "destructive"
+      });
+    }
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
@@ -330,6 +415,89 @@ const AdminSubscriptions = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Edit Package Dialog */}
+        <Dialog open={!!editingPackage} onOpenChange={() => setEditingPackage(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Chỉnh sửa gói thành viên</DialogTitle>
+              <DialogDescription>
+                Cập nhật thông tin gói thành viên
+              </DialogDescription>
+            </DialogHeader>
+            {editingPackage && (
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-name">Tên gói</Label>
+                  <Input
+                    id="edit-name"
+                    value={editingPackage.name}
+                    onChange={(e) => setEditingPackage({...editingPackage, name: e.target.value})}
+                    placeholder="VD: Gói Pro"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-description">Mô tả</Label>
+                  <Textarea
+                    id="edit-description"
+                    value={editingPackage.description}
+                    onChange={(e) => setEditingPackage({...editingPackage, description: e.target.value})}
+                    placeholder="Mô tả ngắn về gói"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-base_price">Giá cơ bản (VND)</Label>
+                  <Input
+                    id="edit-base_price"
+                    type="number"
+                    value={editingPackage.base_price_vnd}
+                    onChange={(e) => setEditingPackage({...editingPackage, base_price_vnd: parseInt(e.target.value) || 0})}
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="edit-is_recommended"
+                    checked={editingPackage.is_recommended}
+                    onCheckedChange={(checked) => setEditingPackage({...editingPackage, is_recommended: checked})}
+                  />
+                  <Label htmlFor="edit-is_recommended">Gói đề xuất</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="edit-is_default"
+                    checked={editingPackage.is_default}
+                    onCheckedChange={(checked) => setEditingPackage({...editingPackage, is_default: checked})}
+                  />
+                  <Label htmlFor="edit-is_default">Gói mặc định</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="edit-is_active"
+                    checked={editingPackage.is_active}
+                    onCheckedChange={(checked) => setEditingPackage({...editingPackage, is_active: checked})}
+                  />
+                  <Label htmlFor="edit-is_active">Kích hoạt gói</Label>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingPackage(null)}>
+                Hủy
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (editingPackage) {
+                    updatePackageSettings(editingPackage.id, editingPackage);
+                    setEditingPackage(null);
+                  }
+                }}
+                disabled={!editingPackage?.name}
+              >
+                Lưu thay đổi
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Tabs defaultValue="packages" className="w-full">
@@ -358,12 +526,65 @@ const AdminSubscriptions = () => {
                         {pkg.is_recommended && <Badge variant="default">Đề xuất</Badge>}
                       </CardTitle>
                     </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-primary">{formatPrice(pkg.base_price_vnd)}</p>
-                      <p className="text-sm text-muted-foreground">Giá cơ bản/tháng</p>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-primary">{formatPrice(pkg.base_price_vnd)}</p>
+                        <p className="text-sm text-muted-foreground">Giá cơ bản/tháng</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditingPackage(pkg)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => deletePackage(pkg.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                   <p className="text-muted-foreground">{pkg.description}</p>
+                  
+                  {/* Package Settings Controls */}
+                  <div className="flex items-center gap-4 mt-4 pt-4 border-t">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor={`price-${pkg.id}`} className="text-sm">Giá cơ bản:</Label>
+                      <Input
+                        id={`price-${pkg.id}`}
+                        type="number"
+                        className="w-32"
+                        value={pkg.base_price_vnd}
+                        onChange={(e) => updatePackageSettings(pkg.id, { base_price_vnd: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={pkg.is_default}
+                        onCheckedChange={(checked) => updatePackageSettings(pkg.id, { is_default: checked })}
+                      />
+                      <Label className="text-sm">Mặc định</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={pkg.is_recommended}
+                        onCheckedChange={(checked) => updatePackageSettings(pkg.id, { is_recommended: checked })}
+                      />
+                      <Label className="text-sm">Đề xuất</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={pkg.is_active}
+                        onCheckedChange={(checked) => updatePackageSettings(pkg.id, { is_active: checked })}
+                      />
+                      <Label className="text-sm">Kích hoạt</Label>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
