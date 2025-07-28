@@ -853,6 +853,42 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_usage: {
+        Row: {
+          created_at: string
+          feature_type: Database["public"]["Enums"]["feature_type"]
+          id: string
+          period_end: string
+          period_start: string
+          tokens_used: number | null
+          updated_at: string
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feature_type: Database["public"]["Enums"]["feature_type"]
+          id?: string
+          period_end?: string
+          period_start?: string
+          tokens_used?: number | null
+          updated_at?: string
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feature_type?: Database["public"]["Enums"]["feature_type"]
+          id?: string
+          period_end?: string
+          period_start?: string
+          tokens_used?: number | null
+          updated_at?: string
+          usage_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       fullscan_results: {
         Row: {
           completed_pages: number | null
@@ -1116,6 +1152,44 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      package_features: {
+        Row: {
+          created_at: string
+          custom_limit: number | null
+          custom_price_vnd: number | null
+          feature_type: Database["public"]["Enums"]["feature_type"]
+          id: string
+          is_enabled: boolean | null
+          package_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_limit?: number | null
+          custom_price_vnd?: number | null
+          feature_type: Database["public"]["Enums"]["feature_type"]
+          id?: string
+          is_enabled?: boolean | null
+          package_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_limit?: number | null
+          custom_price_vnd?: number | null
+          feature_type?: Database["public"]["Enums"]["feature_type"]
+          id?: string
+          is_enabled?: boolean | null
+          package_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_features_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_packages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plans: {
         Row: {
@@ -1679,6 +1753,81 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_features: {
+        Row: {
+          ai_model: string | null
+          created_at: string
+          description: string | null
+          feature_type: Database["public"]["Enums"]["feature_type"]
+          id: string
+          name: string
+          suggested_limit: number | null
+          suggested_price_vnd: number
+          updated_at: string
+          uses_ai_tokens: boolean | null
+        }
+        Insert: {
+          ai_model?: string | null
+          created_at?: string
+          description?: string | null
+          feature_type: Database["public"]["Enums"]["feature_type"]
+          id?: string
+          name: string
+          suggested_limit?: number | null
+          suggested_price_vnd?: number
+          updated_at?: string
+          uses_ai_tokens?: boolean | null
+        }
+        Update: {
+          ai_model?: string | null
+          created_at?: string
+          description?: string | null
+          feature_type?: Database["public"]["Enums"]["feature_type"]
+          id?: string
+          name?: string
+          suggested_limit?: number | null
+          suggested_price_vnd?: number
+          updated_at?: string
+          uses_ai_tokens?: boolean | null
+        }
+        Relationships: []
+      }
+      subscription_packages: {
+        Row: {
+          base_price_vnd: number
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          is_recommended: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          base_price_vnd?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          is_recommended?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          base_price_vnd?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          is_recommended?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
@@ -1972,6 +2121,50 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subscriptions: {
+        Row: {
+          auto_renew: boolean | null
+          created_at: string
+          end_date: string | null
+          id: string
+          package_id: string
+          start_date: string
+          status: Database["public"]["Enums"]["subscription_status"] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_renew?: boolean | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          package_id: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["subscription_status"] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_renew?: boolean | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          package_id?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["subscription_status"] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_transactions: {
         Row: {
           amount: number
@@ -2095,6 +2288,17 @@ export type Database = {
         Args: { _token_id: string; _endpoint: string; _rate_limit: number }
         Returns: boolean
       }
+      check_feature_access: {
+        Args: {
+          user_id: string
+          feature: Database["public"]["Enums"]["feature_type"]
+        }
+        Returns: {
+          has_access: boolean
+          remaining_usage: number
+          total_limit: number
+        }[]
+      }
       get_user_current_plan: {
         Args: { _user_id: string }
         Returns: {
@@ -2164,7 +2368,18 @@ export type Database = {
       app_role: "admin" | "member"
       email_status: "queued" | "sent" | "failed"
       email_type: "onboarding" | "reminder" | "promo"
+      feature_type:
+        | "seo_audit"
+        | "ai_rewrite"
+        | "ai_meta"
+        | "ai_content_plan"
+        | "ai_blog"
+        | "image_alt"
+        | "technical_seo"
+        | "pdf_export"
+        | "whitelabel"
       organization_role: "admin" | "editor" | "viewer"
+      subscription_status: "active" | "inactive" | "cancelled" | "expired"
       user_tier: "free" | "pro" | "agency"
     }
     CompositeTypes: {
@@ -2296,7 +2511,19 @@ export const Constants = {
       app_role: ["admin", "member"],
       email_status: ["queued", "sent", "failed"],
       email_type: ["onboarding", "reminder", "promo"],
+      feature_type: [
+        "seo_audit",
+        "ai_rewrite",
+        "ai_meta",
+        "ai_content_plan",
+        "ai_blog",
+        "image_alt",
+        "technical_seo",
+        "pdf_export",
+        "whitelabel",
+      ],
       organization_role: ["admin", "editor", "viewer"],
+      subscription_status: ["active", "inactive", "cancelled", "expired"],
       user_tier: ["free", "pro", "agency"],
     },
   },

@@ -18,7 +18,8 @@ import {
   FileText, 
   Calendar,
   Mail,
-  Shield
+  Shield,
+  Crown
 } from 'lucide-react';
 
 const navigationItems = [
@@ -26,6 +27,7 @@ const navigationItems = [
   { title: 'Phân tích', url: '/dashboard?tab=analyzer', icon: BarChart3 },
   { title: 'Fix AI', url: '/dashboard?tab=ai-fix', icon: Settings },
   { title: 'Tạo nội dung', url: '/dashboard?tab=content-creator', icon: FileText },
+  { title: 'Gói thành viên', url: '/subscription-plans', icon: Crown },
   { title: 'API Key', url: '/dashboard?tab=api', icon: Shield },
 ];
 

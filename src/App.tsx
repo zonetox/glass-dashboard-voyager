@@ -16,6 +16,8 @@ import ContentTrendsPredictor from "./pages/ContentTrendsPredictor";
 import LocalBusinessOptimizer from "./pages/LocalBusinessOptimizer";
 import Admin from "./pages/Admin";
 import AdminPlans from "./pages/AdminPlans";
+import AdminSubscriptions from "./pages/AdminSubscriptions";
+import SubscriptionPlans from "./pages/SubscriptionPlans";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import SharedScanView from "./pages/SharedScanView";
@@ -140,6 +142,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <AdminPlans />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/subscriptions" 
+              element={
+                <ProtectedRoute>
+                  <AdminSubscriptions />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/subscription-plans" 
+              element={
+                <ProtectedRoute>
+                  <SubscriptionPlans />
                 </ProtectedRoute>
               } 
             />
