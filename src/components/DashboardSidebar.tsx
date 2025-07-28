@@ -22,19 +22,11 @@ import {
 } from 'lucide-react';
 
 const navigationItems = [
-  { title: 'Overview', url: '/dashboard', icon: LayoutDashboard },
-  { title: 'Analyzer', url: '/dashboard?tab=analyzer', icon: BarChart3 },
-  { title: 'Writer', url: '/dashboard?tab=writer', icon: FileText },
-  { title: 'Meta Tags', url: '/dashboard?tab=meta-optimizer', icon: Settings },
-  { title: 'FAQ Schema', url: '/dashboard?tab=faq-generator', icon: Calendar },
-  { title: 'Full Score', url: '/dashboard?tab=full-score', icon: Shield },
-  { title: 'History', url: '/dashboard?tab=scan-history', icon: Mail },
-  { title: 'Progress', url: '/dashboard?tab=progress', icon: Users },
-  { title: 'Usage', url: '/dashboard?tab=usage', icon: BarChart3 },
-  { title: 'Competitors', url: '/dashboard?tab=competitors', icon: Users },
-  { title: 'Scheduled', url: '/dashboard?tab=scheduled', icon: Calendar },
-  { title: 'Admin', url: '/dashboard?tab=admin', icon: Settings },
-  { title: 'API', url: '/dashboard?tab=api', icon: Users },
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Phân tích', url: '/dashboard?tab=analyzer', icon: BarChart3 },
+  { title: 'Fix AI', url: '/dashboard?tab=ai-fix', icon: Settings },
+  { title: 'Tạo nội dung', url: '/dashboard?tab=content-creator', icon: FileText },
+  { title: 'API Key', url: '/dashboard?tab=api', icon: Shield },
 ];
 
 export function DashboardSidebar() {
