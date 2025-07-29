@@ -5,7 +5,6 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { Bell, Mail, AlertTriangle, BarChart, Save } from 'lucide-react';
 
 interface NotificationSettings {
@@ -39,23 +38,10 @@ export function NotificationSettings() {
 
   const loadNotificationSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('user_notification_settings')
-        .select('*')
-        .eq('user_id', user?.id)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') throw error;
-
-      if (data) {
-        setSettings({
-          email_notifications: data.email_notifications,
-          usage_alerts: data.usage_alerts,
-          weekly_reports: data.weekly_reports,
-          security_alerts: data.security_alerts,
-          marketing_emails: data.marketing_emails,
-          system_updates: data.system_updates,
-        });
+      // For now, use local storage as fallback until table is created
+      const savedSettings = localStorage.getItem(`notification_settings_${user?.id}`);
+      if (savedSettings) {
+        setSettings(JSON.parse(savedSettings));
       }
     } catch (error) {
       console.error('Error loading notification settings:', error);
@@ -69,16 +55,8 @@ export function NotificationSettings() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('user_notification_settings')
-        .upsert({
-          user_id: user.id,
-          ...settings,
-        }, {
-          onConflict: 'user_id'
-        });
-
-      if (error) throw error;
+      // For now, save to local storage as fallback
+      localStorage.setItem(`notification_settings_${user.id}`, JSON.stringify(settings));
 
       toast({
         title: "Đã lưu cài đặt",

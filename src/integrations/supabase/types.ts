@@ -1191,6 +1191,56 @@ export type Database = {
           },
         ]
       }
+      payment_orders: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string
+          id: string
+          package_id: string
+          payment_method: string
+          status: string
+          transaction_id: string | null
+          updated_at: string
+          user_email: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          created_at?: string
+          id: string
+          package_id: string
+          payment_method: string
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_email: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          package_id?: string
+          payment_method?: string
+          status?: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_email?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_orders_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           ai_enabled: boolean

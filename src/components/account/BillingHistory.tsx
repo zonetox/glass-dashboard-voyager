@@ -5,17 +5,9 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { History, Download, Eye, Calendar, CreditCard } from 'lucide-react';
+import type { Database } from '@/integrations/supabase/types';
 
-interface PaymentOrder {
-  id: string;
-  package_id: string;
-  amount: number;
-  payment_method: string;
-  status: string;
-  transaction_id: string | null;
-  created_at: string;
-  completed_at: string | null;
-}
+type PaymentOrder = Database['public']['Tables']['payment_orders']['Row'];
 
 export function BillingHistory() {
   const { user } = useAuth();

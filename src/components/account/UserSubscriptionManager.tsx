@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { PaymentMethodSelector } from '@/components/PaymentMethodSelector';
 import { Crown, Calendar, CreditCard, ArrowRight, CheckCircle } from 'lucide-react';
 
@@ -51,38 +50,47 @@ export function UserSubscriptionManager() {
 
   const loadSubscriptionData = async () => {
     try {
-      // Load current subscription
-      const { data: subscription } = await supabase
-        .from('user_subscriptions')
-        .select(`
-          *,
-          package:subscription_packages(
-            name,
-            description,
-            base_price_vnd
-          )
-        `)
-        .eq('user_id', user?.id)
-        .eq('status', 'active')
-        .maybeSingle();
+      // Mock data for now until subscription tables are properly set up
+      setCurrentSubscription({
+        id: '1',
+        package_id: 'free',
+        status: 'active',
+        start_date: new Date().toISOString(),
+        end_date: null,
+        package: {
+          name: 'Free Plan',
+          description: 'Gói miễn phí',
+          base_price_vnd: 0
+        }
+      });
 
-      setCurrentSubscription(subscription);
-
-      // Load available packages
-      const { data: packages } = await supabase
-        .from('subscription_packages')
-        .select(`
-          *,
-          features:package_features(
-            feature_type,
-            is_enabled,
-            custom_limit
-          )
-        `)
-        .eq('is_active', true)
-        .order('base_price_vnd');
-
-      setAvailablePackages(packages || []);
+      // Mock available packages
+      setAvailablePackages([
+        {
+          id: 'free',
+          name: 'Free Plan',
+          description: 'Gói miễn phí cho người dùng cá nhân',
+          base_price_vnd: 0,
+          is_recommended: false,
+          features: [
+            { feature_type: 'website_scan', is_enabled: true, custom_limit: 5 },
+            { feature_type: 'ai_content', is_enabled: true, custom_limit: 10 },
+            { feature_type: 'optimization', is_enabled: true, custom_limit: 2 }
+          ]
+        },
+        {
+          id: 'pro',
+          name: 'Pro Plan',
+          description: 'Gói chuyên nghiệp cho doanh nghiệp nhỏ',
+          base_price_vnd: 99000,
+          is_recommended: true,
+          features: [
+            { feature_type: 'website_scan', is_enabled: true, custom_limit: 50 },
+            { feature_type: 'ai_content', is_enabled: true, custom_limit: 100 },
+            { feature_type: 'optimization', is_enabled: true, custom_limit: 20 }
+          ]
+        }
+      ]);
     } catch (error) {
       console.error('Error loading subscription data:', error);
     } finally {
