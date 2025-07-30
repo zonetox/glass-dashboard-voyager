@@ -20,6 +20,7 @@ import ContentWorkflowManager from '@/components/dashboard/ContentWorkflowManage
 import PerformanceMonitor from '@/components/dashboard/PerformanceMonitor';
 import { DatabaseManager } from '@/components/dashboard/DatabaseManager';
 import { SystemMonitoring } from '@/components/dashboard/SystemMonitoring';
+import { AdminPackageManager } from '@/components/dashboard/AdminPackageManager';
 
 interface AdminSetting {
   id: string;
@@ -215,10 +216,14 @@ export default function Admin() {
 
         <TooltipProvider>
           <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-11 bg-white/10">
+            <TabsList className="grid w-full grid-cols-12 bg-white/10">
               <TabsTrigger value="dashboard" className="data-[state=active]:bg-white/20">
                 <BarChart3 className="h-4 w-4 mr-2" />
                 Dashboard
+              </TabsTrigger>
+              <TabsTrigger value="packages" className="data-[state=active]:bg-white/20">
+                <Package className="h-4 w-4 mr-2" />
+                Packages
               </TabsTrigger>
               <TabsTrigger value="test-runner" className="data-[state=active]:bg-white/20">
                 <Settings className="h-4 w-4 mr-2" />
@@ -261,6 +266,11 @@ export default function Admin() {
                 Performance
               </TabsTrigger>
             </TabsList>
+
+          {/* Packages Tab */}
+          <TabsContent value="packages">
+            <AdminPackageManager />
+          </TabsContent>
 
           {/* Admin Dashboard Tab */}
           <TabsContent value="dashboard">

@@ -2349,6 +2349,10 @@ export type Database = {
           total_limit: number
         }[]
       }
+      execute_admin_query: {
+        Args: { query: string }
+        Returns: Json
+      }
       get_user_current_plan: {
         Args: { _user_id: string }
         Returns: {

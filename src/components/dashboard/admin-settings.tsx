@@ -8,6 +8,7 @@ import { Settings, Key, Users, Database, Server } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { getUserProfile } from '@/lib/user-management';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AdminSettings {
   openai_api_key: boolean;
