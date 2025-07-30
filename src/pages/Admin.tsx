@@ -18,6 +18,8 @@ import AdvancedAdminControls from '@/components/dashboard/AdvancedAdminControls'
 import TwoFactorAuth from '@/components/dashboard/TwoFactorAuth';
 import ContentWorkflowManager from '@/components/dashboard/ContentWorkflowManager';
 import PerformanceMonitor from '@/components/dashboard/PerformanceMonitor';
+import { DatabaseManager } from '@/components/dashboard/DatabaseManager';
+import { SystemMonitoring } from '@/components/dashboard/SystemMonitoring';
 
 interface AdminSetting {
   id: string;
@@ -339,32 +341,12 @@ export default function Admin() {
 
           {/* Database Tab */}
           <TabsContent value="database">
-            <Card className="glass-card border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white">Database Management</CardTitle>
-                <CardDescription className="text-gray-300">
-                  Database statistics and maintenance
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-white">Database management features will be added here.</div>
-              </CardContent>
-            </Card>
+            <DatabaseManager />
           </TabsContent>
 
           {/* Monitoring Tab */}
           <TabsContent value="monitoring">
-            <Card className="glass-card border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white">System Monitoring</CardTitle>
-                <CardDescription className="text-gray-300">
-                  Monitor system performance and usage
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-white">Monitoring dashboard will be added here.</div>
-              </CardContent>
-            </Card>
+            <SystemMonitoring />
           </TabsContent>
 
           {/* API Health Tab */}

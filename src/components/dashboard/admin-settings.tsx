@@ -42,19 +42,35 @@ export function AdminSettings() {
 
   const loadSettings = async () => {
     try {
-      // Mock admin data - in real app this would fetch from admin API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Fetch real data from Supabase
+      const [userCount, scanCount, apiLogCount] = await Promise.all([
+        supabase.from('user_profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('scans').select('id', { count: 'exact', head: true }),
+        supabase.from('api_logs').select('id').gte('created_at', new Date().toISOString().split('T')[0])
+      ]);
+
+      // Check if API keys are configured by checking secrets
+      const { data: secretsCheck } = await supabase.functions.invoke('check-api-health');
       
       setSettings({
-        openai_api_key: true,
-        google_pagespeed_api_key: false,
-        total_users: 1247,
-        active_scans: 23,
-        storage_used: "2.3 GB",
-        api_calls_today: 1895
+        openai_api_key: secretsCheck?.openai_configured || false,
+        google_pagespeed_api_key: secretsCheck?.pagespeed_configured || false,
+        total_users: userCount.count || 0,
+        active_scans: scanCount.count || 0,
+        storage_used: "2.3 GB", // This would need storage API
+        api_calls_today: apiLogCount.data?.length || 0
       });
     } catch (error) {
       console.error('Error loading admin settings:', error);
+      // Fallback to mock data
+      setSettings({
+        openai_api_key: false,
+        google_pagespeed_api_key: false,
+        total_users: 0,
+        active_scans: 0,
+        storage_used: "0 GB",
+        api_calls_today: 0
+      });
     } finally {
       setLoading(false);
     }
