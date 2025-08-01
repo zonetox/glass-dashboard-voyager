@@ -269,28 +269,28 @@ export function SimplifiedSEODashboard({
                 <CardContent>
                   <div className="flex items-center space-x-4">
                     <div className="text-2xl font-bold text-green-600">
-                      {analysisResults?.score || 75}/100
+                      {analysisResults?.seoScore || 0}/100
                     </div>
                     <div className="flex-1">
                       <div className="w-full bg-gray-200 rounded-full h-2.5">
                         <div 
                           className="bg-green-600 h-2.5 rounded-full" 
-                          style={{ width: `${analysisResults?.score || 75}%` }}
+                          style={{ width: `${analysisResults?.seoScore || 0}%` }}
                         ></div>
                       </div>
                     </div>
                   </div>
                   <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
                     <div className="text-center">
-                      <div className="text-green-600 font-semibold">{analysisResults?.metrics?.good || 12}</div>
+                      <div className="text-green-600 font-semibold">{analysisResults?.technicalIssues ? (analysisResults.technicalIssues.length === 0 ? 12 : Math.max(0, 12 - analysisResults.technicalIssues.length)) : 0}</div>
                       <div className="text-gray-600">Tốt</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-yellow-600 font-semibold">{analysisResults?.metrics?.warning || 5}</div>
+                      <div className="text-yellow-600 font-semibold">{analysisResults?.technicalIssues ? Math.min(analysisResults.technicalIssues.length, 5) : 0}</div>
                       <div className="text-gray-600">Cảnh báo</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-red-600 font-semibold">{analysisResults?.metrics?.critical || 2}</div>
+                      <div className="text-red-600 font-semibold">{analysisResults?.technicalIssues ? Math.max(0, analysisResults.technicalIssues.length - 5) : 0}</div>
                       <div className="text-gray-600">Nghiêm trọng</div>
                     </div>
                   </div>
