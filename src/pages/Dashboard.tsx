@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNotifications } from '@/hooks/useNotifications';
+import { DashboardLayout } from '@/components/DashboardLayout';
 import StatusIndicator from '@/components/ui/status-indicator';
 import { 
   BarChart3, 
@@ -51,6 +52,8 @@ import { ContentPlanner } from '@/components/dashboard/ContentPlanner';
 import { PredictiveDashboard } from '@/components/dashboard/PredictiveDashboard';
 import { QuickDomainInput } from '@/components/QuickDomainInput';
 import { QuickActions } from '@/components/dashboard/QuickActions';
+import { ApiManagement } from '@/components/dashboard/ApiManagement';
+import { ComprehensiveOnboarding } from '@/components/dashboard/ComprehensiveOnboarding';
 import { Website, SEOIssue } from '@/lib/types';
 
 export default function Dashboard() {
@@ -235,8 +238,8 @@ export default function Dashboard() {
   };
 
   return (
-    <TooltipProvider>
-      <div className="min-h-screen bg-background">
+    <DashboardLayout>
+      <TooltipProvider>
         {/* View Toggle */}
         <div className="flex justify-between items-center p-4 bg-white border-b">
           <div>
@@ -327,6 +330,10 @@ export default function Dashboard() {
                 <TabsTrigger value="api-health" className="flex items-center gap-2">
                   <Shield className="h-4 w-4" />
                   <span className="hidden lg:inline">API Status</span>
+                </TabsTrigger>
+                <TabsTrigger value="api-management" className="flex items-center gap-2">
+                  <Settings2 className="h-4 w-4" />
+                  <span className="hidden lg:inline">API Management</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -527,6 +534,10 @@ export default function Dashboard() {
               <TabsContent value="api-health" className="space-y-6">
                 <APIHealthPanel />
               </TabsContent>
+
+              <TabsContent value="api-management" className="space-y-6">
+                <ApiManagement />
+              </TabsContent>
             </Tabs>
           </div>
         )}
@@ -549,7 +560,7 @@ export default function Dashboard() {
           runTour={showOnboarding}
           onTourEnd={handleOnboardingEnd}
         />
-      </div>
-    </TooltipProvider>
+      </TooltipProvider>
+    </DashboardLayout>
   );
 }
