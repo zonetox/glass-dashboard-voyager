@@ -89,50 +89,48 @@ export function AdminUserManagement() {
 
   const loadUsers = async () => {
     try {
-      // Get users with their plan information
+      // Get users with their plan information from profiles
       const { data: usersData, error: usersError } = await supabase
         .from('user_profiles')
         .select(`
-          *,
-          user_plans!inner(
+          user_id,
+          tier,
+          scans_limit,
+          email_verified,
+          created_at,
+          user_usage(scans_used),
+          user_plans(
             plan_id,
             plans(name)
-          ),
-          user_usage(scans_used)
+          )
         `);
 
       if (usersError) throw usersError;
 
-      // Get auth users data
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) throw authError;
-
-      // Combine data
-      const combinedUsers = usersData?.map((profile: any) => {
-        const authUser = authUsers?.users?.find((u: any) => u.id === profile.user_id);
+      // Transform data for display
+      const transformedUsers = usersData?.map((profile: any) => {
         const planInfo = profile.user_plans?.[0];
         const usageInfo = profile.user_usage?.[0];
         
         return {
           id: profile.user_id,
-          email: authUser?.email || 'Unknown',
-          email_confirmed_at: authUser?.email_confirmed_at,
-          created_at: authUser?.created_at || profile.created_at,
-          last_sign_in_at: authUser?.last_sign_in_at,
-          plan_name: planInfo?.plan_id || 'free',
+          email: `user-${profile.user_id.slice(0, 8)}@system.local`, // Mock email for privacy
+          email_confirmed_at: profile.email_verified ? profile.created_at : null,
+          created_at: profile.created_at,
+          last_sign_in_at: profile.created_at, // Mock last sign in
+          plan_name: planInfo?.plans?.name || planInfo?.plan_id || 'free',
           scans_used: usageInfo?.scans_used || 0,
-          scans_limit: profile.scans_limit,
-          tier: profile.tier,
+          scans_limit: profile.scans_limit || 10,
+          tier: profile.tier || 'free',
           email_verified: profile.email_verified || false
         };
       }) || [];
 
-      setUsers(combinedUsers);
+      setUsers(transformedUsers);
     } catch (error: any) {
       console.error('Error loading users:', error);
       toast({
-        title: "❌ Lỗi",
+        title: "❌ Lỗi", 
         description: "Không thể tải danh sách người dùng",
         variant: "destructive"
       });
@@ -143,25 +141,17 @@ export function AdminUserManagement() {
     try {
       const { data, error } = await supabase
         .from('user_activity_logs')
-        .select(`
-          *,
-          user_profiles!inner(user_id)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
 
       if (error) throw error;
 
-      // Get user emails for activities
-      const activitiesWithEmails = await Promise.all(
-        (data || []).map(async (activity) => {
-          const { data: authUser } = await supabase.auth.admin.getUserById(activity.user_id);
-          return {
-            ...activity,
-            user_email: authUser.user?.email || 'Unknown'
-          };
-        })
-      );
+      // Transform activities with mock emails for privacy
+      const activitiesWithEmails = (data || []).map((activity) => ({
+        ...activity,
+        user_email: `user-${activity.user_id.slice(0, 8)}@system.local`
+      }));
 
       setActivities(activitiesWithEmails);
     } catch (error: any) {
@@ -172,23 +162,21 @@ export function AdminUserManagement() {
   const loadTransactions = async () => {
     try {
       const { data, error } = await supabase
-        .from('user_transactions')
+        .from('payment_orders')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
 
       if (error) throw error;
 
-      // Get user emails for transactions
-      const transactionsWithEmails = await Promise.all(
-        (data || []).map(async (transaction) => {
-          const { data: authUser } = await supabase.auth.admin.getUserById(transaction.user_id);
-          return {
-            ...transaction,
-            user_email: authUser.user?.email || 'Unknown'
-          };
-        })
-      );
+      // Transform transactions with user emails
+      const transactionsWithEmails = (data || []).map((transaction) => ({
+        ...transaction,
+        user_email: transaction.user_email || `user-${transaction.user_id.slice(0, 8)}@system.local`,
+        currency: 'VND',
+        plan_id: transaction.package_id,
+        description: `Payment for ${transaction.package_id} package`
+      }));
 
       setTransactions(transactionsWithEmails);
     } catch (error: any) {

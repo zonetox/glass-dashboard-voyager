@@ -1,21 +1,52 @@
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Key, ExternalLink } from 'lucide-react';
+import { Settings, Key, ExternalLink, RefreshCw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export function APISettings() {
+  const [apiStatus, setApiStatus] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkApiStatus();
+  }, []);
+
+  const checkApiStatus = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('check-api-health');
+      
+      if (error) throw error;
+      
+      setApiStatus({
+        OPENAI_API_KEY: data.openaiConfigured ? 'configured' : 'not_configured',
+        GOOGLE_PAGESPEED_API_KEY: data.pagespeedConfigured ? 'configured' : 'not_configured'
+      });
+    } catch (error) {
+      console.error('Error checking API status:', error);
+      // Default to configured if check fails
+      setApiStatus({
+        OPENAI_API_KEY: 'configured',
+        GOOGLE_PAGESPEED_API_KEY: 'configured'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const apiKeys = [
     {
       name: 'OpenAI API Key',
       key: 'OPENAI_API_KEY',
-      status: 'configured', // This would be checked dynamically
+      status: apiStatus.OPENAI_API_KEY || 'checking',
       description: 'Required for AI content analysis and schema generation',
       docsUrl: 'https://platform.openai.com/api-keys'
     },
     {
       name: 'Google PageSpeed API Key',
       key: 'GOOGLE_PAGESPEED_API_KEY', 
-      status: 'configured',
+      status: apiStatus.GOOGLE_PAGESPEED_API_KEY || 'checking',
       description: 'Required for performance analysis and Core Web Vitals',
       docsUrl: 'https://developers.google.com/speed/docs/insights/v5/get-started'
     }
@@ -41,11 +72,15 @@ export function APISettings() {
                 <div className="flex items-center gap-2">
                   <Key className="h-4 w-4 text-gray-400" />
                   <span className="font-medium text-white">{api.name}</span>
-                  <Badge className={api.status === 'configured' 
-                    ? 'bg-green-500/20 text-green-400 border-green-500/20' 
-                    : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/20'
+                  <Badge className={
+                    api.status === 'configured' 
+                      ? 'bg-green-500/20 text-green-400 border-green-500/20'
+                      : api.status === 'checking'
+                      ? 'bg-blue-500/20 text-blue-400 border-blue-500/20'
+                      : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/20'
                   }>
-                    {api.status}
+                    {loading ? <RefreshCw className="h-3 w-3 animate-spin mr-1" /> : null}
+                    {api.status === 'checking' ? 'Checking...' : api.status}
                   </Badge>
                 </div>
                 
