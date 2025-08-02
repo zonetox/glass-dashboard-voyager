@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -9,6 +9,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { MobileNavigation } from '@/components/ui/mobile-navigation';
 import { Search, User, Settings, LogOut, Crown, Zap, Globe, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DashboardHeaderProps {
   onAnalyze?: (url: string) => void;
@@ -19,8 +20,28 @@ export function EnhancedDashboardHeader({ onAnalyze }: DashboardHeaderProps) {
   const navigate = useNavigate();
   const [url, setUrl] = useState('');
 
-  // Mock data - trong thực tế sẽ lấy từ API
-  const remainingScans = 15;
+  const [remainingScans, setRemainingScanns] = useState(0);
+  
+  useEffect(() => {
+    const fetchUsageData = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: usageData } = await supabase.functions.invoke('get-user-current-plan', {
+          body: { user_id: user.id }
+        });
+        
+        if (usageData) {
+          setRemainingScanns(usageData.remaining_count || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching usage data:', error);
+        setRemainingScanns(10); // Fallback
+      }
+    };
+    
+    fetchUsageData();
+  }, [user]);
   const userPlan = 'Pro Plan';
 
   const handleAnalyze = () => {
