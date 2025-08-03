@@ -68,7 +68,15 @@ export function EnhancedDashboardHeader({ onAnalyze }: DashboardHeaderProps) {
   };
 
   const handleAccount = () => {
+    navigate('/account');
+  };
+
+  const handleSettings = () => {
     navigate('/dashboard?tab=account');
+  };
+
+  const handleUpgrade = () => {
+    navigate('/subscription-plans');
   };
 
   const getPlanBadgeColor = (plan: string) => {
@@ -201,12 +209,12 @@ export function EnhancedDashboardHeader({ onAnalyze }: DashboardHeaderProps) {
               Tài khoản của tôi
             </DropdownMenuItem>
             
-            <DropdownMenuItem className="text-gray-300 hover:text-white hover:bg-gray-700">
+            <DropdownMenuItem onClick={handleSettings} className="text-gray-300 hover:text-white hover:bg-gray-700">
               <Settings className="h-4 w-4 mr-2" />
               Cài đặt
             </DropdownMenuItem>
 
-            <DropdownMenuItem className="text-purple-300 hover:text-purple-200 hover:bg-purple-500/10">
+            <DropdownMenuItem onClick={handleUpgrade} className="text-purple-300 hover:text-purple-200 hover:bg-purple-500/10">
               <Crown className="h-4 w-4 mr-2" />
               Nâng cấp gói
             </DropdownMenuItem>

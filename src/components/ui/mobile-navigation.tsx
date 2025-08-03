@@ -33,6 +33,12 @@ const navigationItems = [
   { title: 'API', url: '/dashboard?tab=api', icon: Users },
 ];
 
+const accountItems = [
+  { title: 'Account', url: '/account', icon: Users },
+  { title: 'Settings', url: '/dashboard?tab=account', icon: Settings },
+  { title: 'Upgrade Plan', url: '/subscription-plans', icon: Shield },
+];
+
 export function MobileNavigation() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
@@ -45,6 +51,11 @@ export function MobileNavigation() {
     if (url === '/dashboard') {
       return currentPath === '/dashboard' && !searchParams.get('tab');
     }
+    // Handle direct routes like /account, /subscription-plans
+    if (!url.includes('?')) {
+      return currentPath === url;
+    }
+    // Handle dashboard tabs
     const urlParams = new URLSearchParams(url.split('?')[1] || '');
     const tabParam = urlParams.get('tab');
     return currentPath === '/dashboard' && currentTab === tabParam;
@@ -118,6 +129,36 @@ export function MobileNavigation() {
                 <span className="font-medium">{item.title}</span>
                 {isActive(item.url) && (
                   <Badge variant="secondary" className="ml-auto text-xs bg-blue-500/20 text-blue-300">
+                    Active
+                  </Badge>
+                )}
+              </button>
+            ))}
+          </nav>
+
+          <Separator className="bg-white/10 my-4" />
+          
+          <Badge variant="secondary" className="text-xs bg-purple-500/20 text-purple-300 border-purple-500/30 mb-4">
+            Account
+          </Badge>
+          
+          <nav className="space-y-2">
+            {accountItems.map((item) => (
+              <button
+                key={item.title}
+                onClick={() => handleNavigate(item.url)}
+                className={`
+                  flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 w-full text-left
+                  ${isActive(item.url)
+                    ? "bg-purple-600/20 text-purple-300 border-r-2 border-purple-400" 
+                    : "hover:bg-white/5 text-gray-300 hover:text-white"
+                  }
+                `}
+              >
+                <item.icon className="h-5 w-5 flex-shrink-0" />
+                <span className="font-medium">{item.title}</span>
+                {isActive(item.url) && (
+                  <Badge variant="secondary" className="ml-auto text-xs bg-purple-500/20 text-purple-300">
                     Active
                   </Badge>
                 )}
