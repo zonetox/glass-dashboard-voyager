@@ -25,6 +25,8 @@ import Upgrade from "./pages/Upgrade";
 import ThankYou from "./pages/ThankYou";
 import { SEOStandardization } from "./pages/SEOStandardization";
 import { AccountPage } from "./pages/AccountPage";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentCancel from "./pages/PaymentCancel";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,6 +74,8 @@ const App = () => (
               <Route path="/scan/:id" element={<SharedScanView />} />
               <Route path="/upgrade" element={<Upgrade />} />
               <Route path="/thank-you" element={<ThankYou />} />
+              <Route path="/payment-success" element={<PaymentSuccess />} />
+              <Route path="/payment-cancel" element={<PaymentCancel />} />
             <Route path="/seo-standardization" element={<SEOStandardization />} />
             <Route 
               path="/account" 

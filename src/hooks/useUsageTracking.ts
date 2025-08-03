@@ -30,21 +30,19 @@ export function useUsageTracking() {
       try {
         setLoading(true);
 
-        // Get user profile with limits
+        // Get current plan from user_plans
+        const { data: currentPlan } = await supabase.rpc('get_user_current_plan', { 
+          _user_id: user.id 
+        });
+
+        // Get user profile
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
-        // Get current usage
-        const { data: currentUsage } = await supabase
-          .from('user_usage')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        // Get current month scan count
+        // Get current month scan count from real scans table
         const currentMonthStart = new Date();
         currentMonthStart.setDate(1);
         currentMonthStart.setHours(0, 0, 0, 0);
@@ -55,36 +53,61 @@ export function useUsageTracking() {
           .eq('user_id', user.id)
           .gte('created_at', currentMonthStart.toISOString());
 
-        // Get current month optimization count
+        // Get current month optimization count from real table
         const { count: optimizationCount } = await supabase
           .from('optimization_history')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id)
           .gte('created_at', currentMonthStart.toISOString());
 
-        // Get current month AI rewrite count
+        // Get current month AI rewrite count from real table
         const { count: aiRewriteCount } = await supabase
           .from('ai_content_logs')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id)
           .gte('created_at', currentMonthStart.toISOString());
 
-        if (profile && currentUsage) {
-          setUsage({
-            scans_used: currentUsage.scans_used || 0,
-            scans_limit: profile.scans_limit || 10,
-            optimizations_used: currentUsage.optimizations_used || 0,
-            optimizations_limit: profile.optimizations_limit || 5,
-            ai_rewrites_used: currentUsage.ai_rewrites_used || 0,
-            ai_rewrites_limit: profile.ai_rewrites_limit || 10,
-            reset_date: currentUsage.reset_date || new Date().toISOString(),
-            current_month_scans: scanCount || 0,
-            current_month_optimizations: optimizationCount || 0,
-            current_month_ai_rewrites: aiRewriteCount || 0,
-          });
-        }
+        // Calculate limits based on plan
+        const planLimits = {
+          free: { scans: 10, optimizations: 3, ai_rewrites: 2 },
+          pro: { scans: 100, optimizations: 50, ai_rewrites: 25 },
+          enterprise: { scans: 500, optimizations: 200, ai_rewrites: 100 }
+        };
+
+        const tier = profile?.tier || 'free';
+        const limits = planLimits[tier as keyof typeof planLimits] || planLimits.free;
+
+        // Use real data from database
+        const planInfo = Array.isArray(currentPlan) ? currentPlan[0] : currentPlan;
+        
+        setUsage({
+          scans_used: planInfo?.used_count || scanCount || 0,
+          scans_limit: planInfo?.monthly_limit || limits.scans,
+          optimizations_used: optimizationCount || 0,
+          optimizations_limit: limits.optimizations,
+          ai_rewrites_used: aiRewriteCount || 0,
+          ai_rewrites_limit: limits.ai_rewrites,
+          reset_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString(),
+          current_month_scans: scanCount || 0,
+          current_month_optimizations: optimizationCount || 0,
+          current_month_ai_rewrites: aiRewriteCount || 0,
+        });
+
       } catch (error) {
         console.error('Error fetching usage stats:', error);
+        // Set default fallback values
+        setUsage({
+          scans_used: 0,
+          scans_limit: 10,
+          optimizations_used: 0,
+          optimizations_limit: 3,
+          ai_rewrites_used: 0,
+          ai_rewrites_limit: 2,
+          reset_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString(),
+          current_month_scans: 0,
+          current_month_optimizations: 0,
+          current_month_ai_rewrites: 0,
+        });
       } finally {
         setLoading(false);
       }
