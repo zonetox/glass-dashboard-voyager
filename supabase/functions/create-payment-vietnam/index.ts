@@ -1,6 +1,28 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { createHash, createHmac } from "https://deno.land/std@0.190.0/node/crypto.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
+
+// Web Crypto API helpers
+async function createHmac(algorithm: string, key: string): Promise<{
+  update: (data: string) => { digest: (encoding: string) => Promise<string> }
+}> {
+  const keyData = new TextEncoder().encode(key);
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: algorithm === 'sha256' ? 'SHA-256' : 'SHA-512' },
+    false,
+    ['sign']
+  );
+  
+  return {
+    update: (data: string) => ({
+      digest: async (encoding: string) => {
+        const signature = await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(data));
+        const hashArray = Array.from(new Uint8Array(signature));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      }
+    })
+  };
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,7 +43,7 @@ const logStep = (step: string, details?: any) => {
   console.log(`[VIETNAM-PAYMENT] ${step}${detailsStr}`);
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -117,7 +139,8 @@ async function createMoMoPayment(orderId: string, amount: number, orderInfo: str
   
   const rawSignature = `accessKey=${accessKey}&amount=${amount}&extraData=${extraData}&ipnUrl=${notifyUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${partnerCode}&redirectUrl=${returnUrl}&requestId=${requestId}&requestType=${requestType}`;
   
-  const signature = createHmac('sha256', secretKey).update(rawSignature).digest('hex');
+  const hmac = await createHmac('sha256', secretKey);
+  const signature = await hmac.update(rawSignature).digest('hex');
   
   const requestBody = {
     partnerCode,
@@ -175,7 +198,8 @@ async function createVNPayPayment(orderId: string, amount: number, orderInfo: st
 
   const sortedKeys = Object.keys(vnpParams).sort();
   const signData = sortedKeys.map(key => `${key}=${vnpParams[key]}`).join('&');
-  const secureHash = createHmac('sha512', secretKey).update(signData).digest('hex');
+  const hmac = await createHmac('sha512', secretKey);
+  const secureHash = await hmac.update(signData).digest('hex');
   
   vnpParams['vnp_SecureHash'] = secureHash;
   
