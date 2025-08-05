@@ -89,44 +89,12 @@ export function AdminUserManagement() {
 
   const loadUsers = async () => {
     try {
-      // Get users with their plan information from profiles
-      const { data: usersData, error: usersError } = await supabase
-        .from('user_profiles')
-        .select(`
-          user_id,
-          tier,
-          scans_limit,
-          email_verified,
-          created_at,
-          user_usage(scans_used),
-          user_plans(
-            plan_id,
-            plans(name)
-          )
-        `);
+      // Get real users from auth table via RPC function
+      const { data, error } = await supabase.rpc('get_admin_users_summary');
 
-      if (usersError) throw usersError;
+      if (error) throw error;
 
-      // Transform data for display
-      const transformedUsers = usersData?.map((profile: any) => {
-        const planInfo = profile.user_plans?.[0];
-        const usageInfo = profile.user_usage?.[0];
-        
-        return {
-          id: profile.user_id,
-          email: `user-${profile.user_id.slice(0, 8)}@system.local`, // Mock email for privacy
-          email_confirmed_at: profile.email_verified ? profile.created_at : null,
-          created_at: profile.created_at,
-          last_sign_in_at: profile.created_at, // Mock last sign in
-          plan_name: planInfo?.plans?.name || planInfo?.plan_id || 'free',
-          scans_used: usageInfo?.scans_used || 0,
-          scans_limit: profile.scans_limit || 10,
-          tier: profile.tier || 'free',
-          email_verified: profile.email_verified || false
-        };
-      }) || [];
-
-      setUsers(transformedUsers);
+      setUsers(data || []);
     } catch (error: any) {
       console.error('Error loading users:', error);
       toast({
@@ -139,21 +107,11 @@ export function AdminUserManagement() {
 
   const loadActivities = async () => {
     try {
-      const { data, error } = await supabase
-        .from('user_activity_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
+      const { data, error } = await supabase.rpc('get_admin_activity_logs');
 
       if (error) throw error;
 
-      // Transform activities with mock emails for privacy
-      const activitiesWithEmails = (data || []).map((activity) => ({
-        ...activity,
-        user_email: `user-${activity.user_id.slice(0, 8)}@system.local`
-      }));
-
-      setActivities(activitiesWithEmails);
+      setActivities(data || []);
     } catch (error: any) {
       console.error('Error loading activities:', error);
     }
@@ -161,24 +119,11 @@ export function AdminUserManagement() {
 
   const loadTransactions = async () => {
     try {
-      const { data, error } = await supabase
-        .from('payment_orders')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
+      const { data, error } = await supabase.rpc('get_admin_transaction_logs');
 
       if (error) throw error;
 
-      // Transform transactions with user emails
-      const transactionsWithEmails = (data || []).map((transaction) => ({
-        ...transaction,
-        user_email: transaction.user_email || `user-${transaction.user_id.slice(0, 8)}@system.local`,
-        currency: 'VND',
-        plan_id: transaction.package_id,
-        description: `Payment for ${transaction.package_id} package`
-      }));
-
-      setTransactions(transactionsWithEmails);
+      setTransactions(data || []);
     } catch (error: any) {
       console.error('Error loading transactions:', error);
     }
