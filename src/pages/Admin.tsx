@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate, Link } from 'react-router-dom';
-import { Settings, Users, Key, Database, Activity, Package, Info, BarChart3 } from 'lucide-react';
+import { Settings, Users, Key, Database, Activity, Package, Info, BarChart3, Crown } from 'lucide-react';
 import { APIHealthPanel } from '@/components/dashboard/api-health-panel';
 import { AdminDashboard } from '@/components/dashboard/AdminDashboard';
 import { AdminTestRunner } from '@/components/dashboard/admin-test-runner';
@@ -21,6 +21,8 @@ import PerformanceMonitor from '@/components/dashboard/PerformanceMonitor';
 import { DatabaseManager } from '@/components/dashboard/DatabaseManager';
 import { SystemMonitoring } from '@/components/dashboard/SystemMonitoring';
 import { AdminPackageManager } from '@/components/dashboard/AdminPackageManager';
+import AdminPromotion from '@/components/AdminPromotion';
+import { AdminUserManagement } from '@/components/dashboard/admin-user-management';
 
 interface AdminSetting {
   id: string;
@@ -215,8 +217,12 @@ export default function Admin() {
         </div>
 
         <TooltipProvider>
-          <Tabs defaultValue="dashboard" className="space-y-6">
+          <Tabs defaultValue="promotion" className="space-y-6">
             <TabsList className="grid w-full grid-cols-12 bg-white/10">
+              <TabsTrigger value="promotion" className="data-[state=active]:bg-white/20">
+                <Crown className="h-4 w-4 mr-2" />
+                Admin Setup
+              </TabsTrigger>
               <TabsTrigger value="dashboard" className="data-[state=active]:bg-white/20">
                 <BarChart3 className="h-4 w-4 mr-2" />
                 Dashboard
@@ -267,6 +273,11 @@ export default function Admin() {
               </TabsTrigger>
             </TabsList>
 
+          {/* Admin Promotion Tab */}
+          <TabsContent value="promotion">
+            <AdminPromotion />
+          </TabsContent>
+
           {/* Packages Tab */}
           <TabsContent value="packages">
             <AdminPackageManager />
@@ -309,44 +320,7 @@ export default function Admin() {
 
           {/* Users Management */}
           <TabsContent value="users">
-            <Card className="glass-card border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white">Users Management</CardTitle>
-                <CardDescription className="text-gray-300">
-                  Manage user accounts and roles
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {loadingUsers ? (
-                  <div className="text-white">Loading users...</div>
-                ) : (
-                  <div className="space-y-4">
-                    {users.map((user) => (
-                      <div key={user.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                        <div>
-                          <div className="text-white font-medium">{user.email}</div>
-                          <div className="text-sm text-gray-400">ID: {user.id.slice(0, 8)}...</div>
-                          <div className="text-sm text-gray-400">Joined: {new Date(user.created_at).toLocaleDateString()}</div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Badge variant={user.role === 'admin' ? 'destructive' : 'default'}>
-                            {user.role}
-                          </Badge>
-                          <select 
-                            value={user.role}
-                            onChange={(e) => updateUserRole(user.id, e.target.value as 'admin' | 'member')}
-                            className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-sm"
-                          >
-                            <option value="member">Member</option>
-                            <option value="admin">Admin</option>
-                          </select>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <AdminUserManagement />
           </TabsContent>
 
           {/* Database Tab */}
