@@ -14,7 +14,7 @@ import { User, Mail, Calendar, Award, BarChart3, Settings } from 'lucide-react';
 interface UserProfile {
   id: string;
   user_id: string;
-  tier: 'free' | 'pro' | 'agency';
+  tier: 'free' | 'pro' | 'agency' | 'enterprise';
   scans_limit: number;
   optimizations_limit: number;
   ai_rewrites_limit: number;
@@ -86,6 +86,7 @@ export function UserProfile() {
       case 'free': return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
       case 'pro': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
       case 'agency': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+      case 'enterprise': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
       default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
     }
   };
@@ -95,6 +96,7 @@ export function UserProfile() {
       case 'free': return 'Free Plan';
       case 'pro': return 'Pro Plan';
       case 'agency': return 'Agency Plan';
+      case 'enterprise': return 'Enterprise Plan';
       default: return 'Unknown Plan';
     }
   };

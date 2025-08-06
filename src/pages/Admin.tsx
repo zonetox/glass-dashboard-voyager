@@ -96,14 +96,30 @@ export default function Admin() {
       
       if (error) throw error;
       
-      // For demo, we'll just show the role data we have
-      const usersData = data?.map(item => ({
-        id: item.user_id,
-        email: `user-${item.user_id.slice(0, 8)}@example.com`, // Mock email
-        role: item.role,
-        created_at: item.created_at,
-        last_sign_in_at: item.created_at
-      })) || [];
+      // Get real user data with profiles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('user_profiles')
+        .select(`
+          user_id,
+          created_at,
+          last_login_at,
+          email_verified,
+          tier
+        `);
+
+      if (profilesError) throw profilesError;
+
+      const usersData = data?.map(item => {
+        const profile = profilesData?.find(p => p.user_id === item.user_id);
+        return {
+          id: item.user_id,
+          email: profile?.email_verified ? `verified-user-${item.user_id.slice(0, 8)}` : `user-${item.user_id.slice(0, 8)}`,
+          role: item.role,
+          tier: profile?.tier || 'free',
+          created_at: item.created_at,
+          last_sign_in_at: profile?.last_login_at || item.created_at
+        };
+      }) || [];
       
       setUsers(usersData);
     } catch (error: any) {

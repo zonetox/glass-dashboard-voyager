@@ -2434,7 +2434,7 @@ export type Database = {
         | "whitelabel"
       organization_role: "admin" | "editor" | "viewer"
       subscription_status: "active" | "inactive" | "cancelled" | "expired"
-      user_tier: "free" | "pro" | "agency"
+      user_tier: "free" | "pro" | "agency" | "enterprise"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2578,7 +2578,7 @@ export const Constants = {
       ],
       organization_role: ["admin", "editor", "viewer"],
       subscription_status: ["active", "inactive", "cancelled", "expired"],
-      user_tier: ["free", "pro", "agency"],
+      user_tier: ["free", "pro", "agency", "enterprise"],
     },
   },
 } as const

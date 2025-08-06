@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   User, 
   Mail, 
@@ -37,32 +38,44 @@ export function AccountPage() {
   const [activeSection, setActiveSection] = useState('usage');
   const { usage, loading: usageLoading } = useUsageTracking();
   
-  // Mock profile data - in real app this would come from user_profiles table
-  const [profile] = useState({
-    tier: 'pro',
-    scans_limit: usage?.scans_limit || 50,
-    optimizations_limit: usage?.optimizations_limit || 10,
-    ai_rewrites_limit: usage?.ai_rewrites_limit || 20,
-    email_verified: true,
-    created_at: user?.created_at || new Date().toISOString()
-  });
+  // Real profile data from user_profiles table
+  const [profile, setProfile] = useState(null);
+  const [reports, setReports] = useState([]);
 
-  const [reports] = useState([
-    {
-      id: '1',
-      website_url: 'example.com',
-      created_at: '2024-01-15T10:30:00Z',
-      seo_score: 85,
-      file_size: '2.4 MB'
-    },
-    {
-      id: '2', 
-      website_url: 'demo-site.org',
-      created_at: '2024-01-14T15:45:00Z',
-      seo_score: 72,
-      file_size: '1.8 MB'
-    }
-  ]);
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (!user) return;
+      
+      try {
+        // Load user profile
+        const { data: profileData } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (profileData) {
+          setProfile(profileData);
+        }
+
+        // Load user reports
+        const { data: reportsData } = await supabase
+          .from('reports')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        if (reportsData) {
+          setReports(reportsData);
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      }
+    };
+
+    loadUserData();
+  }, [user]);
 
   const getTierInfo = (tier: string) => {
     switch (tier) {
@@ -87,9 +100,16 @@ export function AccountPage() {
           icon: <Zap className="h-3 w-3" />,
           price: '299,000₫/tháng'
         };
+      case 'enterprise': 
+        return { 
+          name: 'Enterprise Plan', 
+          color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+          icon: <Crown className="h-3 w-3" />,
+          price: '0₫/tháng'
+        };
       default: 
         return { 
-          name: 'Unknown', 
+          name: 'Loading...', 
           color: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
           icon: <User className="h-3 w-3" />,
           price: '0₫/tháng'
@@ -101,7 +121,18 @@ export function AccountPage() {
     return Math.min((used / limit) * 100, 100);
   };
 
-  const tierInfo = getTierInfo(profile.tier);
+  const tierInfo = getTierInfo(profile?.tier || 'free');
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Đang tải thông tin tài khoản...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleStartOnboarding = () => {
     setShowOnboarding(true);

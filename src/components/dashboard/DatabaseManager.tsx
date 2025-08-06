@@ -162,15 +162,19 @@ export function DatabaseManager() {
       setExecuting(true);
       const startTime = Date.now();
       
-      // Mock execution since execute_admin_query is not available in types yet
-      // In real implementation, this would call the function after types are updated
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate query time
+      // Execute the admin query using real Supabase function
+      const { data: result, error } = await supabase.rpc('execute_admin_query', {
+        query: sqlQuery
+      });
       
       const duration = Date.now() - startTime;
-      const mockResult = { message: "Query executed successfully (demo mode)", query: sqlQuery };
+
+      if (error) {
+        throw error;
+      }
 
       setQueryResult({
-        data: mockResult,
+        data: result,
         duration,
         timestamp: new Date().toISOString(),
         status: 'success'

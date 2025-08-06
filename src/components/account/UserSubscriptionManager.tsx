@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { PaymentMethodSelector } from '@/components/PaymentMethodSelector';
 import { Crown, Calendar, CreditCard, ArrowRight, CheckCircle } from 'lucide-react';
 
@@ -50,47 +51,57 @@ export function UserSubscriptionManager() {
 
   const loadSubscriptionData = async () => {
     try {
-      // Mock data for now until subscription tables are properly set up
-      setCurrentSubscription({
-        id: '1',
-        package_id: 'free',
-        status: 'active',
-        start_date: new Date().toISOString(),
-        end_date: null,
-        package: {
-          name: 'Free Plan',
-          description: 'Gói miễn phí',
-          base_price_vnd: 0
-        }
-      });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      // Mock available packages
-      setAvailablePackages([
-        {
-          id: 'free',
-          name: 'Free Plan',
-          description: 'Gói miễn phí cho người dùng cá nhân',
-          base_price_vnd: 0,
-          is_recommended: false,
-          features: [
-            { feature_type: 'website_scan', is_enabled: true, custom_limit: 5 },
-            { feature_type: 'ai_content', is_enabled: true, custom_limit: 10 },
-            { feature_type: 'optimization', is_enabled: true, custom_limit: 2 }
-          ]
-        },
-        {
-          id: 'pro',
-          name: 'Pro Plan',
-          description: 'Gói chuyên nghiệp cho doanh nghiệp nhỏ',
-          base_price_vnd: 99000,
-          is_recommended: true,
-          features: [
-            { feature_type: 'website_scan', is_enabled: true, custom_limit: 50 },
-            { feature_type: 'ai_content', is_enabled: true, custom_limit: 100 },
-            { feature_type: 'optimization', is_enabled: true, custom_limit: 20 }
-          ]
-        }
-      ]);
+      // Get current user subscription
+      const { data: subscription, error: subError } = await supabase
+        .from('user_subscriptions')
+        .select(`
+          *,
+          subscription_packages:package_id (
+            id,
+            name,
+            description,
+            base_price_vnd,
+            is_recommended
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (subscription && !subError) {
+        setCurrentSubscription({
+          ...subscription,
+          package: subscription.subscription_packages
+        });
+      }
+
+      // Get all available packages with features
+      const { data: packages, error: packagesError } = await supabase
+        .from('subscription_packages')
+        .select(`
+          *,
+          package_features (
+            feature_type,
+            is_enabled,
+            custom_limit,
+            custom_price_vnd
+          )
+        `)
+        .eq('is_active', true)
+        .order('base_price_vnd');
+
+      if (packages && !packagesError) {
+        const transformedPackages = packages.map(pkg => ({
+          ...pkg,
+          features: pkg.package_features
+        }));
+        setAvailablePackages(transformedPackages);
+      }
     } catch (error) {
       console.error('Error loading subscription data:', error);
     } finally {
