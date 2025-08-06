@@ -1,6 +1,28 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { createHmac } from "https://deno.land/std@0.190.0/node/crypto.ts";
+
+// Web Crypto API helper for HMAC
+async function createHmac(algorithm: string, key: string): Promise<{ update: (data: string) => { digest: (encoding: string) => Promise<string> } }> {
+  const keyData = new TextEncoder().encode(key);
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: algorithm === 'sha256' ? 'SHA-256' : 'SHA-512' },
+    false,
+    ['sign']
+  );
+  
+  return {
+    update: (data: string) => ({
+      digest: async (encoding: string) => {
+        const dataBuffer = new TextEncoder().encode(data);
+        const signature = await crypto.subtle.sign('HMAC', cryptoKey, dataBuffer);
+        const hashArray = Array.from(new Uint8Array(signature));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      }
+    })
+  };
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -156,7 +178,8 @@ async function processMoMoWebhook(data: any) {
   // Verify signature
   const rawSignature = `accessKey=${data.accessKey}&amount=${data.amount}&extraData=${data.extraData}&message=${data.message}&orderId=${data.orderId}&orderInfo=${data.orderInfo}&orderType=${data.orderType}&partnerCode=${data.partnerCode}&payType=${data.payType}&requestId=${data.requestId}&responseTime=${data.responseTime}&resultCode=${data.resultCode}&transId=${data.transId}`;
   
-  const signature = createHmac('sha256', secretKey).update(rawSignature).digest('hex');
+  const hmac = await createHmac('sha256', secretKey);
+  const signature = await hmac.update(rawSignature).digest('hex');
   
   if (signature !== data.signature) {
     throw new Error('Invalid MoMo signature');
@@ -178,7 +201,8 @@ async function processVNPayWebhook(data: any) {
   
   const sortedKeys = Object.keys(data).sort();
   const signData = sortedKeys.map(key => `${key}=${data[key]}`).join('&');
-  const computedHash = createHmac('sha512', secretKey).update(signData).digest('hex');
+  const hmac = await createHmac('sha512', secretKey);
+  const computedHash = await hmac.update(signData).digest('hex');
   
   if (computedHash !== secureHash) {
     throw new Error('Invalid VNPay signature');
