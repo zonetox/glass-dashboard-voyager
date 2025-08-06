@@ -7,14 +7,58 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { sendWelcomeEmail } from '@/lib/email-service';
+import { LogOut } from 'lucide-react';
 
 export function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, signOut, user } = useAuth();
   const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Đăng xuất thành công",
+        description: "Bạn đã đăng xuất khỏi hệ thống",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể đăng xuất",
+      });
+    }
+  };
+
+  // If user is logged in, show logout option
+  if (user) {
+    return (
+      <Card className="glass-card w-full max-w-md mx-auto">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            Đã đăng nhập
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-center space-y-2">
+            <p className="text-muted-foreground">Đăng nhập với:</p>
+            <p className="font-medium">{user.email}</p>
+          </div>
+          <Button 
+            onClick={handleSignOut}
+            variant="outline"
+            className="w-full"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Đăng xuất
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

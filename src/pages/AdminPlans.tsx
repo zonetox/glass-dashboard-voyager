@@ -12,19 +12,30 @@ import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import { Save, Package, DollarSign, FileText, Brain, Users } from 'lucide-react';
 
-interface Plan {
+interface SubscriptionPackage {
   id: string;
   name: string;
-  monthly_limit: number;
-  pdf_enabled: boolean;
-  ai_enabled: boolean;
-  price_vnd: number;
+  description: string;
+  base_price_vnd: number;
+  is_default: boolean;
+  is_recommended: boolean;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
 
+interface PackageFeature {
+  id: string;
+  package_id: string;
+  feature_type: string;
+  is_enabled: boolean;
+  custom_price_vnd: number | null;
+  custom_limit: number | null;
+}
+
 export default function AdminPlans() {
-  const [plans, setPlans] = useState<Plan[]>([]);
+  const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
+  const [packageFeatures, setPackageFeatures] = useState<PackageFeature[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const { toast } = useToast();
@@ -36,20 +47,30 @@ export default function AdminPlans() {
   }
 
   useEffect(() => {
-    fetchPlans();
+    fetchData();
   }, []);
 
-  const fetchPlans = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await supabase
-        .from('plans')
+      // Fetch packages
+      const { data: packagesData, error: packagesError } = await supabase
+        .from('subscription_packages')
         .select('*')
-        .order('id');
+        .order('created_at');
 
-      if (error) throw error;
-      setPlans(data || []);
+      if (packagesError) throw packagesError;
+
+      // Fetch package features
+      const { data: packageFeaturesData, error: packageFeaturesError } = await supabase
+        .from('package_features')
+        .select('*');
+
+      if (packageFeaturesError) throw packageFeaturesError;
+
+      setPackages(packagesData || []);
+      setPackageFeatures(packageFeaturesData || []);
     } catch (error) {
-      console.error('Error fetching plans:', error);
+      console.error('Error fetching data:', error);
       toast({
         title: "Lỗi",
         description: "Không thể tải danh sách gói",
@@ -60,19 +81,19 @@ export default function AdminPlans() {
     }
   };
 
-  const updatePlan = async (planId: string, updates: Partial<Plan>) => {
-    setSaving(planId);
+  const updatePackage = async (packageId: string, updates: Partial<SubscriptionPackage>) => {
+    setSaving(packageId);
     try {
       const { error } = await supabase
-        .from('plans')
+        .from('subscription_packages')
         .update(updates)
-        .eq('id', planId);
+        .eq('id', packageId);
 
       if (error) throw error;
 
       // Update local state
-      setPlans(prev => prev.map(plan => 
-        plan.id === planId ? { ...plan, ...updates } : plan
+      setPackages(prev => prev.map(pkg => 
+        pkg.id === packageId ? { ...pkg, ...updates } : pkg
       ));
 
       toast({
@@ -80,7 +101,7 @@ export default function AdminPlans() {
         description: "Đã cập nhật gói thành công",
       });
     } catch (error) {
-      console.error('Error updating plan:', error);
+      console.error('Error updating package:', error);
       toast({
         title: "Lỗi",
         description: "Không thể cập nhật gói",
@@ -91,15 +112,15 @@ export default function AdminPlans() {
     }
   };
 
-  const handleFieldChange = (planId: string, field: keyof Plan, value: any) => {
+  const handleFieldChange = (packageId: string, field: keyof SubscriptionPackage, value: any) => {
     // Update local state immediately for real-time feel
-    setPlans(prev => prev.map(plan => 
-      plan.id === planId ? { ...plan, [field]: value } : plan
+    setPackages(prev => prev.map(pkg => 
+      pkg.id === packageId ? { ...pkg, [field]: value } : pkg
     ));
 
     // Debounce the API call
     setTimeout(() => {
-      updatePlan(planId, { [field]: value });
+      updatePackage(packageId, { [field]: value });
     }, 500);
   };
 
@@ -108,6 +129,21 @@ export default function AdminPlans() {
       style: 'currency',
       currency: 'VND'
     }).format(priceVnd);
+  };
+
+  const getFeatureLimit = (packageId: string, featureType: string) => {
+    const feature = packageFeatures.find(pf => 
+      pf.package_id === packageId && pf.feature_type === featureType
+    );
+    return feature?.custom_limit || 0;
+  };
+
+  const isFeatureEnabled = (packageId: string, featureType: string) => {
+    return packageFeatures.some(pf => 
+      pf.package_id === packageId && 
+      pf.feature_type === featureType && 
+      pf.is_enabled
+    );
   };
 
   if (loading) {
@@ -135,24 +171,26 @@ export default function AdminPlans() {
           </p>
         </div>
 
-        {/* Plans Grid */}
+        {/* Packages Grid */}
         <div className="grid gap-6 md:grid-cols-2">
-          {plans.map((plan) => (
-            <Card key={plan.id} className="relative">
+          {packages.map((pkg) => (
+            <Card key={pkg.id} className="relative">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="flex items-center gap-2">
-                      {plan.name}
-                      <Badge variant={plan.id === 'free' ? 'secondary' : 'default'}>
-                        {plan.id}
-                      </Badge>
+                      {pkg.name}
+                      {pkg.is_recommended && <Badge className="bg-primary">Khuyên dùng</Badge>}
+                      {pkg.is_default && <Badge variant="secondary">Mặc định</Badge>}
                     </CardTitle>
                     <CardDescription>
-                      Cập nhật: {new Date(plan.updated_at).toLocaleString('vi-VN')}
+                      {pkg.description}
+                    </CardDescription>
+                    <CardDescription className="text-xs">
+                      Cập nhật: {new Date(pkg.updated_at).toLocaleString('vi-VN')}
                     </CardDescription>
                   </div>
-                  {saving === plan.id && (
+                  {saving === pkg.id && (
                     <div className="flex items-center gap-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
                       <span className="text-sm text-muted-foreground">Đang lưu...</span>
@@ -162,49 +200,29 @@ export default function AdminPlans() {
               </CardHeader>
               
               <CardContent className="space-y-6">
-                {/* Monthly Limit */}
-                <div className="space-y-2">
-                  <Label htmlFor={`limit-${plan.id}`} className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Số lượt phân tích/tháng
-                  </Label>
-                  <Input
-                    id={`limit-${plan.id}`}
-                    type="number"
-                    value={plan.monthly_limit}
-                    onChange={(e) => handleFieldChange(plan.id, 'monthly_limit', parseInt(e.target.value) || 0)}
-                    min="0"
-                    className="w-full"
-                  />
-                </div>
-
-                <Separator />
-
-                {/* Features */}
+                {/* Package Settings */}
                 <div className="space-y-4">
-                  <Label className="text-sm font-medium">Tính năng</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Gói mặc định</Label>
+                    <Switch
+                      checked={pkg.is_default}
+                      onCheckedChange={(checked) => handleFieldChange(pkg.id, 'is_default', checked)}
+                    />
+                  </div>
                   
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <Label htmlFor={`pdf-${plan.id}`}>PDF Report</Label>
-                    </div>
+                    <Label>Gói khuyên dùng</Label>
                     <Switch
-                      id={`pdf-${plan.id}`}
-                      checked={plan.pdf_enabled}
-                      onCheckedChange={(checked) => handleFieldChange(plan.id, 'pdf_enabled', checked)}
+                      checked={pkg.is_recommended}
+                      onCheckedChange={(checked) => handleFieldChange(pkg.id, 'is_recommended', checked)}
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Brain className="h-4 w-4 text-muted-foreground" />
-                      <Label htmlFor={`ai-${plan.id}`}>AI Rewrite</Label>
-                    </div>
+                    <Label>Kích hoạt</Label>
                     <Switch
-                      id={`ai-${plan.id}`}
-                      checked={plan.ai_enabled}
-                      onCheckedChange={(checked) => handleFieldChange(plan.id, 'ai_enabled', checked)}
+                      checked={pkg.is_active}
+                      onCheckedChange={(checked) => handleFieldChange(pkg.id, 'is_active', checked)}
                     />
                   </div>
                 </div>
@@ -213,22 +231,51 @@ export default function AdminPlans() {
 
                 {/* Price */}
                 <div className="space-y-2">
-                  <Label htmlFor={`price-${plan.id}`} className="flex items-center gap-2">
+                  <Label htmlFor={`price-${pkg.id}`} className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4" />
-                    Giá (VNĐ)
+                    Giá cơ bản (VNĐ)
                   </Label>
                   <div className="space-y-2">
                     <Input
-                      id={`price-${plan.id}`}
+                      id={`price-${pkg.id}`}
                       type="number"
-                      value={plan.price_vnd}
-                      onChange={(e) => handleFieldChange(plan.id, 'price_vnd', parseInt(e.target.value) || 0)}
+                      value={pkg.base_price_vnd}
+                      onChange={(e) => handleFieldChange(pkg.id, 'base_price_vnd', parseInt(e.target.value) || 0)}
                       min="0"
                       step="1000"
                       className="w-full"
                     />
                     <div className="text-sm text-muted-foreground">
-                      Hiển thị: {formatPrice(plan.price_vnd)}
+                      Hiển thị: {formatPrice(pkg.base_price_vnd)}
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Features Summary */}
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium">Tính năng đã bật</Label>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Website Scans:</span>
+                      <span>{getFeatureLimit(pkg.id, 'website_scan') || 'Unlimited'}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>AI Content:</span>
+                      <span>{getFeatureLimit(pkg.id, 'ai_content') || 'Unlimited'}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Optimizations:</span>
+                      <span>{getFeatureLimit(pkg.id, 'optimization') || 'Unlimited'}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>PDF Export:</span>
+                      <span>{isFeatureEnabled(pkg.id, 'pdf_export') ? '✅' : '❌'}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>AI Rewrite:</span>
+                      <span>{isFeatureEnabled(pkg.id, 'ai_rewrite') ? '✅' : '❌'}</span>
                     </div>
                   </div>
                 </div>
@@ -236,11 +283,9 @@ export default function AdminPlans() {
                 {/* Summary */}
                 <div className="bg-muted/50 rounded-lg p-4 space-y-2">
                   <h4 className="font-medium text-sm">Tóm tắt gói</h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>Phân tích: {plan.monthly_limit}/tháng</div>
-                    <div>Giá: {formatPrice(plan.price_vnd)}</div>
-                    <div>PDF: {plan.pdf_enabled ? '✅' : '❌'}</div>
-                    <div>AI: {plan.ai_enabled ? '✅' : '❌'}</div>
+                  <div className="text-sm space-y-1">
+                    <div>Giá: {formatPrice(pkg.base_price_vnd)}/tháng</div>
+                    <div>Trạng thái: {pkg.is_active ? 'Hoạt động' : 'Tạm dừng'}</div>
                   </div>
                 </div>
               </CardContent>
