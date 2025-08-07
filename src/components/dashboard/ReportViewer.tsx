@@ -72,19 +72,43 @@ export function ReportViewer() {
     const url = prompt("Nhập URL cần tạo báo cáo:");
     if (!url) return;
 
-    const includeAI = confirm("Bao gồm phân tích AI SEO?");
+    const includeAI = confirm("Bao gồm phân tích AI SEO cho việc tối ưu AI search?");
     
     setCreating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-pdf-report", {
+      // Check user scan limit first
+      if (user?.id) {
+        const { data: canScan } = await supabase.rpc('check_user_scan_limit', { 
+          user_uuid: user.id 
+        });
+        
+        if (!canScan) {
+          toast({
+            title: "Đã hết lượt quét",
+            description: "Bạn đã sử dụng hết số lần quét trong tháng này. Vui lòng nâng cấp gói hoặc chờ tháng sau.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      const { data, error } = await supabase.functions.invoke("enhanced-pdf-report", {
         body: {
           url,
           include_ai: includeAI,
-          scan_id: null
+          scan_id: null,
+          user_id: user?.id
         }
       });
 
       if (error) throw error;
+
+      // Increment user scan usage
+      if (user?.id) {
+        await supabase.rpc('increment_user_scan_usage', { 
+          user_uuid: user.id 
+        });
+      }
 
       // Send PDF report email if user is logged in
       if (user?.email && data?.file_url) {
@@ -100,7 +124,7 @@ export function ReportViewer() {
 
       toast({
         title: "Thành công",
-        description: "Báo cáo đã được tạo và link tải đã được gửi qua email",
+        description: `Báo cáo SEO ${includeAI ? 'với phân tích AI ' : ''}đã được tạo thành công! Link tải đã được gửi qua email.`,
       });
       
       fetchReports();
@@ -108,7 +132,7 @@ export function ReportViewer() {
       console.error("Error creating report:", error);
       toast({
         title: "Lỗi",
-        description: "Không thể tạo báo cáo",
+        description: error.message || "Không thể tạo báo cáo. Vui lòng thử lại.",
         variant: "destructive",
       });
     } finally {

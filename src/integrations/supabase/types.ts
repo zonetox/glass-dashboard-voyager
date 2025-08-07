@@ -2349,6 +2349,10 @@ export type Database = {
           total_limit: number
         }[]
       }
+      check_user_scan_limit: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
       execute_admin_query: {
         Args: { query: string }
         Returns: Json
@@ -2387,6 +2391,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_user_scan_usage: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
       increment_user_usage: {
         Args: { _user_id: string }
         Returns: boolean
@@ -2414,6 +2422,10 @@ export type Database = {
         Returns: undefined
       }
       reset_monthly_usage: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      reset_user_monthly_usage: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
