@@ -82,10 +82,9 @@ export default function ContentWorkflowManager() {
 
       if (error) throw error;
 
-      // Transform data to match ContentItem interface
-      const transformedData: ContentItem[] = data?.map(item => ({
+      const transformedData: ContentItem[] = (data as any[])?.map((item: any) => ({
         id: item.id,
-        title: item.content_plans.title,
+        title: item.content_plans?.[0]?.title ?? 'Untitled',
         type: 'article' as const,
         status: item.status as ContentItem['status'],
         author_id: item.writer_id,
