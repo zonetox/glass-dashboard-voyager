@@ -88,12 +88,93 @@ serve(async (req) => {
     const robotsMeta = $('meta[name="robots"]').attr("content") || "";
     const viewport = $('meta[name="viewport"]').attr("content") || "";
     
+    // Social and i18n tags
+    const ogTags: Record<string, string> = {};
+    $('meta[property^="og:"]').each((_, el) => {
+      const prop = $(el).attr('property') || '';
+      const content = $(el).attr('content') || '';
+      if (prop) ogTags[prop] = content;
+    });
+    const twitterTags: Record<string, string> = {};
+    $('meta[name^="twitter:"]').each((_, el) => {
+      const name = $(el).attr('name') || '';
+      const content = $(el).attr('content') || '';
+      if (name) twitterTags[name] = content;
+    });
+    const hreflangs = $('link[rel="alternate"][hreflang]').map((_, el) => ({
+      hreflang: $(el).attr('hreflang') || '',
+      href: $(el).attr('href') || ''
+    })).get();
+
+    // Link analysis
+    const pageUrl = new URL(url);
+    const allAnchors = $('a[href]').map((_, el) => $(el).attr('href') || '').get();
+    const internalLinks = allAnchors.filter((href: string) => {
+      if (!href) return false;
+      if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return false;
+      if (href.startsWith('/')) return true;
+      try { return new URL(href, pageUrl.origin).origin === pageUrl.origin; } catch { return false; }
+    });
+    const externalLinks = allAnchors.filter((href: string) => {
+      if (!href) return false;
+      if (!/^https?:\/\//i.test(href)) return false;
+      try { return new URL(href).origin !== pageUrl.origin; } catch { return false; }
+    });
+
+    // JSON-LD schema extraction
+    let jsonLd: any = null;
+    $('script[type="application/ld+json"]').each((_, el) => {
+      try {
+        const txt = $(el).contents().text();
+        if (txt) {
+          const parsed = JSON.parse(txt);
+          if (!jsonLd) jsonLd = parsed;
+        }
+      } catch (_) { /* ignore */ }
+    });
+
+    // Security checks
+    const isHttps = pageUrl.protocol === 'https:';
+    let mixedContentCount = 0;
+    if (isHttps) {
+      $('img[src], script[src], link[href]').each((_, el) => {
+        const src = $(el).attr('src') || $(el).attr('href') || '';
+        if (src.startsWith('http://')) mixedContentCount++;
+      });
+    }
+
+    // robots.txt and sitemap
+    let robotsTxtStatus: 'present' | 'missing' | 'error' = 'missing';
+    let robotsContent = '';
+    let disallowAll = false;
+    let sitemapUrl = '';
+    let sitemapFound = false;
+    try {
+      const robotsUrl = new URL('/robots.txt', pageUrl.origin).toString();
+      const robotsRes = await fetch(robotsUrl);
+      if (robotsRes.ok) {
+        robotsTxtStatus = 'present';
+        robotsContent = await robotsRes.text();
+        disallowAll = /User-agent:\s*\*([\s\S]*?)Disallow:\s*\//i.test(robotsContent);
+        const match = robotsContent.match(/Sitemap:\s*(.*)/i);
+        if (match && match[1]) sitemapUrl = match[1].trim();
+      }
+    } catch (_) {
+      robotsTxtStatus = 'error';
+    }
+    try {
+      const smUrl = sitemapUrl || new URL('/sitemap.xml', pageUrl.origin).toString();
+      const smRes = await fetch(smUrl, { method: 'HEAD' });
+      sitemapFound = smRes.ok;
+      if (!sitemapUrl) sitemapUrl = smUrl;
+    } catch (_) {
+      sitemapFound = false;
+    }
+
     // Extract body text for AI analysis (limit to 6000 chars for GPT)
     const bodyText = $("body").text().replace(/\s+/g, " ").trim();
     const content = bodyText.slice(0, 6000);
-    const wordCount = bodyText.split(" ").length;
-    
-    console.log(`SEO data extracted: ${h1.length} H1s, ${h2.length} H2s, ${h3.length} H3s, ${images.length} images, ${wordCount} words`);
+    const wordCount = bodyText.split(" ").filter(Boolean).length;
 
     // Gọi PageSpeed API
     const pageSpeedApiKey = Deno.env.get("GOOGLE_PAGESPEED_API_KEY");
@@ -194,6 +275,16 @@ Nội dung chính: ${content}`
       fetchPageSpeed("desktop")
     ]);
 
+    const getVitals = (res: any) => {
+      const audits = res?.lighthouseResult?.audits || {};
+      return {
+        lcp: audits['largest-contentful-paint']?.numericValue ?? null,
+        cls: audits['cumulative-layout-shift']?.numericValue ?? null,
+        tbt: audits['total-blocking-time']?.numericValue ?? null,
+        tti: audits['interactive']?.numericValue ?? null,
+      };
+    };
+
     const response = {
       seo: { 
         title, 
@@ -219,6 +310,41 @@ Nội dung chính: ${content}`
           metrics: desktopResult.lighthouseResult?.audits || {},
         } : null,
       },
+      coreWebVitals: {
+        mobile: mobileResult ? getVitals(mobileResult) : null,
+        desktop: desktopResult ? getVitals(desktopResult) : null,
+      },
+      indexability: {
+        robotsMeta,
+        robotsTxtStatus,
+        disallowAll,
+        sitemapFound,
+        sitemapUrl,
+        canonical,
+        canonicalMatches: canonical ? (() => {
+          try { return new URL(canonical, pageUrl.origin).href === new URL(url).href; } catch { return false; }
+        })() : false,
+        indexable: robotsMeta.toLowerCase().includes('noindex') ? false : (!disallowAll),
+      },
+      social: {
+        og: ogTags,
+        twitter: twitterTags,
+      },
+      i18n: {
+        hreflangs,
+      },
+      security: {
+        isHttps,
+        mixedContentCount,
+      },
+      links: {
+        internal: internalLinks.length,
+        external: externalLinks.length,
+      },
+      schemaMarkup: jsonLd ? {
+        type: (Array.isArray(jsonLd) ? (jsonLd[0]?.['@type'] || 'WebPage') : (jsonLd['@type'] || 'WebPage')),
+        jsonLd
+      } : { type: 'WebPage', jsonLd: null },
       aiAnalysis: aiAnalysis || {
         searchIntent: "Unknown",
         semanticTopics: [],
@@ -238,7 +364,7 @@ Nội dung chính: ${content}`
         overallScore: 50,
         priorityIssues: ["AI analysis unavailable"]
       }
-    };
+    } as any;
 
     // Save results to Supabase database
     const supabaseUrl = Deno.env.get("SUPABASE_URL");

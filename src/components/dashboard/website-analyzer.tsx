@@ -11,6 +11,8 @@ import { Globe, Search, Loader2, CheckCircle, AlertCircle, Zap, Monitor, Smartph
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { StandardizedSEOResults } from './StandardizedSEOResults';
+import { StandardizedSEOAnalyzer } from '@/lib/standardized-seo-analyzer';
+
 
 interface AnalysisResult {
   seo: {
