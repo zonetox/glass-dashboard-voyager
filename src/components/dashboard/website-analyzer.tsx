@@ -7,11 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Globe, Search, Loader2, CheckCircle, AlertCircle, Zap, Monitor, Smartphone, Brain, Code } from 'lucide-react';
+import { Globe, Search, Loader2, CheckCircle, AlertCircle, Zap, Monitor, Smartphone, Brain, Code, FileDown, BarChart3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { StandardizedSEOResults } from './StandardizedSEOResults';
 import { StandardizedSEOAnalyzer } from '@/lib/standardized-seo-analyzer';
+import html2pdf from 'html2pdf.js';
+import { CoreWebVitalsChart } from './CoreWebVitalsChart';
+import { SEODeepDetails } from './SEODeepDetails';
 
 
 interface AnalysisResult {
@@ -176,6 +179,27 @@ export function WebsiteAnalyzer({ onAnalysisComplete }: WebsiteAnalyzerProps) {
     }
   };
 
+  const handleExportPDF = () => {
+    const content = document.getElementById('analysis-report');
+    if (!content) return;
+
+    const options = {
+      margin: 1,
+      filename: 'SEO-Analysis-Report.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    } as any;
+
+    // @ts-ignore
+    html2pdf().set(options).from(content).save();
+
+    toast({
+      title: 'Đang xuất PDF',
+      description: 'File PDF sẽ được tải xuống trong giây lát',
+    });
+  };
+
   const getScoreColor = (score: number) => {
     if (score >= 90) return 'text-green-400';
     if (score >= 70) return 'text-yellow-400';
@@ -265,20 +289,27 @@ export function WebsiteAnalyzer({ onAnalysisComplete }: WebsiteAnalyzerProps) {
 
       {/* Analysis Results */}
       {analysisResult && (
-        <Card className="glass-card border-white/10">
+        <Card id="analysis-report" className="glass-card border-white/10">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <CheckCircle className="h-5 w-5 text-green-400" />
-              Analysis Results
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-white">
+                <CheckCircle className="h-5 w-5 text-green-400" />
+                Analysis Results
+              </CardTitle>
+              <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                <FileDown className="h-4 w-4 mr-2" />
+                Xuất PDF
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="standardized" className="w-full">
-              <TabsList className="grid w-full grid-cols-6 bg-white/5">
+              <TabsList className="grid w-full grid-cols-7 bg-white/5">
                 <TabsTrigger value="standardized">Chuẩn Hóa</TabsTrigger>
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="performance">Performance</TabsTrigger>
                 <TabsTrigger value="seo">SEO</TabsTrigger>
+                <TabsTrigger value="details">Chi tiết</TabsTrigger>
                 <TabsTrigger value="ai">AI Analysis</TabsTrigger>
                 <TabsTrigger value="schema">Schema</TabsTrigger>
               </TabsList>
@@ -331,6 +362,7 @@ export function WebsiteAnalyzer({ onAnalysisComplete }: WebsiteAnalyzerProps) {
               </TabsContent>
               
               <TabsContent value="performance" className="space-y-4">
+                <CoreWebVitalsChart desktopMetrics={analysisResult.performance.desktop?.metrics} mobileMetrics={analysisResult.performance.mobile?.metrics} />
                 {(analysisResult.performance.desktop || analysisResult.performance.mobile) ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {analysisResult.performance.desktop && (
@@ -416,6 +448,10 @@ export function WebsiteAnalyzer({ onAnalysisComplete }: WebsiteAnalyzerProps) {
                     </div>
                   </div>
                 </div>
+              </TabsContent>
+              
+              <TabsContent value="details" className="space-y-4">
+                <SEODeepDetails result={analysisResult} />
               </TabsContent>
               
               <TabsContent value="ai" className="space-y-4">
