@@ -285,6 +285,154 @@ Nội dung chính: ${content}`
       };
     };
 
+    // Calculate comprehensive SEO scores and metrics
+    const calculateSEOScore = () => {
+      let score = 0;
+      const issues: string[] = [];
+      const strengths: string[] = [];
+
+      // Title evaluation (15 points)
+      if (title) {
+        if (title.length >= 30 && title.length <= 60) {
+          score += 15;
+          strengths.push("Title độ dài tối ưu");
+        } else if (title.length > 0) {
+          score += 8;
+          issues.push(title.length < 30 ? "Title quá ngắn" : "Title quá dài");
+        }
+      } else {
+        issues.push("Thiếu title tag");
+      }
+
+      // Meta description (10 points)
+      if (metaDescription) {
+        if (metaDescription.length >= 120 && metaDescription.length <= 160) {
+          score += 10;
+          strengths.push("Meta description tối ưu");
+        } else {
+          score += 5;
+          issues.push("Meta description độ dài chưa tối ưu");
+        }
+      } else {
+        issues.push("Thiếu meta description");
+      }
+
+      // H1 structure (10 points)
+      if (h1.length === 1) {
+        score += 10;
+        strengths.push("Cấu trúc H1 tối ưu");
+      } else if (h1.length === 0) {
+        issues.push("Thiếu thẻ H1");
+      } else {
+        score += 5;
+        issues.push("Nhiều thẻ H1 (nên chỉ có 1)");
+      }
+
+      // Heading hierarchy (10 points)
+      if (h2.length > 0) {
+        score += 5;
+        strengths.push("Có cấu trúc H2");
+      }
+      if (h3.length > 0) {
+        score += 5;
+        strengths.push("Có cấu trúc H3");
+      }
+
+      // Image optimization (10 points)
+      if (images.length > 0) {
+        const altRatio = (images.length - images.filter(img => !img.alt).length) / images.length;
+        score += Math.round(altRatio * 10);
+        if (altRatio === 1) {
+          strengths.push("Tất cả hình ảnh có alt text");
+        } else if (altRatio > 0.7) {
+          strengths.push("Hầu hết hình ảnh có alt text");
+        } else {
+          issues.push("Nhiều hình ảnh thiếu alt text");
+        }
+      }
+
+      // Technical SEO (15 points)
+      if (canonical) {
+        score += 5;
+        strengths.push("Có canonical URL");
+      } else {
+        issues.push("Thiếu canonical URL");
+      }
+
+      if (isHttps) {
+        score += 5;
+        strengths.push("Sử dụng HTTPS");
+      } else {
+        issues.push("Chưa sử dụng HTTPS");
+      }
+
+      if (viewport) {
+        score += 5;
+        strengths.push("Có viewport meta tag");
+      } else {
+        issues.push("Thiếu viewport meta tag");
+      }
+
+      // Indexability (10 points)
+      if (!robotsMeta.toLowerCase().includes('noindex') && !disallowAll) {
+        score += 5;
+        strengths.push("Trang có thể được index");
+      } else {
+        issues.push("Trang bị chặn index");
+      }
+
+      if (sitemapFound) {
+        score += 5;
+        strengths.push("Có sitemap");
+      } else {
+        issues.push("Không tìm thấy sitemap");
+      }
+
+      // Content quality (10 points)
+      if (wordCount >= 300) {
+        score += 10;
+        strengths.push("Nội dung đủ dài");
+      } else if (wordCount >= 150) {
+        score += 5;
+        issues.push("Nội dung hơi ngắn");
+      } else {
+        issues.push("Nội dung quá ngắn");
+      }
+
+      // Social sharing (5 points)
+      if (Object.keys(ogTags).length > 0) {
+        score += 3;
+        strengths.push("Có Open Graph tags");
+      }
+      if (Object.keys(twitterTags).length > 0) {
+        score += 2;
+        strengths.push("Có Twitter Cards");
+      }
+
+      // Schema markup (5 points)
+      if (jsonLd) {
+        score += 5;
+        strengths.push("Có structured data");
+      } else {
+        issues.push("Thiếu structured data");
+      }
+
+      return { score: Math.min(score, 100), issues, strengths };
+    };
+
+    const seoEvaluation = calculateSEOScore();
+    
+    // Generate grade and recommendations
+    const getGrade = (score: number) => {
+      if (score >= 90) return { grade: 'A', color: '#10B981', status: 'Excellent' };
+      if (score >= 80) return { grade: 'B', color: '#F59E0B', status: 'Good' };
+      if (score >= 70) return { grade: 'C', color: '#EF4444', status: 'Needs Improvement' };
+      if (score >= 60) return { grade: 'D', color: '#DC2626', status: 'Poor' };
+      return { grade: 'F', color: '#7F1D1D', status: 'Critical' };
+    };
+
+    const gradeInfo = getGrade(seoEvaluation.score);
+
     const response = {
       seo: { 
         title, 
@@ -304,15 +452,48 @@ Nội dung chính: ${content}`
         mobile: mobileResult ? {
           score: mobileResult.lighthouseResult?.categories?.performance?.score || null,
           metrics: mobileResult.lighthouseResult?.audits || {},
+          opportunities: mobileResult.lighthouseResult?.audits ? Object.entries(mobileResult.lighthouseResult.audits)
+            .filter(([_, audit]: [string, any]) => audit.scoreDisplayMode === 'metricSavings' && audit.details?.overallSavingsMs > 0)
+            .map(([key, audit]: [string, any]) => ({
+              title: audit.title,
+              description: audit.description,
+              savings: audit.details?.overallSavingsMs || 0
+            })) : []
         } : null,
         desktop: desktopResult ? {
           score: desktopResult.lighthouseResult?.categories?.performance?.score || null,
           metrics: desktopResult.lighthouseResult?.audits || {},
+          opportunities: desktopResult.lighthouseResult?.audits ? Object.entries(desktopResult.lighthouseResult.audits)
+            .filter(([_, audit]: [string, any]) => audit.scoreDisplayMode === 'metricSavings' && audit.details?.overallSavingsMs > 0)
+            .map(([key, audit]: [string, any]) => ({
+              title: audit.title,
+              description: audit.description,
+              savings: audit.details?.overallSavingsMs || 0
+            })) : []
         } : null,
       },
       coreWebVitals: {
         mobile: mobileResult ? getVitals(mobileResult) : null,
         desktop: desktopResult ? getVitals(desktopResult) : null,
+      },
+      seoScore: {
+        overall: seoEvaluation.score,
+        grade: gradeInfo.grade,
+        status: gradeInfo.status,
+        color: gradeInfo.color,
+        breakdown: {
+          titleOptimization: title ? (title.length >= 30 && title.length <= 60 ? 15 : 8) : 0,
+          metaDescription: metaDescription ? (metaDescription.length >= 120 && metaDescription.length <= 160 ? 10 : 5) : 0,
+          headingStructure: h1.length === 1 ? 10 : (h1.length === 0 ? 0 : 5),
+          imageOptimization: images.length > 0 ? Math.round(((images.length - images.filter(img => !img.alt).length) / images.length) * 10) : 0,
+          technicalSEO: (canonical ? 5 : 0) + (isHttps ? 5 : 0) + (viewport ? 5 : 0),
+          contentQuality: wordCount >= 300 ? 10 : (wordCount >= 150 ? 5 : 0),
+          indexability: (!robotsMeta.toLowerCase().includes('noindex') && !disallowAll ? 5 : 0) + (sitemapFound ? 5 : 0),
+          socialOptimization: (Object.keys(ogTags).length > 0 ? 3 : 0) + (Object.keys(twitterTags).length > 0 ? 2 : 0),
+          structuredData: jsonLd ? 5 : 0
+        },
+        issues: seoEvaluation.issues,
+        strengths: seoEvaluation.strengths
       },
       indexability: {
         robotsMeta,
@@ -329,22 +510,27 @@ Nội dung chính: ${content}`
       social: {
         og: ogTags,
         twitter: twitterTags,
+        hasSocialOptimization: Object.keys(ogTags).length > 0 || Object.keys(twitterTags).length > 0
       },
       i18n: {
         hreflangs,
+        hasMultiLanguage: hreflangs.length > 0
       },
       security: {
         isHttps,
         mixedContentCount,
+        securityScore: isHttps ? (mixedContentCount === 0 ? 100 : 70) : 0
       },
       links: {
         internal: internalLinks.length,
         external: externalLinks.length,
+        internalToExternalRatio: externalLinks.length > 0 ? Math.round((internalLinks.length / externalLinks.length) * 100) / 100 : internalLinks.length
       },
       schemaMarkup: jsonLd ? {
         type: (Array.isArray(jsonLd) ? (jsonLd[0]?.['@type'] || 'WebPage') : (jsonLd['@type'] || 'WebPage')),
-        jsonLd
-      } : { type: 'WebPage', jsonLd: null },
+        jsonLd,
+        hasStructuredData: true
+      } : { type: 'WebPage', jsonLd: null, hasStructuredData: false },
       aiAnalysis: aiAnalysis || {
         searchIntent: "Unknown",
         semanticTopics: [],
@@ -361,8 +547,8 @@ Nội dung chính: ${content}`
           headingStructure: h1.length === 1 ? "Good" : h1.length === 0 ? "Missing H1" : "Multiple H1s",
           imageOptimization: images.length > 0 ? `${images.filter(img => !img.alt).length}/${images.length} images missing alt text` : "No images found"
         },
-        overallScore: 50,
-        priorityIssues: ["AI analysis unavailable"]
+        overallScore: seoEvaluation.score,
+        priorityIssues: seoEvaluation.issues.slice(0, 5)
       }
     } as any;
 

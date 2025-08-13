@@ -304,14 +304,12 @@ export function WebsiteAnalyzer({ onAnalysisComplete }: WebsiteAnalyzerProps) {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="standardized" className="w-full">
-              <TabsList className="grid w-full grid-cols-7 bg-white/5">
-                <TabsTrigger value="standardized">Chuẩn Hóa</TabsTrigger>
-                <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-5 bg-white/5">
+                <TabsTrigger value="standardized">Tổng quan</TabsTrigger>
+                <TabsTrigger value="details">Báo cáo chi tiết</TabsTrigger>
                 <TabsTrigger value="performance">Performance</TabsTrigger>
-                <TabsTrigger value="seo">SEO</TabsTrigger>
-                <TabsTrigger value="details">Chi tiết</TabsTrigger>
                 <TabsTrigger value="ai">AI Analysis</TabsTrigger>
-                <TabsTrigger value="schema">Schema</TabsTrigger>
+                <TabsTrigger value="seo">SEO Cơ bản</TabsTrigger>
               </TabsList>
               
               <TabsContent value="standardized" className="space-y-4">
