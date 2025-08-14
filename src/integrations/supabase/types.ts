@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -2335,13 +2335,13 @@ export type Database = {
     }
     Functions: {
       check_api_rate_limit: {
-        Args: { _token_id: string; _endpoint: string; _rate_limit: number }
+        Args: { _endpoint: string; _rate_limit: number; _token_id: string }
         Returns: boolean
       }
       check_feature_access: {
         Args: {
-          user_id: string
           feature: Database["public"]["Enums"]["feature_type"]
+          user_id: string
         }
         Returns: {
           has_access: boolean
@@ -2360,24 +2360,24 @@ export type Database = {
       get_user_current_plan: {
         Args: { _user_id: string }
         Returns: {
-          plan_id: string
-          plan_name: string
+          ai_enabled: boolean
           monthly_limit: number
           pdf_enabled: boolean
-          ai_enabled: boolean
-          used_count: number
+          plan_id: string
+          plan_name: string
           remaining_count: number
+          used_count: number
         }[]
       }
       get_user_plan_summary: {
         Args: { _user_id: string }
         Returns: {
+          is_premium: boolean
           plan_name: string
-          scans_used: number
+          reset_date: string
           scans_limit: number
           scans_remaining: number
-          reset_date: string
-          is_premium: boolean
+          scans_used: number
         }[]
       }
       get_user_role: {
@@ -2386,8 +2386,8 @@ export type Database = {
       }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }
@@ -2401,11 +2401,11 @@ export type Database = {
       }
       log_user_activity: {
         Args: {
-          _user_id: string
           _action: string
           _details?: Json
           _ip_address?: unknown
           _user_agent?: string
+          _user_id: string
         }
         Returns: undefined
       }
@@ -2418,7 +2418,7 @@ export type Database = {
         Returns: boolean
       }
       record_api_usage: {
-        Args: { _token_id: string; _user_id: string; _endpoint: string }
+        Args: { _endpoint: string; _token_id: string; _user_id: string }
         Returns: undefined
       }
       reset_monthly_usage: {

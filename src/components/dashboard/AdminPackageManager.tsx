@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { AdminFeatureManager } from './AdminFeatureManager';
+import { AdminPackageCreator } from './AdminPackageCreator';
 import { 
   Package, 
   Plus, 
@@ -14,7 +17,8 @@ import {
   RefreshCw,
   Edit3,
   Trash2,
-  DollarSign
+  DollarSign,
+  Sliders
 } from 'lucide-react';
 
 interface PackageStats {
@@ -111,23 +115,25 @@ export function AdminPackageManager() {
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Package className="h-6 w-6" />
-            Package Management
+            Quản lý Gói & Tính năng
           </h2>
-          <p className="text-muted-foreground">Manage subscription packages and pricing</p>
+          <p className="text-muted-foreground">Quản lý gói dịch vụ, tính năng và cấu hình giá cả</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={loadPackageStats} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-          <Button asChild>
-            <a href="/admin/subscriptions" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Manage Subscriptions
-            </a>
-          </Button>
-        </div>
+        <Button onClick={loadPackageStats} variant="outline" size="sm">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Tải lại
+        </Button>
       </div>
+
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Tổng quan</TabsTrigger>
+          <TabsTrigger value="packages">Quản lý gói</TabsTrigger>
+          <TabsTrigger value="features">Cấu hình tính năng</TabsTrigger>
+          <TabsTrigger value="create">Tạo gói mới</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -291,6 +297,44 @@ export function AdminPackageManager() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="packages">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Danh sách gói hiện tại</h3>
+              <Button asChild>
+                <a href="/admin/plans" className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Chỉnh sửa chi tiết
+                </a>
+              </Button>
+            </div>
+            
+            <div className="grid gap-4">
+              {/* Package list would go here */}
+              <Card>
+                <CardContent className="pt-6 text-center">
+                  <p className="text-muted-foreground">
+                    Các gói hiện tại đang được quản lý trong trang 
+                    <a href="/admin/plans" className="text-primary hover:underline ml-1">
+                      Admin Plans
+                    </a>
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="features">
+          <AdminFeatureManager />
+        </TabsContent>
+
+        <TabsContent value="create">
+          <AdminPackageCreator onPackageCreated={loadPackageStats} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
