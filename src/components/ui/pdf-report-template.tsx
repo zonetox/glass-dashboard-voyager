@@ -28,13 +28,44 @@ interface PDFReportTemplateProps {
     issues: any[];
     improvements: any[];
     competitorData?: any[];
+    analysis_data?: any;
+    performance?: {
+      desktop?: { score: number; metrics: any };
+      mobile?: { score: number; metrics: any };
+    };
+    technical_seo?: {
+      meta_title: boolean;
+      meta_description: boolean;
+      h1_count: number;
+      alt_text_missing: number;
+      images_total: number;
+    };
+    ai_analysis?: {
+      search_intent?: string;
+      citation_potential?: string;
+      semantic_gaps?: string[];
+      faq_suggestions?: string[];
+      content_quality?: number;
+      keyword_density?: any;
+    };
   };
   onDownload: () => void;
   onCustomize?: () => void;
 }
 
 export function PDFReportTemplate({ websiteData, onDownload, onCustomize }: PDFReportTemplateProps) {
-  const { url, title, analysisDate, seoScore, issues, improvements } = websiteData;
+  const { 
+    url, 
+    title, 
+    analysisDate, 
+    seoScore, 
+    issues, 
+    improvements, 
+    analysis_data,
+    performance,
+    technical_seo,
+    ai_analysis
+  } = websiteData;
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-green-400";
@@ -151,12 +182,36 @@ export function PDFReportTemplate({ websiteData, onDownload, onCustomize }: PDFR
         </CardHeader>
         <CardContent className="space-y-6">
           {[
-            { name: "Technical SEO", score: 85, issues: 2 },
-            { name: "Content Quality", score: 72, issues: 5 },
-            { name: "Mobile Optimization", score: 91, issues: 1 },
-            { name: "Page Speed", score: 68, issues: 3 },
-            { name: "Meta Tags", score: 94, issues: 0 },
-            { name: "Schema Markup", score: 45, issues: 8 }
+            { 
+              name: "Technical SEO", 
+              score: technical_seo?.meta_title && technical_seo?.meta_description ? 85 : 45, 
+              issues: (technical_seo?.meta_title ? 0 : 1) + (technical_seo?.meta_description ? 0 : 1) + (technical_seo?.alt_text_missing || 0) 
+            },
+            { 
+              name: "Content Quality", 
+              score: ai_analysis?.content_quality || 72, 
+              issues: ai_analysis?.semantic_gaps?.length || 3 
+            },
+            { 
+              name: "Mobile Optimization", 
+              score: performance?.mobile?.score ? Math.round(performance.mobile.score * 100) : 75, 
+              issues: performance?.mobile?.score && performance.mobile.score > 0.8 ? 0 : 2 
+            },
+            { 
+              name: "Page Speed", 
+              score: performance?.desktop?.score ? Math.round(performance.desktop.score * 100) : 68, 
+              issues: performance?.desktop?.score && performance.desktop.score > 0.8 ? 0 : 3 
+            },
+            { 
+              name: "Meta Tags", 
+              score: technical_seo?.meta_title && technical_seo?.meta_description ? 94 : 35, 
+              issues: (technical_seo?.meta_title ? 0 : 1) + (technical_seo?.meta_description ? 0 : 1) 
+            },
+            { 
+              name: "Schema Markup", 
+              score: analysis_data?.schema_markup ? 85 : 25, 
+              issues: analysis_data?.schema_markup ? 1 : 5 
+            }
           ].map((metric, index) => (
             <div key={index} className="space-y-2">
               <div className="flex items-center justify-between">
@@ -189,28 +244,49 @@ export function PDFReportTemplate({ websiteData, onDownload, onCustomize }: PDFR
         <CardContent>
           <div className="space-y-4">
             {[
-              {
+              ...(technical_seo?.meta_description ? [] : [{
                 type: "High Priority",
-                title: "Missing Meta Descriptions",
-                description: "15 pages are missing meta descriptions, affecting search result click-through rates.",
-                impact: "High",
-                effort: "Low"
-              },
-              {
-                type: "Medium Priority", 
-                title: "Slow Page Load Speed",
-                description: "Average page load time is 4.2 seconds. Recommended threshold is under 3 seconds.",
-                impact: "Medium",
-                effort: "Medium"
-              },
-              {
-                type: "Low Priority",
-                title: "Alt Text Missing",
-                description: "8 images are missing descriptive alt text for accessibility and SEO.",
-                impact: "Low",
-                effort: "Low"
-              }
-            ].map((issue, index) => (
+                title: "Meta Description Thiếu",
+                description: "Trang web thiếu meta description, ảnh hưởng đến tỷ lệ click-through từ kết quả tìm kiếm.",
+                impact: "Cao",
+                effort: "Thấp"
+              }]),
+              ...(performance?.desktop?.score && performance.desktop.score < 0.7 ? [{
+                type: "High Priority", 
+                title: "Tốc Độ Tải Trang Chậm",
+                description: `Điểm hiệu suất desktop: ${Math.round((performance.desktop.score || 0) * 100)}/100. Khuyến nghị trên 70 điểm.`,
+                impact: "Cao",
+                effort: "Trung bình"
+              }] : []),
+              ...(performance?.mobile?.score && performance.mobile.score < 0.7 ? [{
+                type: "High Priority",
+                title: "Hiệu Suất Mobile Kém", 
+                description: `Điểm hiệu suất mobile: ${Math.round((performance.mobile.score || 0) * 100)}/100. Cần tối ưu cho thiết bị di động.`,
+                impact: "Cao",
+                effort: "Trung bình"
+              }] : []),
+              ...(technical_seo?.alt_text_missing && technical_seo.alt_text_missing > 0 ? [{
+                type: "Medium Priority",
+                title: "Alt Text Thiếu",
+                description: `${technical_seo.alt_text_missing} hình ảnh thiếu alt text mô tả cho khả năng truy cập và SEO.`,
+                impact: "Trung bình",
+                effort: "Thấp"
+              }] : []),
+              ...(technical_seo?.h1_count !== 1 ? [{
+                type: "Medium Priority",
+                title: "Cấu Trúc Heading Không Tối Ưu",
+                description: `Trang có ${technical_seo?.h1_count || 0} thẻ H1. Khuyến nghị chỉ nên có 1 thẻ H1 duy nhất.`,
+                impact: "Trung bình", 
+                effort: "Thấp"
+              }] : []),
+              ...(!analysis_data?.schema_markup ? [{
+                type: "Medium Priority",
+                title: "Thiếu Schema Markup",
+                description: "Trang web chưa có schema markup để giúp search engines hiểu nội dung tốt hơn.",
+                impact: "Trung bình",
+                effort: "Trung bình"
+              }] : [])
+            ].slice(0, 5).map((issue, index) => (
               <div key={index} className="p-4 bg-red-500/5 border border-red-500/20 rounded-lg">
                 <div className="flex items-start justify-between mb-2">
                   <Badge 
@@ -255,26 +331,40 @@ export function PDFReportTemplate({ websiteData, onDownload, onCustomize }: PDFR
             {[
               {
                 priority: 1,
-                title: "Optimize Page Loading Speed", 
-                description: "Compress images and enable browser caching to reduce load times by 40%.",
-                expectedImpact: "+15 SEO Score",
-                timeframe: "1-2 weeks"
+                title: "Tối Ưu Tốc Độ Tải Trang", 
+                description: "Nén hình ảnh và kích hoạt browser caching để giảm thời gian tải trang 40%.",
+                expectedImpact: "+15 Điểm SEO",
+                timeframe: "1-2 tuần"
               },
               {
                 priority: 2,
-                title: "Complete Meta Tag Optimization",
-                description: "Add compelling meta descriptions to increase click-through rates from search results.",
-                expectedImpact: "+8 SEO Score", 
-                timeframe: "3-5 days"
+                title: "Hoàn Thiện Meta Tags",
+                description: "Thêm meta description hấp dẫn để tăng tỷ lệ click từ kết quả tìm kiếm.",
+                expectedImpact: "+8 Điểm SEO", 
+                timeframe: "3-5 ngày"
               },
               {
                 priority: 3,
-                title: "Implement Schema Markup",
-                description: "Add structured data to help search engines better understand your content.",
-                expectedImpact: "+12 SEO Score",
-                timeframe: "1 week"
-              }
-            ].map((rec, index) => (
+                title: "Triển Khai Schema Markup",
+                description: "Thêm structured data để giúp search engines hiểu nội dung tốt hơn.",
+                expectedImpact: "+12 Điểm SEO",
+                timeframe: "1 tuần"
+              },
+              ...(ai_analysis?.search_intent ? [{
+                priority: 4,
+                title: "Tối Ưu Cho AI Search",
+                description: `Tối ưu nội dung cho search intent: ${ai_analysis.search_intent}. Cải thiện khả năng được trích dẫn bởi AI.`,
+                expectedImpact: "+10 Điểm SEO",
+                timeframe: "1-2 tuần"
+              }] : []),
+              ...(ai_analysis?.semantic_gaps && ai_analysis.semantic_gaps.length > 0 ? [{
+                priority: 5,
+                title: "Lấp Đầy Khoảng Trống Ngữ Nghĩa",
+                description: `Bổ sung nội dung cho các chủ đề còn thiếu: ${ai_analysis.semantic_gaps.slice(0, 2).join(', ')}.`,
+                expectedImpact: "+6 Điểm SEO",
+                timeframe: "2-3 tuần"
+              }] : [])
+            ].slice(0, 5).map((rec, index) => (
               <div key={index} className="p-4 bg-green-500/5 border border-green-500/20 rounded-lg">
                 <div className="flex items-start justify-between mb-2">
                   <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
