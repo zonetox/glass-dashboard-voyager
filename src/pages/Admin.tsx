@@ -206,31 +206,6 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="mb-6">
-          <Card className="glass-card border-white/10">
-            <CardHeader>
-              <CardTitle className="text-white">Quick Actions</CardTitle>
-              <CardDescription className="text-gray-300">
-                Common administrative tasks
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Link 
-                  to="/admin/plans" 
-                  className="flex items-center gap-3 p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
-                >
-                  <Package className="h-8 w-8 text-primary" />
-                  <div>
-                    <div className="text-white font-medium">Quản lý Gói</div>
-                    <div className="text-sm text-gray-400">Cấu hình gói dịch vụ và giá cả</div>
-                  </div>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
         <TooltipProvider>
           <Tabs defaultValue="promotion" className="space-y-6">
