@@ -143,6 +143,23 @@ export function AdminDashboard() {
         .select('id')
         .eq('report_type', 'seo_analysis');
 
+      // Fetch storage usage and database health
+      const { data: storageInfo } = await supabase.storage.listBuckets();
+      let totalStorageSize = 0;
+      
+      if (storageInfo) {
+        for (const bucket of storageInfo) {
+          const { data: files } = await supabase.storage.from(bucket.name).list();
+          if (files) {
+            // Calculate approximate storage usage
+            totalStorageSize += files.length;
+          }
+        }
+      }
+      
+      // Calculate storage percentage (assuming 1000 files = 100%)
+      const storagePercentage = Math.min(Math.round((totalStorageSize / 1000) * 100), 100);
+
       // Process data
       const currentDate = new Date();
       const oneWeekAgo = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -212,15 +229,30 @@ export function AdminDashboard() {
         percentage: Math.round((count / totalUsers) * 100)
       }));
 
-      // Monthly trends (mock data for demonstration)
-      const monthlyScansData = [
-        { month: 'Jan', scans: 1200, users: 150 },
-        { month: 'Feb', scans: 1450, users: 180 },
-        { month: 'Mar', scans: 1680, users: 210 },
-        { month: 'Apr', scans: 1890, users: 245 },
-        { month: 'May', scans: 2100, users: 280 },
-        { month: 'Jun', scans: 2350, users: 320 },
-      ];
+      // Monthly trends from real data
+      const monthlyScansData = [];
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+        
+        const monthScans = scanStats?.filter(scan => {
+          const scanDate = new Date(scan.created_at);
+          return scanDate >= monthStart && scanDate <= monthEnd;
+        }).length || 0;
+        
+        const monthUsers = userStats?.filter(user => {
+          const userDate = new Date(user.created_at);
+          return userDate >= monthStart && userDate <= monthEnd;
+        }).length || 0;
+        
+        monthlyScansData.push({
+          month: date.toLocaleDateString('vi-VN', { month: 'short' }),
+          scans: monthScans,
+          users: monthUsers
+        });
+      }
 
       setMetrics({
         totalUsers,
@@ -236,7 +268,7 @@ export function AdminDashboard() {
         systemHealth: {
           database: 'healthy',
           apis: failedAPIs.length > 10 ? 'warning' : 'healthy',
-          storage: 67
+          storage: storagePercentage
         },
         recentUsers: recentUsers?.map(user => ({
           id: user.id,
