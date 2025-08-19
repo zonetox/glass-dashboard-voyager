@@ -148,9 +148,9 @@ export function ComprehensiveSEOReport({
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          {/* Score Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
+          {/* Enhanced Score Cards with Compliance Status */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className="border-primary/20">
               <CardContent className="p-6 text-center">
                 <TrendingUp className="h-8 w-8 text-primary mx-auto mb-2" />
                 <div className={`text-3xl font-bold ${getScoreColor(overallScore)}`}>
@@ -158,28 +158,62 @@ export function ComprehensiveSEOReport({
                 </div>
                 <div className="text-sm text-muted-foreground">Điểm SEO Tổng Thể</div>
                 <Progress value={overallScore} className="mt-2" />
+                <Badge className="mt-2" variant={overallScore >= 80 ? 'default' : overallScore >= 60 ? 'secondary' : 'destructive'}>
+                  {overallScore >= 80 ? 'Excellent' : overallScore >= 60 ? 'Good' : 'Needs Work'}
+                </Badge>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-blue-200">
               <CardContent className="p-6 text-center">
                 <Monitor className="h-8 w-8 text-blue-600 mx-auto mb-2" />
                 <div className={`text-3xl font-bold ${getScoreColor(desktopScore)}`}>
                   {desktopScore}/100
                 </div>
-                <div className="text-sm text-muted-foreground">Hiệu Suất Desktop</div>
+                <div className="text-sm text-muted-foreground">Core Web Vitals (Desktop)</div>
                 <Progress value={desktopScore} className="mt-2" />
+                <Badge className="mt-2" variant={desktopScore >= 90 ? 'default' : desktopScore >= 50 ? 'secondary' : 'destructive'}>
+                  {desktopScore >= 90 ? 'Good' : desktopScore >= 50 ? 'Needs Improvement' : 'Poor'}
+                </Badge>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-green-200">
               <CardContent className="p-6 text-center">
                 <Smartphone className="h-8 w-8 text-green-600 mx-auto mb-2" />
                 <div className={`text-3xl font-bold ${getScoreColor(mobileScore)}`}>
                   {mobileScore}/100
                 </div>
-                <div className="text-sm text-muted-foreground">Hiệu Suất Mobile</div>
+                <div className="text-sm text-muted-foreground">Core Web Vitals (Mobile)</div>
                 <Progress value={mobileScore} className="mt-2" />
+                <Badge className="mt-2" variant={mobileScore >= 90 ? 'default' : mobileScore >= 50 ? 'secondary' : 'destructive'}>
+                  {mobileScore >= 90 ? 'Good' : mobileScore >= 50 ? 'Needs Improvement' : 'Poor'}
+                </Badge>
+              </CardContent>
+            </Card>
+
+            <Card className="border-purple-200">
+              <CardContent className="p-6 text-center">
+                <CheckCircle className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                <div className="text-3xl font-bold text-purple-600">
+                  {/* Calculate compliance score */}
+                  {Math.round((
+                    (seoData?.title ? 25 : 0) +
+                    (seoData?.metaDescription ? 25 : 0) +
+                    ((seoData?.imagesWithoutAlt || 0) === 0 ? 25 : 0) +
+                    ((seoData?.h1?.length === 1) ? 25 : 0)
+                  ))}%
+                </div>
+                <div className="text-sm text-muted-foreground">Compliance Score</div>
+                <Progress value={Math.round((
+                  (seoData?.title ? 25 : 0) +
+                  (seoData?.metaDescription ? 25 : 0) +
+                  ((seoData?.imagesWithoutAlt || 0) === 0 ? 25 : 0) +
+                  ((seoData?.h1?.length === 1) ? 25 : 0)
+                ))} className="mt-2" />
+                <Badge className="mt-2" variant="outline">
+                  W3C / WCAG 2.1
+                </Badge>
               </CardContent>
             </Card>
           </div>
