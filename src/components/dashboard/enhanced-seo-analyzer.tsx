@@ -34,6 +34,40 @@ export function EnhancedSEOAnalyzer({ className }: EnhancedSEOAnalyzerProps) {
   const [analysisResults, setAnalysisResults] = useState<any>(null);
   const [aiAnalysisResults, setAiAnalysisResults] = useState<any>(null);
   const [activeView, setActiveView] = useState<'input' | 'results'>('input');
+  const [progress, setProgress] = useState(0);
+  const [currentStep, setCurrentStep] = useState('');
+  const [analysisHistory, setAnalysisHistory] = useState<any[]>([]);
+
+  // Validate URL format
+  const isValidUrl = (urlString: string) => {
+    try {
+      const url = new URL(urlString);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
+  // Load analysis history
+  const loadAnalysisHistory = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('scans')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (!error && data) {
+        setAnalysisHistory(data);
+      }
+    } catch (error) {
+      console.error('Error loading history:', error);
+    }
+  };
+
+  React.useEffect(() => {
+    loadAnalysisHistory();
+  }, []);
 
   const handleAnalyze = async () => {
     if (!url) {
@@ -45,29 +79,69 @@ export function EnhancedSEOAnalyzer({ className }: EnhancedSEOAnalyzerProps) {
       return;
     }
 
+    if (!isValidUrl(url)) {
+      toast({
+        title: "Định dạng URL không đúng",
+        description: "Vui lòng nhập URL hợp lệ bắt đầu bằng http:// hoặc https://",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
+    setProgress(10);
+    setCurrentStep('Đang kết nối với website...');
     
     try {
-      // Run both SEO and AI analysis in parallel
-      const [seoResponse, aiResponse] = await Promise.all([
-        supabase.functions.invoke('analyze-site', {
-          body: { url, analysis_type: 'seo' }
-        }),
-        supabase.functions.invoke('analyze-site', {
-          body: { url, analysis_type: 'ai_seo' }
-        })
-      ]);
+      // Step 1: Technical SEO Analysis
+      setProgress(25);
+      setCurrentStep('Đang phân tích SEO kỹ thuật...');
+      
+      const seoResponse = await supabase.functions.invoke('analyze-site', {
+        body: { url, analysis_type: 'seo' }
+      });
 
       if (seoResponse.error) {
         throw new Error(`SEO Analysis failed: ${seoResponse.error.message}`);
       }
 
+      // Step 2: AI SEO Analysis
+      setProgress(60);
+      setCurrentStep('Đang phân tích AI SEO...');
+      
+      const aiResponse = await supabase.functions.invoke('analyze-site', {
+        body: { url, analysis_type: 'ai_seo' }
+      });
+
       if (aiResponse.error) {
         throw new Error(`AI Analysis failed: ${aiResponse.error.message}`);
       }
 
+      // Step 3: Processing results
+      setProgress(90);
+      setCurrentStep('Đang xử lý kết quả...');
+
       setAnalysisResults(seoResponse.data);
       setAiAnalysisResults(aiResponse.data);
+      
+      // Save to database for history
+      try {
+        await supabase.from('scans').insert({
+          url: url,
+          status: 'completed',
+          seo_score: seoResponse.data?.seoScore?.overall || 0,
+          analysis_data: {
+            seo: seoResponse.data,
+            ai: aiResponse.data
+          }
+        });
+        loadAnalysisHistory(); // Refresh history
+      } catch (dbError) {
+        console.error('Error saving scan:', dbError);
+      }
+
+      setProgress(100);
+      setCurrentStep('Hoàn tất!');
       setActiveView('results');
 
       toast({
@@ -79,11 +153,13 @@ export function EnhancedSEOAnalyzer({ className }: EnhancedSEOAnalyzerProps) {
       console.error('Analysis error:', error);
       toast({
         title: "Lỗi phân tích",
-        description: "Không thể thực hiện phân tích. Vui lòng thử lại.",
+        description: error instanceof Error ? error.message : "Không thể thực hiện phân tích. Vui lòng thử lại.",
         variant: "destructive"
       });
     } finally {
       setIsAnalyzing(false);
+      setProgress(0);
+      setCurrentStep('');
     }
   };
 
@@ -92,6 +168,15 @@ export function EnhancedSEOAnalyzer({ className }: EnhancedSEOAnalyzerProps) {
     setAnalysisResults(null);
     setAiAnalysisResults(null);
     setUrl('');
+    setProgress(0);
+    setCurrentStep('');
+  };
+
+  const loadPreviousAnalysis = (scan: any) => {
+    setAnalysisResults(scan.analysis_data?.seo);
+    setAiAnalysisResults(scan.analysis_data?.ai);
+    setUrl(scan.url);
+    setActiveView('results');
   };
 
   if (activeView === 'results' && analysisResults) {
@@ -159,19 +244,29 @@ export function EnhancedSEOAnalyzer({ className }: EnhancedSEOAnalyzerProps) {
           
           {/* Progress indicator */}
           {isAnalyzing && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex justify-between text-sm">
-                <span>Đang thực hiện phân tích toàn diện...</span>
-                <span>~30-60 giây</span>
+                <span>{currentStep || 'Đang thực hiện phân tích toàn diện...'}</span>
+                <span>{progress}%</span>
               </div>
-              <Progress value={65} className="h-2" />
+              <Progress value={progress} className="h-2" />
               <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
-                  <CheckCircle className="h-3 w-3 text-green-600" />
+                  {progress >= 50 ? (
+                    <CheckCircle className="h-3 w-3 text-green-600" />
+                  ) : (
+                    <div className="animate-spin h-3 w-3 border border-primary border-t-transparent rounded-full" />
+                  )}
                   Technical SEO Analysis
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="animate-spin h-3 w-3 border border-primary border-t-transparent rounded-full" />
+                  {progress >= 90 ? (
+                    <CheckCircle className="h-3 w-3 text-green-600" />
+                  ) : progress >= 60 ? (
+                    <div className="animate-spin h-3 w-3 border border-primary border-t-transparent rounded-full" />
+                  ) : (
+                    <div className="h-3 w-3 border-2 border-gray-300 rounded-full" />
+                  )}
                   AI SEO Analysis
                 </div>
               </div>
@@ -242,6 +337,41 @@ export function EnhancedSEOAnalyzer({ className }: EnhancedSEOAnalyzerProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Analysis History */}
+      {analysisHistory.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-blue-600" />
+              Lịch Sử Phân Tích Gần Đây
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {analysisHistory.map((scan, index) => (
+                <div key={scan.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                     onClick={() => loadPreviousAnalysis(scan)}>
+                  <div className="flex-1">
+                    <div className="font-medium text-sm truncate">{scan.url}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(scan.created_at).toLocaleDateString('vi-VN')}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={scan.seo_score >= 80 ? 'default' : scan.seo_score >= 60 ? 'secondary' : 'destructive'}>
+                      {scan.seo_score}/100
+                    </Badge>
+                    <Button variant="ghost" size="sm">
+                      Xem lại
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Compliance Standards */}
       <Card>
