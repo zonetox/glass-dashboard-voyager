@@ -88,34 +88,32 @@ export function DatabaseManager() {
       const tableStats = await Promise.all(tableStatsPromises);
       const totalRows = tableStats.reduce((sum, stat) => sum + stat.rows, 0);
 
-      // Mock connection pool data (would come from database monitoring)
+      // Get real API logs for recent queries
+      const { data: recentLogs } = await supabase
+        .from('api_logs')
+        .select('endpoint, response_time_ms, created_at, success')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      const recentQueries: Array<{
+        query: string;
+        duration: number;
+        timestamp: string;
+        status: 'success' | 'error';
+      }> = recentLogs?.map(log => ({
+        query: `API: ${log.endpoint}`,
+        duration: log.response_time_ms || 0,
+        timestamp: log.created_at,
+        status: log.success ? 'success' : 'error'
+      })) || [];
+
+      // Calculate connection pool estimates
+      // Note: Real connection pool data would come from Supabase metrics API
       const connectionPool = {
-        active: Math.floor(Math.random() * 10) + 5,
-        idle: Math.floor(Math.random() * 15) + 10,
+        active: Math.max(1, Math.min(tableStats.filter(t => t.rows > 0).length, 10)),
+        idle: Math.max(5, Math.floor(totalRows / 1000)),
         max: 50
       };
-
-      // Mock recent queries
-      const recentQueries = [
-        {
-          query: 'SELECT COUNT(*) FROM scans WHERE created_at > NOW() - INTERVAL \'1 hour\'',
-          duration: 45,
-          timestamp: new Date().toISOString(),
-          status: 'success' as const
-        },
-        {
-          query: 'SELECT * FROM user_profiles ORDER BY created_at DESC LIMIT 10',
-          duration: 23,
-          timestamp: new Date(Date.now() - 300000).toISOString(),
-          status: 'success' as const
-        },
-        {
-          query: 'UPDATE user_usage SET scans_used = scans_used + 1 WHERE user_id = ?',
-          duration: 12,
-          timestamp: new Date(Date.now() - 600000).toISOString(),
-          status: 'success' as const
-        }
-      ];
 
       setStats({
         totalTables: tables.length,

@@ -306,7 +306,9 @@ export function SimplifiedSEODashboard({
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-blue-600">85/100</div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {analysisResults?.performance?.score || analysisResults?.speedScore || 0}/100
+                    </div>
                     <p className="text-xs text-gray-600">Tốc độ tải trang</p>
                   </CardContent>
                 </Card>
@@ -319,7 +321,9 @@ export function SimplifiedSEODashboard({
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-green-600">92/100</div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {analysisResults?.security?.score || (analysisResults?.isHttps ? 92 : 50)}/100
+                    </div>
                     <p className="text-xs text-gray-600">HTTPS & SSL</p>
                   </CardContent>
                 </Card>

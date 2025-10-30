@@ -1142,100 +1142,95 @@ export default function AIIntelligence({ className, scanData }: AIIntelligencePr
     }
   };
 
-  // Mock semantic topic data
-  const semanticTopics: TopicNode[] = [
-    {
-      id: 'main-1',
-      label: 'SEO Optimization',
-      type: 'main',
-      size: 100,
-      connections: ['sub-1', 'sub-2', 'related-1'],
-      suggestedContent: {
-        title: 'Complete SEO Optimization Guide',
-        content: 'Comprehensive guide covering on-page, off-page, and technical SEO strategies for maximum search engine visibility.',
-        keywords: ['SEO optimization', 'search engine ranking', 'website optimization'],
-        intent: 'informational'
+  // Generate semantic topics from scan data or fetch from database
+  const [semanticTopics, setSemanticTopics] = useState<TopicNode[]>([]);
+  const [loadingTopics, setLoadingTopics] = useState(false);
+
+  // Fetch or generate semantic topics
+  useEffect(() => {
+    const loadSemanticTopics = async () => {
+      if (!scanData?.id) return;
+      
+      try {
+        setLoadingTopics(true);
+        
+        // Try to fetch from semantic analysis table if it exists
+        const { data: semanticData, error } = await supabase
+          .from('scans')
+          .select('ai_analysis')
+          .eq('id', scanData.id)
+          .single();
+
+        if (semanticData?.ai_analysis && typeof semanticData.ai_analysis === 'object') {
+          const aiAnalysis = semanticData.ai_analysis as any;
+          
+          // Extract topics from AI analysis
+          const topics: TopicNode[] = [];
+          
+          // Main topic from keywords/content
+          if (aiAnalysis.keywords && Array.isArray(aiAnalysis.keywords) && aiAnalysis.keywords.length > 0) {
+            const mainKeyword = aiAnalysis.keywords[0];
+            topics.push({
+              id: 'main-1',
+              label: mainKeyword,
+              type: 'main',
+              size: 100,
+              connections: [],
+              suggestedContent: {
+                title: `Complete ${mainKeyword} Guide`,
+                content: aiAnalysis.contentSuggestions || `Comprehensive guide about ${mainKeyword}`,
+                keywords: aiAnalysis.keywords.slice(0, 3),
+                intent: aiAnalysis.searchIntent || 'informational'
+              }
+            });
+
+            // Sub topics from related keywords
+            aiAnalysis.keywords.slice(1, 4).forEach((keyword: string, index: number) => {
+              topics.push({
+                id: `sub-${index + 1}`,
+                label: keyword,
+                type: 'sub',
+                size: 80 - (index * 10),
+                connections: ['main-1'],
+                suggestedContent: {
+                  title: `Master ${keyword}`,
+                  content: `Learn effective strategies for ${keyword}`,
+                  keywords: [keyword],
+                  intent: 'informational'
+                }
+              });
+            });
+          }
+
+          if (topics.length > 0) {
+            // Connect topics
+            topics.forEach((topic, i) => {
+              if (i > 0) {
+                topic.connections.push('main-1');
+                if (i > 1 && i < topics.length - 1) {
+                  topic.connections.push(`sub-${i - 1}`);
+                }
+              }
+            });
+            
+            setSemanticTopics(topics);
+            return;
+          }
+        }
+
+        // Fallback: Use empty array if no data
+        setSemanticTopics([]);
+        
+      } catch (error) {
+        console.error('Error loading semantic topics:', error);
+        setSemanticTopics([]);
+      } finally {
+        setLoadingTopics(false);
       }
-    },
-    {
-      id: 'sub-1',
-      label: 'On-Page SEO',
-      type: 'sub',
-      size: 80,
-      connections: ['main-1', 'related-2', 'related-3'],
-      suggestedContent: {
-        title: 'Master On-Page SEO Techniques',
-        content: 'Learn how to optimize your website pages for better search rankings with proper title tags, meta descriptions, and content structure.',
-        keywords: ['on-page SEO', 'title optimization', 'meta tags'],
-        intent: 'informational'
-      }
-    },
-    {
-      id: 'sub-2',
-      label: 'Technical SEO',
-      type: 'sub',
-      size: 75,
-      connections: ['main-1', 'related-4'],
-      suggestedContent: {
-        title: 'Technical SEO Best Practices',
-        content: 'Optimize your website\'s technical foundation with proper site structure, page speed, and mobile responsiveness.',
-        keywords: ['technical SEO', 'site speed', 'mobile optimization'],
-        intent: 'informational'
-      }
-    },
-    {
-      id: 'related-1',
-      label: 'Keyword Research',
-      type: 'related',
-      size: 60,
-      connections: ['main-1', 'sub-1'],
-      suggestedContent: {
-        title: 'Advanced Keyword Research Strategies',
-        content: 'Discover high-value keywords that your competitors are missing using AI-powered research tools.',
-        keywords: ['keyword research', 'search intent', 'keyword analysis'],
-        intent: 'commercial'
-      }
-    },
-    {
-      id: 'related-2',
-      label: 'Content Strategy',
-      type: 'related',
-      size: 65,
-      connections: ['sub-1', 'related-3'],
-      suggestedContent: {
-        title: 'AI-Driven Content Strategy',
-        content: 'Create content that ranks higher with AI-assisted topic research and semantic optimization.',
-        keywords: ['content strategy', 'semantic SEO', 'AI content'],
-        intent: 'commercial'
-      }
-    },
-    {
-      id: 'related-3',
-      label: 'Link Building',
-      type: 'related',
-      size: 55,
-      connections: ['sub-1', 'related-2'],
-      suggestedContent: {
-        title: 'Modern Link Building Techniques',
-        content: 'Build high-quality backlinks that improve your domain authority and search rankings.',
-        keywords: ['link building', 'backlinks', 'domain authority'],
-        intent: 'commercial'
-      }
-    },
-    {
-      id: 'related-4',
-      label: 'Core Web Vitals',
-      type: 'related',
-      size: 50,
-      connections: ['sub-2'],
-      suggestedContent: {
-        title: 'Optimize Core Web Vitals',
-        content: 'Improve your website\'s user experience metrics that Google uses for ranking.',
-        keywords: ['core web vitals', 'page speed', 'user experience'],
-        intent: 'informational'
-      }
-    }
-  ];
+    };
+
+    loadSemanticTopics();
+  }, [scanData?.id]);
 
   const getTopicColor = (type: string) => {
     switch (type) {

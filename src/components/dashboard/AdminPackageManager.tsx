@@ -56,16 +56,44 @@ export function AdminPackageManager() {
       const totalPackages = packagesData.data?.length || 0;
       const activeSubscriptions = subscriptionsData.data?.length || 0;
       
-      // Mock calculations for demo
-      const monthlyRevenue = activeSubscriptions * 50000; // Average VND
-      const conversionRate = totalPackages > 0 ? (activeSubscriptions / totalPackages) * 100 : 0;
+      // Calculate real revenue from payment_orders
+      const { data: payments } = await supabase
+        .from('payment_orders')
+        .select('amount, status, created_at')
+        .eq('status', 'completed')
+        .gte('created_at', new Date(new Date().setDate(1)).toISOString()); // This month
 
-      // Popular packages (mock data)
-      const popularPackages = [
-        { name: 'Basic Plan', subscribers: 145, revenue: 7250000 },
-        { name: 'Pro Plan', subscribers: 89, revenue: 8900000 },
-        { name: 'Enterprise', subscribers: 23, revenue: 4600000 }
-      ];
+      const monthlyRevenue = payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+      
+      // Calculate conversion rate from total users
+      const { count: totalUsers } = await supabase
+        .from('user_profiles')
+        .select('*', { count: 'exact', head: true });
+      
+      const conversionRate = totalUsers && totalUsers > 0 
+        ? (activeSubscriptions / totalUsers) * 100 
+        : 0;
+
+      // Get popular packages with real data
+      const { data: packageStats } = await supabase
+        .from('user_subscriptions')
+        .select('package_id, subscription_packages(name, price_vnd)')
+        .eq('status', 'active');
+
+      const packageMap = new Map();
+      packageStats?.forEach(sub => {
+        const pkg = (sub as any).subscription_packages;
+        if (pkg) {
+          const current = packageMap.get(pkg.name) || { name: pkg.name, subscribers: 0, revenue: 0, price: pkg.price_vnd };
+          current.subscribers += 1;
+          current.revenue += pkg.price_vnd || 0;
+          packageMap.set(pkg.name, current);
+        }
+      });
+
+      const popularPackages = Array.from(packageMap.values())
+        .sort((a, b) => b.subscribers - a.subscribers)
+        .slice(0, 3);
 
       setStats({
         totalPackages,

@@ -49,32 +49,136 @@ export function AdminOverview() {
 
   const loadMetrics = async () => {
     try {
-      // Mock data - in real app this would fetch from admin API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Fetch real user metrics
+      const { data: allUsers, count: totalUsers } = await supabase
+        .from('user_profiles')
+        .select('*', { count: 'exact' });
+
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      
+      const weekStart = new Date();
+      weekStart.setDate(weekStart.getDate() - 7);
+
+      const { count: activeToday } = await supabase
+        .from('scans')
+        .select('user_id', { count: 'exact', head: true })
+        .gte('created_at', todayStart.toISOString());
+
+      const { count: newThisWeek } = await supabase
+        .from('user_profiles')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', weekStart.toISOString());
+
+      // Count by tier
+      const { data: subscriptions } = await supabase
+        .from('user_subscriptions')
+        .select('user_id, package_id, subscription_packages(name)')
+        .eq('status', 'active');
+
+      const tierCounts = { free: 0, pro: 0, agency: 0 };
+      const subscribedUsers = new Set();
+      
+      subscriptions?.forEach((sub: any) => {
+        if (sub.user_id) {
+          subscribedUsers.add(sub.user_id);
+        }
+        const pkgName = sub.subscription_packages?.name?.toLowerCase() || '';
+        if (pkgName.includes('pro')) tierCounts.pro++;
+        else if (pkgName.includes('agency') || pkgName.includes('enterprise')) tierCounts.agency++;
+      });
+      
+      tierCounts.free = (totalUsers || 0) - subscribedUsers.size;
+
+      // Usage metrics
+      const { count: scansToday } = await supabase
+        .from('scans')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', todayStart.toISOString());
+
+      const { count: apiCallsToday } = await supabase
+        .from('api_logs')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', todayStart.toISOString());
+
+      const { count: activeTokens } = await supabase
+        .from('api_tokens')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true);
+
+      // Calculate storage (estimated from file counts)
+      const { count: reportCount } = await supabase
+        .from('reports')
+        .select('*', { count: 'exact', head: true });
+      
+      const storageUsedGb = ((reportCount || 0) * 0.5 / 1024).toFixed(1); // Estimate 0.5MB per report
+
+      // Revenue metrics
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+
+      const { data: thisMonthPayments } = await supabase
+        .from('payment_orders')
+        .select('amount')
+        .eq('status', 'completed')
+        .gte('created_at', monthStart.toISOString());
+
+      const lastMonthStart = new Date(monthStart);
+      lastMonthStart.setMonth(lastMonthStart.getMonth() - 1);
+
+      const { data: lastMonthPayments } = await supabase
+        .from('payment_orders')
+        .select('amount')
+        .eq('status', 'completed')
+        .gte('created_at', lastMonthStart.toISOString())
+        .lt('created_at', monthStart.toISOString());
+
+      const mrr = thisMonthPayments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+      const lastMrr = lastMonthPayments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+      const growthRate = lastMrr > 0 ? ((mrr - lastMrr) / lastMrr) * 100 : 0;
+
+      // Calculate churn (simplified)
+      const { count: canceledSubs } = await supabase
+        .from('user_subscriptions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'canceled')
+        .gte('updated_at', monthStart.toISOString());
+
+      const { count: activeSubs } = await supabase
+        .from('user_subscriptions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active');
+
+      const churnRate = activeSubs && activeSubs > 0 
+        ? ((canceledSubs || 0) / activeSubs) * 100 
+        : 0;
       
       setMetrics({
         users: {
-          total: 1247,
-          active_today: 342,
-          new_this_week: 67,
-          by_tier: { free: 1089, pro: 142, agency: 16 }
+          total: totalUsers || 0,
+          active_today: activeToday || 0,
+          new_this_week: newThisWeek || 0,
+          by_tier: tierCounts
         },
         usage: {
-          scans_today: 1895,
-          api_calls_today: 12483,
-          storage_used_gb: 34.7,
-          active_tokens: 89
+          scans_today: scansToday || 0,
+          api_calls_today: apiCallsToday || 0,
+          storage_used_gb: parseFloat(storageUsedGb),
+          active_tokens: activeTokens || 0
         },
         system: {
           database_health: 'healthy',
           edge_functions_status: 'running',
-          storage_usage_percent: 67,
-          api_response_time: 245
+          storage_usage_percent: Math.min((parseFloat(storageUsedGb) / 100) * 100, 100),
+          api_response_time: 245 // This would need real monitoring
         },
         revenue: {
-          mrr: 12890,
-          growth_rate: 8.3,
-          churn_rate: 2.1
+          mrr: Math.round(mrr / 1000), // Convert to thousands
+          growth_rate: parseFloat(growthRate.toFixed(1)),
+          churn_rate: parseFloat(churnRate.toFixed(1))
         }
       });
     } catch (error) {
