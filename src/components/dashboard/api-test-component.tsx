@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, XCircle, Loader2, AlertCircle, Key } from 'lucide-react';
+import { useApiRequest } from '@/hooks/useApiRequest';
+import { ErrorMessage } from '@/components/ui/error-message';
 
 interface APITestResult {
   openaiWorking: boolean;
@@ -19,113 +20,69 @@ interface APITestResult {
 
 export function APITestComponent() {
   const [testUrl, setTestUrl] = useState('https://google.com');
-  const [isLoading, setIsLoading] = useState(false);
   const [testResult, setTestResult] = useState<APITestResult | null>(null);
-  const { toast } = useToast();
+  const { isLoading, error, executeRequest, clearError } = useApiRequest();
 
   const testAPIs = async () => {
-    if (!testUrl.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a test URL",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (!testUrl.trim()) return;
 
-    setIsLoading(true);
     setTestResult(null);
 
-    try {
-      console.log('Starting API test for URL:', testUrl);
-      
-      // Test multiple functions in parallel
-      console.log('Starting API tests with URL:', testUrl);
+    const result = await executeRequest(
+      async () => {
+        const [websiteResult, pageSpeedResult] = await Promise.allSettled([
+          supabase.functions.invoke('analyze-website', { body: { url: testUrl } }),
+          supabase.functions.invoke('pagespeed-analysis', { body: { url: testUrl } })
+        ]);
 
-      const [
-        websiteResult,
-        pageSpeedResult
-      ] = await Promise.allSettled([
-        supabase.functions.invoke('analyze-website', {
-          body: { url: testUrl }
-        }),
-        supabase.functions.invoke('pagespeed-analysis', {
-          body: { url: testUrl }
-        })
-      ]);
+        let crawlingWorking = false;
+        let googlePageSpeedWorking = false;
+        let openaiWorking = false;
+        let combinedDetails = {};
 
-      console.log('API test results:', { websiteResult, pageSpeedResult });
+        if (websiteResult.status === 'fulfilled' && !websiteResult.value.error) {
+          const data = websiteResult.value.data;
+          crawlingWorking = !!(data?.title || data?.headings);
+          openaiWorking = !!data?.aiAnalysis;
+          combinedDetails = { ...combinedDetails, ...data };
+        }
 
-      // Process results
-      let crawlingWorking = false;
-      let googlePageSpeedWorking = false;
-      let openaiWorking = false;
-      let combinedDetails = {};
+        if (pageSpeedResult.status === 'fulfilled' && !pageSpeedResult.value.error) {
+          const data = pageSpeedResult.value.data;
+          googlePageSpeedWorking = !!(data?.seo?.performance);
+          combinedDetails = { ...combinedDetails, pageSpeedData: data };
+        }
 
-      // Check website analysis result
-      if (websiteResult.status === 'fulfilled' && !websiteResult.value.error) {
-        const data = websiteResult.value.data;
-        crawlingWorking = !!(data?.title || data?.headings);
-        openaiWorking = !!data?.aiAnalysis;
-        combinedDetails = { ...combinedDetails, ...data };
+        let errorMessage = '';
+        if (websiteResult.status === 'rejected') {
+          errorMessage += `Website Analysis: ${websiteResult.reason}. `;
+        } else if (websiteResult.value?.error) {
+          errorMessage += `Website Analysis: ${websiteResult.value.error}. `;
+        }
+        
+        if (pageSpeedResult.status === 'rejected') {
+          errorMessage += `PageSpeed Analysis: ${pageSpeedResult.reason}. `;
+        } else if (pageSpeedResult.value?.error) {
+          errorMessage += `PageSpeed Analysis: ${pageSpeedResult.value.error}. `;
+        }
+
+        return {
+          crawlingWorking,
+          googlePageSpeedWorking,
+          openaiWorking,
+          details: combinedDetails,
+          error: errorMessage || undefined
+        };
+      },
+      {
+        loadingMessage: 'Testing APIs...',
+        successMessage: 'API test complete',
+        showSuccessToast: true,
       }
+    );
 
-      // Check pagespeed analysis result  
-      if (pageSpeedResult.status === 'fulfilled' && !pageSpeedResult.value.error) {
-        const data = pageSpeedResult.value.data;
-        googlePageSpeedWorking = !!(data?.seo?.performance);
-        combinedDetails = { ...combinedDetails, pageSpeedData: data };
-      }
-
-      // Handle errors with more detail
-      let errorMessage = '';
-      if (websiteResult.status === 'rejected') {
-        console.error('Website analysis rejected:', websiteResult.reason);
-        errorMessage += `Website Analysis: ${websiteResult.reason}. `;
-      } else if (websiteResult.value?.error) {
-        console.error('Website analysis error:', websiteResult.value.error);
-        errorMessage += `Website Analysis: ${websiteResult.value.error}. `;
-      }
-      
-      if (pageSpeedResult.status === 'rejected') {
-        console.error('PageSpeed analysis rejected:', pageSpeedResult.reason);
-        errorMessage += `PageSpeed Analysis: ${pageSpeedResult.reason}. `;
-      } else if (pageSpeedResult.value?.error) {
-        console.error('PageSpeed analysis error:', pageSpeedResult.value.error);
-        errorMessage += `PageSpeed Analysis: ${pageSpeedResult.value.error}. `;
-      }
-
-      const result: APITestResult = {
-        crawlingWorking,
-        googlePageSpeedWorking,
-        openaiWorking,
-        details: combinedDetails,
-        error: errorMessage || undefined
-      };
-
+    if (result) {
       setTestResult(result);
-
-      toast({
-        title: "API Test Complete",
-        description: "Check results below",
-      });
-
-    } catch (error: any) {
-      console.error('API test error:', error);
-      setTestResult({
-        openaiWorking: false,
-        googlePageSpeedWorking: false,
-        crawlingWorking: false,
-        error: error.message || 'Unknown error occurred'
-      });
-      
-      toast({
-        title: "API Test Failed",
-        description: error.message || 'Failed to test APIs',
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -153,6 +110,10 @@ export function APITestComponent() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {error && (
+            <ErrorMessage message={error.message} onDismiss={clearError} onRetry={testAPIs} />
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="test-url" className="text-gray-300">
               Test URL

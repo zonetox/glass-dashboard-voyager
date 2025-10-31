@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Save, Clock, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useApiRequest } from "@/hooks/useApiRequest";
+import { ErrorMessage } from "@/components/ui/error-message";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
@@ -37,10 +39,9 @@ interface DraftEditorProps {
 export function DraftEditor({ planId, contentPlan, onStatusChange }: DraftEditorProps) {
   const [draft, setDraft] = useState<ContentDraft | null>(null);
   const [content, setContent] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const { toast } = useToast();
+  const { isLoading: isApiLoading, error, executeRequest, clearError } = useApiRequest();
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const modules = {
     toolbar: [
@@ -60,73 +61,80 @@ export function DraftEditor({ planId, contentPlan, onStatusChange }: DraftEditor
 
   // Load or create draft
   const loadDraft = useCallback(async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    const result = await executeRequest(
+      async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
-        .from('content_drafts')
-        .select('*')
-        .eq('plan_id', planId)
-        .eq('writer_id', user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
-      if (data) {
-        setDraft(data as ContentDraft);
-        setContent(data.content || "");
-        setLastSaved(new Date(data.last_saved_at));
-      } else {
-        // Create new draft
-        const { data: newDraft, error: createError } = await supabase
+        const { data, error } = await supabase
           .from('content_drafts')
-          .insert({
-            plan_id: planId,
-            writer_id: user.id,
-            content: "",
-            status: 'draft'
-          })
-          .select()
+          .select('*')
+          .eq('plan_id', planId)
+          .eq('writer_id', user.id)
           .single();
 
-        if (createError) throw createError;
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        }
 
-        setDraft(newDraft as ContentDraft);
-        setContent("");
-        setLastSaved(new Date(newDraft.last_saved_at));
+        if (data) {
+          return data as ContentDraft;
+        } else {
+          const { data: newDraft, error: createError } = await supabase
+            .from('content_drafts')
+            .insert({
+              plan_id: planId,
+              writer_id: user.id,
+              content: "",
+              status: 'draft'
+            })
+            .select()
+            .single();
+
+          if (createError) throw createError;
+          return newDraft as ContentDraft;
+        }
+      },
+      {
+        loadingMessage: 'Đang tải bản thảo...',
+        showErrorToast: true,
       }
-    } catch (error) {
-      console.error('Error loading draft:', error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể tải bản thảo",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+    );
+
+    if (result) {
+      setDraft(result);
+      setContent(result.content || "");
+      setLastSaved(new Date(result.last_saved_at));
     }
-  }, [planId, toast]);
+    setIsInitialLoad(false);
+  }, [planId, executeRequest]);
 
   // Save draft
   const saveDraft = useCallback(async (newStatus?: 'draft' | 'in_progress' | 'done') => {
     if (!draft) return;
 
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from('content_drafts')
-        .update({
-          content,
-          status: newStatus || draft.status,
-          last_saved_at: new Date().toISOString()
-        })
-        .eq('id', draft.id);
+    const result = await executeRequest(
+      async () => {
+        const { error } = await supabase
+          .from('content_drafts')
+          .update({
+            content,
+            status: newStatus || draft.status,
+            last_saved_at: new Date().toISOString()
+          })
+          .eq('id', draft.id);
 
-      if (error) throw error;
+        if (error) throw error;
+        return true;
+      },
+      {
+        loadingMessage: 'Đang lưu...',
+        successMessage: 'Bản thảo đã được lưu thành công',
+        showSuccessToast: true,
+      }
+    );
 
+    if (result) {
       setLastSaved(new Date());
       setDraft(prev => prev ? { 
         ...prev, 
@@ -138,22 +146,8 @@ export function DraftEditor({ planId, contentPlan, onStatusChange }: DraftEditor
       if (newStatus && onStatusChange) {
         onStatusChange(newStatus);
       }
-
-      toast({
-        title: "Đã lưu",
-        description: "Bản thảo đã được lưu thành công",
-      });
-    } catch (error) {
-      console.error('Error saving draft:', error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể lưu bản thảo",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
     }
-  }, [draft, content, onStatusChange, toast]);
+  }, [draft, content, onStatusChange, executeRequest]);
 
   // Auto-save every 30 seconds
   useEffect(() => {
@@ -190,16 +184,16 @@ export function DraftEditor({ planId, contentPlan, onStatusChange }: DraftEditor
     saveDraft(newStatus);
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+  if (isInitialLoad) {
+    return <LoadingSpinner size="lg" text="Đang tải bản thảo..." />;
   }
 
   return (
     <div className="space-y-6">
+      {error && (
+        <ErrorMessage message={error.message} onDismiss={clearError} />
+      )}
+      
       {/* Header */}
       <Card>
         <CardHeader>
@@ -246,11 +240,11 @@ export function DraftEditor({ planId, contentPlan, onStatusChange }: DraftEditor
               <div className="flex items-center gap-2 pt-12">
                 <Button 
                   onClick={() => saveDraft()} 
-                  disabled={isSaving}
+                  disabled={isApiLoading}
                   size="sm"
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  {isSaving ? "Đang lưu..." : "Lưu"}
+                  {isApiLoading ? "Đang lưu..." : "Lưu"}
                 </Button>
                 
                 {draft?.status !== 'in_progress' && (

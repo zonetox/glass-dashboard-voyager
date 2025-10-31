@@ -7,7 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { TrendingUp, AlertTriangle, Target, LineChart, Sparkles, Shield, Plus, X, Loader2, Search, AlertCircle, CheckCircle, Clock } from "lucide-react";
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useApiRequest } from "@/hooks/useApiRequest";
+import { ErrorMessage } from "@/components/ui/error-message";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface KeywordPrediction {
   keyword: string;
@@ -68,22 +70,19 @@ interface SEORiskAnalysis {
 
 export function PredictiveDashboard() {
   const [keywords, setKeywords] = useState<string[]>(['']);
-  const [isLoading, setIsLoading] = useState(false);
   const [predictions, setPredictions] = useState<KeywordPrediction[]>([]);
   const [insights, setInsights] = useState<string>('');
   
   // Trend momentum state
   const [trendTopic, setTrendTopic] = useState<string>('');
-  const [isTrendLoading, setIsTrendLoading] = useState(false);
   const [trendAnalysis, setTrendAnalysis] = useState<TrendAnalysis | null>(null);
   
   // SEO Risk Alert state
   const [riskDomain, setRiskDomain] = useState<string>('');
   const [riskKeywords, setRiskKeywords] = useState<string>('');
-  const [isRiskLoading, setIsRiskLoading] = useState(false);
   const [riskAnalysis, setRiskAnalysis] = useState<SEORiskAnalysis | null>(null);
   
-  const { toast } = useToast();
+  const { isLoading, error, executeRequest, clearError } = useApiRequest();
 
   const addKeyword = () => {
     if (keywords.length < 10) {
@@ -105,121 +104,75 @@ export function PredictiveDashboard() {
 
   const handlePredict = async () => {
     const validKeywords = keywords.filter(k => k.trim() !== '');
-    if (validKeywords.length === 0) {
-      toast({
-        title: "Lỗi",
-        description: "Vui lòng nhập ít nhất 1 từ khóa",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (validKeywords.length === 0) return;
 
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('predict-ranking', {
-        body: { keywords: validKeywords }
-      });
+    const result = await executeRequest(
+      async () => {
+        const { data, error } = await supabase.functions.invoke('predict-ranking', {
+          body: { keywords: validKeywords }
+        });
+        if (error) throw error;
+        return data;
+      },
+      {
+        loadingMessage: 'Đang dự đoán ranking...',
+        successMessage: `Dự đoán ranking cho ${validKeywords.length} từ khóa thành công!`,
+        showSuccessToast: true,
+      }
+    );
 
-      if (error) throw error;
-
-      setPredictions(data.predictions);
-      setInsights(data.insights);
-      
-      toast({
-        title: "Thành công",
-        description: `Dự đoán ranking cho ${validKeywords.length} từ khóa thành công!`
-      });
-    } catch (error) {
-      console.error('Error predicting rankings:', error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể dự đoán ranking. Vui lòng thử lại.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
+    if (result) {
+      setPredictions(result.predictions);
+      setInsights(result.insights);
     }
   };
 
   const handleTrendAnalysis = async () => {
-    if (!trendTopic.trim()) {
-      toast({
-        title: "Lỗi",
-        description: "Vui lòng nhập chủ đề cần phân tích",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (!trendTopic.trim()) return;
 
-    setIsTrendLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('trend-momentum', {
-        body: { topic: trendTopic.trim() }
-      });
+    const result = await executeRequest(
+      async () => {
+        const { data, error } = await supabase.functions.invoke('trend-momentum', {
+          body: { topic: trendTopic.trim() }
+        });
+        if (error) throw error;
+        return data;
+      },
+      {
+        loadingMessage: 'Đang phân tích xu hướng...',
+        successMessage: `Phân tích xu hướng cho "${trendTopic}" thành công!`,
+        showSuccessToast: true,
+      }
+    );
 
-      if (error) throw error;
-
-      setTrendAnalysis(data);
-      
-      toast({
-        title: "Thành công",
-        description: `Phân tích xu hướng cho "${trendTopic}" thành công!`
-      });
-    } catch (error) {
-      console.error('Error analyzing trend:', error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể phân tích xu hướng. Vui lòng thử lại.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsTrendLoading(false);
+    if (result) {
+      setTrendAnalysis(result);
     }
   };
 
   const handleRiskAnalysis = async () => {
-    if (!riskDomain.trim() || !riskKeywords.trim()) {
-      toast({
-        title: "Lỗi",
-        description: "Vui lòng nhập domain và keywords",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (!riskDomain.trim() || !riskKeywords.trim()) return;
 
     const keywords = riskKeywords.split(',').map(k => k.trim()).filter(k => k);
-    if (keywords.length === 0) {
-      toast({
-        title: "Lỗi",
-        description: "Vui lòng nhập ít nhất 1 keyword",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (keywords.length === 0) return;
 
-    setIsRiskLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('seo-risk-alert', {
-        body: { domain: riskDomain.trim(), keywords }
-      });
+    const result = await executeRequest(
+      async () => {
+        const { data, error } = await supabase.functions.invoke('seo-risk-alert', {
+          body: { domain: riskDomain.trim(), keywords }
+        });
+        if (error) throw error;
+        return data;
+      },
+      {
+        loadingMessage: 'Đang phân tích rủi ro SEO...',
+        successMessage: `Phân tích rủi ro SEO cho ${riskDomain} thành công!`,
+        showSuccessToast: true,
+      }
+    );
 
-      if (error) throw error;
-
-      setRiskAnalysis(data);
-      
-      toast({
-        title: "Thành công",
-        description: `Phân tích rủi ro SEO cho ${riskDomain} thành công!`
-      });
-    } catch (error) {
-      console.error('Error analyzing SEO risks:', error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể phân tích rủi ro SEO. Vui lòng thử lại.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsRiskLoading(false);
+    if (result) {
+      setRiskAnalysis(result);
     }
   };
 
@@ -323,6 +276,19 @@ export function PredictiveDashboard() {
           Công cụ AI dự đoán thứ hạng từ khóa, search trend và rủi ro SEO
         </p>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <ErrorMessage
+          message={error.message}
+          onDismiss={clearError}
+          onRetry={() => {
+            if (predictions.length > 0) handlePredict();
+            else if (trendAnalysis) handleTrendAnalysis();
+            else if (riskAnalysis) handleRiskAnalysis();
+          }}
+        />
+      )}
 
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -479,10 +445,10 @@ export function PredictiveDashboard() {
               />
               <Button 
                 onClick={handleTrendAnalysis}
-                disabled={isTrendLoading}
+                disabled={isLoading}
                 size="icon"
               >
-                {isTrendLoading ? (
+                {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Search className="h-4 w-4" />
@@ -612,10 +578,10 @@ export function PredictiveDashboard() {
               />
               <Button 
                 onClick={handleRiskAnalysis}
-                disabled={isRiskLoading}
+                disabled={isLoading}
                 className="w-full"
               >
-                {isRiskLoading ? (
+                {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Đang phân tích...

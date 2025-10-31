@@ -14,8 +14,9 @@ import {
   Info,
   Loader2
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useApiRequest } from '@/hooks/useApiRequest';
+import { ErrorMessage } from '@/components/ui/error-message';
 
 interface SemanticResult {
   id: string;
@@ -46,10 +47,9 @@ interface SemanticSuggestionProps {
 }
 
 export function SemanticSuggestion({ url, content }: SemanticSuggestionProps) {
-  const { toast } = useToast();
   const [semanticData, setSemanticData] = useState<SemanticResult | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState<string | null>(null);
+  const { isLoading, error, executeRequest, clearError } = useApiRequest();
 
   // Check if we have existing semantic analysis data
   useEffect(() => {
@@ -98,34 +98,34 @@ export function SemanticSuggestion({ url, content }: SemanticSuggestionProps) {
   }, [url]);
 
   const handleAnalyze = async () => {
-    if (!content) {
-      toast({
-        title: "Content required",
-        description: "Please provide content to analyze",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (!content) return;
 
-    setIsLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      const response = await supabase.functions.invoke('semantic-analysis', {
-        body: {
-          url,
-          content: content.trim(),
-          user_id: user?.id
+    const result = await executeRequest(
+      async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        const response = await supabase.functions.invoke('semantic-analysis', {
+          body: {
+            url,
+            content: content.trim(),
+            user_id: user?.id
+          }
+        });
+
+        if (response.error) {
+          throw new Error(response.error.message || 'Analysis failed');
         }
-      });
 
-      if (response.error) {
-        throw new Error(response.error.message || 'Analysis failed');
+        return response.data;
+      },
+      {
+        loadingMessage: 'Đang phân tích ngữ nghĩa...',
+        successMessage: 'Phân tích ngữ nghĩa hoàn thành!',
+        showSuccessToast: true,
       }
+    );
 
-      const result = response.data;
-      
-      // Create semantic result object
+    if (result) {
       const semanticResult: SemanticResult = {
         id: crypto.randomUUID(),
         url,
@@ -135,23 +135,7 @@ export function SemanticSuggestion({ url, content }: SemanticSuggestionProps) {
         entities: result.entities,
         created_at: new Date().toISOString()
       };
-
       setSemanticData(semanticResult);
-
-      toast({
-        title: "Analysis completed",
-        description: "Semantic analysis has been generated successfully"
-      });
-
-    } catch (error) {
-      console.error('Semantic analysis error:', error);
-      toast({
-        title: "Analysis failed",
-        description: error instanceof Error ? error.message : 'Failed to analyze content',
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -173,23 +157,11 @@ export function SemanticSuggestion({ url, content }: SemanticSuggestionProps) {
         throw new Error(response.error.message || 'Content generation failed');
       }
 
-      const result = response.data;
-      
-      toast({
-        title: "Content generated",
-        description: `Content for "${topic}" has been generated successfully`,
-      });
-
       // You can handle the generated content here (show in modal, copy to clipboard, etc.)
-      console.log('Generated content:', result);
+      console.log('Generated content:', response.data);
 
     } catch (error) {
       console.error('Content generation error:', error);
-      toast({
-        title: "Generation failed",
-        description: error instanceof Error ? error.message : 'Failed to generate content',
-        variant: "destructive"
-      });
     } finally {
       setIsGenerating(null);
     }
@@ -233,6 +205,10 @@ export function SemanticSuggestion({ url, content }: SemanticSuggestionProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {error && (
+            <ErrorMessage message={error.message} onDismiss={clearError} onRetry={handleAnalyze} />
+          )}
+          
           {!semanticData && (
             <div className="text-center py-8">
               <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
