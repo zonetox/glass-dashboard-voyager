@@ -1,6 +1,6 @@
-
 import { Website, SEOIssue } from './types';
 import { StandardizedSEOAnalyzer } from './standardized-seo-analyzer';
+import { supabase } from '@/integrations/supabase/client';
 
 export class SEOAnalyzer {
   static async analyzeWebsite(url: string, projectId?: string, keywords: string[] = []): Promise<{
@@ -14,24 +14,18 @@ export class SEOAnalyzer {
     try {
       console.log(`Starting analysis for: ${url}`);
       
-      // Call the Supabase Edge Function
-      const response = await fetch(
-        `https://3a96eb71-2922-44f0-a7ed-cc31d816713b.supabase.co/functions/v1/analyze-website`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljamRycXl6dHp3ZWRkdGNvZGpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MTc4MTQsImV4cCI6MjA2NzA5MzgxNH0.1hVFiDBUwBVrU8RnA4cBXDixt4-EQnNF6qtET7ruWXo`
-          },
-          body: JSON.stringify({ url, projectId })
-        }
-      );
+      // Call the Supabase Edge Function using the official client
+      const { data: analysisResult, error } = await supabase.functions.invoke('analyze-website', {
+        body: { url, projectId }
+      });
 
-      if (!response.ok) {
-        throw new Error(`Analysis failed: ${response.statusText}`);
+      if (error) {
+        throw new Error(`Analysis failed: ${error.message}`);
       }
-
-      const analysisResult = await response.json();
+      
+      if (!analysisResult) {
+        throw new Error('No analysis result returned');
+      }
       
       if (analysisResult.error) {
         throw new Error(analysisResult.error);

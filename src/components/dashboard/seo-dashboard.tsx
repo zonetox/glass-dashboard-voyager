@@ -18,6 +18,7 @@ import {
   Settings
 } from 'lucide-react';
 import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface SEODashboardProps {
@@ -86,25 +87,23 @@ export function SEODashboard({ website, issues, analysisData }: SEODashboardProp
         mobileSpeed: mobileScore
       };
       
-      const response = await fetch(
-        `https://ycjdrqyztzweddtcodjo.supabase.co/functions/v1/optimize-website`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljamRycXl6dHp3ZWRkdGNvZGpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MTc4MTQsImV4cCI6MjA2NzA5MzgxNH0.1hVFiDBUwBVrU8RnA4cBXDixt4-EQnNF6qtET7ruWXo`
-          },
-          body: JSON.stringify({
-            url: website.url,
-            fixes: selectedIssues,
-            wpCredentials,
-            schemaMarkup: analysisData?.schemaMarkup,
-            beforeScores
-          })
+      const { data: result, error: invokeError } = await supabase.functions.invoke('optimize-website', {
+        body: {
+          url: website.url,
+          fixes: selectedIssues,
+          wpCredentials,
+          schemaMarkup: analysisData?.schemaMarkup,
+          beforeScores
         }
-      );
+      });
 
-      const result = await response.json();
+      if (invokeError) {
+        throw new Error(invokeError.message);
+      }
+      
+      if (!result) {
+        throw new Error('No optimization result returned');
+      }
       
       if (result.error) {
         throw new Error(result.error);
