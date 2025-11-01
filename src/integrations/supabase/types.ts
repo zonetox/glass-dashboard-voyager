@@ -1713,7 +1713,7 @@ export type Database = {
           device_type: string | null
           domain: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           keyword: string | null
           page_url: string
           page_views: number | null
@@ -1747,7 +1747,7 @@ export type Database = {
           device_type?: string | null
           domain: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           keyword?: string | null
           page_url: string
           page_views?: number | null
@@ -1781,7 +1781,7 @@ export type Database = {
           device_type?: string | null
           domain?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           keyword?: string | null
           page_url?: string
           page_views?: number | null
@@ -1965,7 +1965,7 @@ export type Database = {
           created_at: string
           details: Json | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           user_agent: string | null
           user_id: string | null
         }
@@ -1974,7 +1974,7 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           user_agent?: string | null
           user_id?: string | null
         }
@@ -1983,7 +1983,7 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           user_agent?: string | null
           user_id?: string | null
         }
@@ -2349,14 +2349,8 @@ export type Database = {
           total_limit: number
         }[]
       }
-      check_user_scan_limit: {
-        Args: { user_uuid: string }
-        Returns: boolean
-      }
-      execute_admin_query: {
-        Args: { query: string }
-        Returns: Json
-      }
+      check_user_scan_limit: { Args: { user_uuid: string }; Returns: boolean }
+      execute_admin_query: { Args: { query: string }; Returns: Json }
       get_user_current_plan: {
         Args: { _user_id: string }
         Returns: {
@@ -2395,10 +2389,7 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: boolean
       }
-      increment_user_usage: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
+      increment_user_usage: { Args: { _user_id: string }; Returns: boolean }
       log_user_activity: {
         Args: {
           _action: string
@@ -2409,26 +2400,14 @@ export type Database = {
         }
         Returns: undefined
       }
-      promote_to_admin: {
-        Args: { _user_email: string }
-        Returns: boolean
-      }
-      promote_user_to_admin: {
-        Args: { _email: string }
-        Returns: boolean
-      }
+      promote_to_admin: { Args: { _user_email: string }; Returns: boolean }
+      promote_user_to_admin: { Args: { _email: string }; Returns: boolean }
       record_api_usage: {
         Args: { _endpoint: string; _token_id: string; _user_id: string }
         Returns: undefined
       }
-      reset_monthly_usage: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      reset_user_monthly_usage: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      reset_monthly_usage: { Args: never; Returns: undefined }
+      reset_user_monthly_usage: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "member"
