@@ -51,6 +51,27 @@ export function SecuritySettings() {
 
     setLoading(true);
     try {
+      // Step 1: Verify current password by attempting sign-in
+      if (!user?.email) {
+        throw new Error("Email không khả dụng");
+      }
+
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: passwordForm.currentPassword
+      });
+
+      if (verifyError) {
+        toast({
+          title: "Lỗi",
+          description: "Mật khẩu hiện tại không đúng",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Step 2: Update password only after verification
       const { error } = await supabase.auth.updateUser({
         password: passwordForm.newPassword
       });
