@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { corsHeaders } from '../_shared/cors.ts'
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
 
 interface WriteRequest {
   topic: string;
@@ -31,11 +32,25 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { topic, keyword, article_type, tone = 'professional' }: WriteRequest = await req.json();
+    // Validate input
+    const requestSchema = z.object({
+      topic: z.string().min(1).max(500),
+      keyword: z.string().min(1).max(200),
+      article_type: z.enum(['how-to', 'product', 'listicle', 'guide', 'comparison', 'review']),
+      tone: z.enum(['formal', 'friendly', 'professional', 'casual', 'authoritative']).optional()
+    })
 
-    if (!topic || !keyword || !article_type) {
-      throw new Error('Topic, keyword, and article type are required');
+    const body = await req.json()
+    const validationResult = requestSchema.safeParse(body)
+
+    if (!validationResult.success) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid input', details: validationResult.error.errors }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
+
+    const { topic, keyword, article_type, tone = 'professional' } = validationResult.data
 
     console.log('Generating article for:', { topic, keyword, article_type, tone });
 

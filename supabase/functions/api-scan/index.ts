@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
 import { corsHeaders } from '../_shared/cors.ts';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -53,7 +54,22 @@ serve(async (req) => {
       );
     }
 
-    const { url } = await req.json();
+    // Validate input
+    const requestSchema = z.object({
+      url: z.string().url().max(2000)
+    })
+
+    const body = await req.json()
+    const validationResult = requestSchema.safeParse(body)
+
+    if (!validationResult.success) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid URL', details: validationResult.error.errors }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const { url } = validationResult.data
     
     // Record API usage
     await supabase.rpc('record_api_usage', {

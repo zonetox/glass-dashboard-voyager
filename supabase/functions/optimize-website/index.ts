@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -12,23 +13,63 @@ serve(async (req) => {
   }
 
   try {
-    const { url, fixes, wpCredentials, schemaMarkup, beforeScores } = await req.json()
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    
+    // Authenticate user
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    // Validate input
+    const requestSchema = z.object({
+      url: z.string().url().max(2000),
+      fixes: z.array(z.object({
+        id: z.string().max(100),
+        title: z.string().max(500),
+        recommendation: z.string().max(2000)
+      })).optional(),
+      wpCredentials: z.object({
+        username: z.string().max(100),
+        applicationPassword: z.string().max(500)
+      }).optional(),
+      schemaMarkup: z.any().optional(),
+      beforeScores: z.object({
+        seoScore: z.number().min(0).max(100).optional(),
+        desktopSpeed: z.number().min(0).max(100).optional(),
+        mobileSpeed: z.number().min(0).max(100).optional()
+      }).optional()
+    })
+    
+    const body = await req.json()
+    const validationResult = requestSchema.safeParse(body)
+    
+    if (!validationResult.success) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid input', details: validationResult.error.errors }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    const { url, fixes, wpCredentials, schemaMarkup, beforeScores } = validationResult.data
+    const userId = user.id
     
     console.log('Starting optimization for:', url)
     console.log('Fixes to apply:', fixes?.length || 0)
     console.log('Before scores:', beforeScores)
-    
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-    
-    // Get the current user from the request
-    const authHeader = req.headers.get('Authorization')
-    let userId = null
-    
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '')
-      const { data: { user } } = await supabase.auth.getUser(token)
-      userId = user?.id
-    }
 
     // Create backup of the website
     const backupUrl = `https://ycjdrqyztzweddtcodjo.supabase.co/storage/v1/object/public/backups/backup-${Date.now()}.zip`
