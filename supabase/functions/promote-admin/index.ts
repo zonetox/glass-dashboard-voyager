@@ -12,11 +12,48 @@ serve(async (req) => {
   }
 
   try {
+    // SECURITY: Verify the caller is an authenticated admin
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Authorization required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { persistSession: false } }
     );
+
+    // Verify the caller is an authenticated user
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user: callingUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (authError || !callingUser) {
+      console.error('Authentication failed:', authError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid authentication token' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
+    // Verify the caller has admin role
+    const { data: callerRole, error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', callingUser.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    if (roleError || !callerRole) {
+      console.error('Admin role check failed:', roleError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Only admins can promote other users to admin' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      );
+    }
 
     const { email } = await req.json();
     
@@ -142,8 +179,9 @@ serve(async (req) => {
         user_id: user.id,
         action: 'promoted_to_admin',
         details: {
-          promoted_by: 'system',
-          email: email,
+          promoted_by: callingUser.id,
+          promoted_by_email: callingUser.email,
+          target_email: email,
           timestamp: new Date().toISOString()
         }
       });
