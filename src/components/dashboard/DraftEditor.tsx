@@ -9,6 +9,7 @@ import { ErrorMessage } from "@/components/ui/error-message";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import DOMPurify from 'dompurify';
 
 interface ContentDraft {
   id: string;
@@ -281,7 +282,12 @@ export function DraftEditor({ planId, contentPlan, onStatusChange }: DraftEditor
           <CardContent>
             <div 
               className="prose prose-sm max-w-none h-[400px] overflow-y-auto p-4 border rounded-md bg-muted/20"
-              dangerouslySetInnerHTML={{ __html: content || "<p class='text-muted-foreground'>Nội dung sẽ hiển thị ở đây...</p>" }}
+              dangerouslySetInnerHTML={{ 
+                __html: DOMPurify.sanitize(content || "<p class='text-muted-foreground'>Nội dung sẽ hiển thị ở đây...</p>", {
+                  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'a'],
+                  ALLOWED_ATTR: ['href', 'class', 'target', 'rel']
+                })
+              }}
             />
           </CardContent>
         </Card>

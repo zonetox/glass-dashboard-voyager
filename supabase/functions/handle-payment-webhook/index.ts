@@ -127,22 +127,15 @@ serve(async (req) => {
         break;
         
       case 'paypal':
-        // PayPal webhook verification would require additional setup
-        // For now, we'll trust the webhook (implement proper verification in production)
-        isValid = true;
-        break;
-        
       case 'momo':
-        // Momo webhook verification using signature
-        const momoSignature = req.headers.get('x-momo-signature');
-        // Implement Momo signature verification here
-        isValid = true; // Placeholder
-        break;
-        
       case 'vnpay':
-        // VNPay webhook verification using hash
-        isValid = true; // Placeholder - implement proper VNPay verification
-        break;
+        // These payment methods are handled by payment-webhook-vietnam function
+        // which has proper signature verification. This function should not process them.
+        logStep("Payment method should use payment-webhook-vietnam endpoint", { provider });
+        return new Response(
+          JSON.stringify({ error: `Payment method '${provider}' should use payment-webhook-vietnam endpoint` }), 
+          { status: 400, headers: corsHeaders }
+        );
         
       default:
         logStep("Unknown provider", { provider });

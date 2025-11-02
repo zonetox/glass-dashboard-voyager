@@ -77,11 +77,12 @@ export function ApiManagement() {
 
     setIsCreating(true);
     try {
-      // Generate a random token
+      // Generate a secure random token
       const tokenValue = 'seo_' + Array.from(crypto.getRandomValues(new Uint8Array(32)))
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
       
+      // Hash the token using SHA-256 (this is what gets stored)
       const tokenHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(tokenValue));
       const hashArray = Array.from(new Uint8Array(tokenHash));
       const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -91,8 +92,8 @@ export function ApiManagement() {
         .insert({
           user_id: user.id,
           token_name: newTokenName.trim(),
-          token_prefix: tokenValue.substring(0, 12) + '...',
-          token_hash: hashHex,
+          token_prefix: tokenValue.substring(0, 12) + '...', // Only store prefix for display
+          token_hash: hashHex, // Store hashed token
           permissions: ['scan', 'results', 'history'],
           rate_limit_per_hour: 100
         })
@@ -106,11 +107,11 @@ export function ApiManagement() {
         description: `API token "${newTokenName}" đã được tạo thành công`,
       });
 
-      // Show the full token once
+      // CRITICAL: Show the full token ONCE - user must save it now
       toast({
-        title: "API Token của bạn",
-        description: `${tokenValue} - Hãy lưu lại, bạn sẽ không thể xem lại!`,
-        duration: 10000,
+        title: "⚠️ API Token của bạn - LƯU NGAY",
+        description: `${tokenValue} - Token này CHỈ hiển thị MỘT LẦN. Hãy lưu lại ngay!`,
+        duration: 15000,
       });
 
       setNewTokenName('');

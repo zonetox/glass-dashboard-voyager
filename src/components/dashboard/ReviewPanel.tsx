@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { CheckCircle, XCircle, MessageSquare, Clock, User, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import DOMPurify from 'dompurify';
 
 interface ContentDraft {
   id: string;
@@ -280,7 +281,12 @@ export default function ReviewPanel() {
                       <ScrollArea className="h-64 mt-2 p-4 border rounded-md">
                         <div 
                           className="prose prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ __html: selectedDraft.content || '' }}
+                          dangerouslySetInnerHTML={{ 
+                            __html: DOMPurify.sanitize(selectedDraft.content || '', {
+                              ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'a'],
+                              ALLOWED_ATTR: ['href', 'class', 'target', 'rel']
+                            })
+                          }}
                         />
                       </ScrollArea>
                     </div>

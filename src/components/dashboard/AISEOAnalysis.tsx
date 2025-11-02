@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Bot, Brain, Target, Search, Sparkles, TrendingUp, MessagesSquare, RotateCcw, Copy, Info, Link, Settings, Wand2, Code2, ClipboardCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Cell, PieChart, Pie, ResponsiveContainer } from 'recharts';
+import DOMPurify from 'dompurify';
 
 export function AISEOAnalysis({ scanData, websiteUrl }: { scanData?: any; websiteUrl?: string }) {
   const { toast } = useToast();
@@ -292,7 +293,13 @@ export function AISEOAnalysis({ scanData, websiteUrl }: { scanData?: any; websit
                     <div 
                       className="ai-answer-text"
                       dangerouslySetInnerHTML={{ 
-                        __html: aiAnswerVariations[selectedPlatform].text.replace(/\*\*(.*?)\*\*/g, '<mark class="bg-yellow-200/50 dark:bg-yellow-500/20 px-1 rounded">$1</mark>')
+                        __html: DOMPurify.sanitize(
+                          aiAnswerVariations[selectedPlatform].text.replace(/\*\*(.*?)\*\*/g, '<mark class="bg-yellow-200/50 dark:bg-yellow-500/20 px-1 rounded">$1</mark>'),
+                          {
+                            ALLOWED_TAGS: ['mark', 'p', 'br', 'strong', 'em'],
+                            ALLOWED_ATTR: ['class']
+                          }
+                        )
                       }}
                     />
                   </div>

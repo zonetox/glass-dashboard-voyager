@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import DOMPurify from 'dompurify';
 import { 
   FileText, 
   Languages, 
@@ -602,7 +603,12 @@ export default function MultiLangContentWriter({ className }: MultiLangContentWr
                     <ScrollArea className="h-96">
                       <div 
                         className="prose max-w-none dark:prose-invert"
-                        dangerouslySetInnerHTML={{ __html: selectedPost.content }}
+                        dangerouslySetInnerHTML={{ 
+                          __html: DOMPurify.sanitize(selectedPost.content, {
+                            ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'a', 'img'],
+                            ALLOWED_ATTR: ['href', 'class', 'target', 'rel', 'src', 'alt']
+                          })
+                        }}
                       />
                     </ScrollArea>
                   </Card>
