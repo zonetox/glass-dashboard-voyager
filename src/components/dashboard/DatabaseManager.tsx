@@ -8,14 +8,13 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Database, 
-  Play, 
   RefreshCw, 
-  AlertTriangle, 
   CheckCircle, 
   FileText,
   HardDrive,
   Activity,
-  Zap
+  Zap,
+  AlertTriangle
 } from 'lucide-react';
 
 interface DatabaseStats {
@@ -44,9 +43,6 @@ interface DatabaseStats {
 export function DatabaseManager() {
   const [stats, setStats] = useState<DatabaseStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [executing, setExecuting] = useState(false);
-  const [sqlQuery, setSqlQuery] = useState('');
-  const [queryResult, setQueryResult] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -136,71 +132,6 @@ export function DatabaseManager() {
     }
   };
 
-  const executeQuery = async () => {
-    if (!sqlQuery.trim()) {
-      toast({
-        title: "Lỗi",
-        description: "Vui lòng nhập câu lệnh SQL",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Only allow SELECT queries for safety
-    if (!sqlQuery.trim().toLowerCase().startsWith('select')) {
-      toast({
-        title: "Không được phép",
-        description: "Chỉ cho phép câu lệnh SELECT",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      setExecuting(true);
-      const startTime = Date.now();
-      
-      // Execute the admin query using real Supabase function
-      const { data: result, error } = await supabase.rpc('execute_admin_query', {
-        query: sqlQuery
-      });
-      
-      const duration = Date.now() - startTime;
-
-      if (error) {
-        throw error;
-      }
-
-      setQueryResult({
-        data: result,
-        duration,
-        timestamp: new Date().toISOString(),
-        status: 'success'
-      });
-
-      toast({
-        title: "Thực thi thành công",
-        description: `Câu lệnh hoàn thành trong ${duration}ms`
-      });
-
-    } catch (error: any) {
-      console.error('Query execution error:', error);
-      setQueryResult({
-        error: error.message,
-        duration: 0,
-        timestamp: new Date().toISOString(),
-        status: 'error'
-      });
-      
-      toast({
-        title: "Lỗi thực thi",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setExecuting(false);
-    }
-  };
 
   if (loading || !stats) {
     return (
@@ -358,74 +289,6 @@ export function DatabaseManager() {
         </CardContent>
       </Card>
 
-      {/* SQL Query Executor */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Play className="h-5 w-5" />
-            SQL Query Executor
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Textarea
-              placeholder="SELECT * FROM user_profiles LIMIT 10;"
-              value={sqlQuery}
-              onChange={(e) => setSqlQuery(e.target.value)}
-              className="min-h-[100px] font-mono"
-            />
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">
-                ⚠️ Only SELECT queries are allowed for safety
-              </p>
-              <Button 
-                onClick={executeQuery} 
-                disabled={executing || !sqlQuery.trim()}
-                size="sm"
-              >
-                {executing ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Executing...
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-4 w-4 mr-2" />
-                    Execute
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-
-          {/* Query Result */}
-          {queryResult && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium">Query Result</h4>
-                <Badge className={queryResult.status === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                  {queryResult.status === 'success' ? (
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                  ) : (
-                    <AlertTriangle className="h-3 w-3 mr-1" />
-                  )}
-                  {queryResult.status}
-                </Badge>
-              </div>
-              
-              <div className="bg-muted/50 rounded-lg p-4">
-                {queryResult.status === 'success' ? (
-                  <pre className="text-sm overflow-auto">
-                    {JSON.stringify(queryResult.data, null, 2)}
-                  </pre>
-                ) : (
-                  <p className="text-red-600 text-sm">{queryResult.error}</p>
-                )}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Recent Query Log */}
       <Card>

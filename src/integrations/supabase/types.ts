@@ -2407,6 +2407,12 @@ export type Database = {
       }
       reset_monthly_usage: { Args: never; Returns: undefined }
       reset_user_monthly_usage: { Args: never; Returns: undefined }
+      user_organizations: {
+        Args: { _user_id: string }
+        Returns: {
+          organization_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "member"
