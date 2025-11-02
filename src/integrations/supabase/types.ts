@@ -2350,7 +2350,6 @@ export type Database = {
         }[]
       }
       check_user_scan_limit: { Args: { user_uuid: string }; Returns: boolean }
-      execute_admin_query: { Args: { query: string }; Returns: Json }
       get_user_current_plan: {
         Args: { _user_id: string }
         Returns: {
