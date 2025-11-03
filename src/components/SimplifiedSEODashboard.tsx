@@ -268,13 +268,16 @@ export function SimplifiedSEODashboard({
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center space-x-4">
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className={`text-2xl font-bold ${getScoreColor(analysisResults?.seoScore || 0)}`}>
                       {analysisResults?.seoScore || 0}/100
                     </div>
                     <div className="flex-1">
                       <div className="w-full bg-gray-200 rounded-full h-2.5">
                         <div 
-                          className="bg-green-600 h-2.5 rounded-full" 
+                          className={`h-2.5 rounded-full ${
+                            (analysisResults?.seoScore || 0) >= 80 ? 'bg-green-600' :
+                            (analysisResults?.seoScore || 0) >= 60 ? 'bg-yellow-600' : 'bg-red-600'
+                          }`}
                           style={{ width: `${analysisResults?.seoScore || 0}%` }}
                         ></div>
                       </div>
@@ -282,18 +285,49 @@ export function SimplifiedSEODashboard({
                   </div>
                   <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
                     <div className="text-center">
-                      <div className="text-green-600 font-semibold">{analysisResults?.technicalIssues ? (analysisResults.technicalIssues.length === 0 ? 12 : Math.max(0, 12 - analysisResults.technicalIssues.length)) : 0}</div>
+                      <div className="text-green-600 font-semibold">
+                        {analysisResults?.technicalIssues 
+                          ? Math.max(0, 10 - analysisResults.technicalIssues.length) 
+                          : 0}
+                      </div>
                       <div className="text-gray-600">Tốt</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-yellow-600 font-semibold">{analysisResults?.technicalIssues ? Math.min(analysisResults.technicalIssues.length, 5) : 0}</div>
+                      <div className="text-yellow-600 font-semibold">
+                        {analysisResults?.technicalIssues 
+                          ? analysisResults.technicalIssues.filter((issue: string) => 
+                              issue.includes('không đúng độ dài') || issue.includes('Có nhiều hơn')
+                            ).length
+                          : 0}
+                      </div>
                       <div className="text-gray-600">Cảnh báo</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-red-600 font-semibold">{analysisResults?.technicalIssues ? Math.max(0, analysisResults.technicalIssues.length - 5) : 0}</div>
+                      <div className="text-red-600 font-semibold">
+                        {analysisResults?.technicalIssues 
+                          ? analysisResults.technicalIssues.filter((issue: string) => 
+                              issue.includes('Thiếu')
+                            ).length
+                          : 0}
+                      </div>
                       <div className="text-gray-600">Nghiêm trọng</div>
                     </div>
                   </div>
+                  
+                  {/* Technical Issues List */}
+                  {analysisResults?.technicalIssues && analysisResults.technicalIssues.length > 0 && (
+                    <div className="mt-4 p-3 bg-red-50 rounded-lg">
+                      <h4 className="font-semibold text-red-800 mb-2 flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        Vấn đề cần khắc phục
+                      </h4>
+                      <ul className="text-sm text-red-700 space-y-1">
+                        {analysisResults.technicalIssues.map((issue: string, idx: number) => (
+                          <li key={idx}>• {issue}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -302,14 +336,20 @@ export function SimplifiedSEODashboard({
                   <CardHeader className="flex flex-row items-center space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium flex items-center gap-2">
                       <TrendingUp className="h-4 w-4 text-blue-600" />
-                      Hiệu suất
+                      Nội dung
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-blue-600">
-                      {analysisResults?.performance?.score || analysisResults?.speedScore || 0}/100
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Số từ:</span>
+                        <span className="font-semibold">{analysisResults?.contentAnalysis?.wordCount || 0}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Thời gian đọc:</span>
+                        <span className="font-semibold">{analysisResults?.contentAnalysis?.readingTime || 0} phút</span>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-600">Tốc độ tải trang</p>
                   </CardContent>
                 </Card>
 
@@ -321,10 +361,25 @@ export function SimplifiedSEODashboard({
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-green-600">
-                      {analysisResults?.security?.score || (analysisResults?.isHttps ? 92 : 50)}/100
+                    <div className="flex items-center gap-2">
+                      {analysisResults?.url?.startsWith('https://') ? (
+                        <>
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          <div>
+                            <div className="text-lg font-bold text-green-600">HTTPS</div>
+                            <p className="text-xs text-gray-600">Bảo mật tốt</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="h-5 w-5 text-red-600" />
+                          <div>
+                            <div className="text-lg font-bold text-red-600">HTTP</div>
+                            <p className="text-xs text-gray-600">Không bảo mật</p>
+                          </div>
+                        </>
+                      )}
                     </div>
-                    <p className="text-xs text-gray-600">HTTPS & SSL</p>
                   </CardContent>
                 </Card>
               </div>
@@ -343,23 +398,53 @@ export function SimplifiedSEODashboard({
                     <div className="grid grid-cols-3 gap-4">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-blue-600">
-                          {analysisResults?.images?.total || 15}
+                          {analysisResults?.images?.length || 0}
                         </div>
                         <div className="text-sm text-gray-600">Tổng ảnh</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-red-600">
-                          {analysisResults?.images?.missingAlt || 8}
+                          {analysisResults?.images?.filter((img: any) => !img.hasAlt).length || 0}
                         </div>
                         <div className="text-sm text-gray-600">Thiếu ALT</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-yellow-600">
-                          {analysisResults?.images?.large || 3}
+                        <div className="text-2xl font-bold text-green-600">
+                          {analysisResults?.images?.filter((img: any) => img.hasAlt).length || 0}
                         </div>
-                        <div className="text-sm text-gray-600">Quá nặng</div>
+                        <div className="text-sm text-gray-600">Có ALT</div>
                       </div>
                     </div>
+                    
+                    {/* Images List */}
+                    {analysisResults?.images && analysisResults.images.length > 0 && (
+                      <div className="mt-4 max-h-60 overflow-y-auto">
+                        <h4 className="font-semibold mb-2">Danh sách hình ảnh:</h4>
+                        <div className="space-y-2">
+                          {analysisResults.images.map((img: any, idx: number) => (
+                            <div key={idx} className="p-2 border rounded text-sm">
+                              <div className="flex items-start gap-2">
+                                {img.hasAlt ? (
+                                  <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                ) : (
+                                  <XCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-mono text-xs text-gray-600 truncate">
+                                    {img.src}
+                                  </div>
+                                  {img.hasAlt ? (
+                                    <div className="text-green-700 mt-1">ALT: {img.alt}</div>
+                                  ) : (
+                                    <div className="text-red-700 mt-1">⚠ Thiếu alt text</div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -375,12 +460,76 @@ export function SimplifiedSEODashboard({
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
+                    {/* Content Stats */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-blue-50 rounded-lg">
+                        <div className="text-sm text-gray-600">Số từ</div>
+                        <div className="text-2xl font-bold text-blue-600">
+                          {analysisResults?.contentAnalysis?.wordCount || 0}
+                        </div>
+                      </div>
+                      <div className="p-4 bg-purple-50 rounded-lg">
+                        <div className="text-sm text-gray-600">Thời gian đọc</div>
+                        <div className="text-2xl font-bold text-purple-600">
+                          {analysisResults?.contentAnalysis?.readingTime || 0} phút
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Headings Structure */}
+                    <div className="p-4 border rounded-lg">
+                      <h4 className="font-semibold mb-3">Cấu trúc Heading</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">H1:</span>
+                          <Badge variant={analysisResults?.headings?.h1?.length === 1 ? "default" : "destructive"}>
+                            {analysisResults?.headings?.h1?.length || 0}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">H2:</span>
+                          <Badge variant="secondary">
+                            {analysisResults?.headings?.h2?.length || 0}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">H3:</span>
+                          <Badge variant="secondary">
+                            {analysisResults?.headings?.h3?.length || 0}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Top Keywords */}
+                    {analysisResults?.contentAnalysis?.keywordDensity && (
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-semibold mb-3">Từ khóa phổ biến</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(analysisResults.contentAnalysis.keywordDensity)
+                            .slice(0, 10)
+                            .map(([keyword, count]: [string, any]) => (
+                              <Badge key={keyword} variant="outline">
+                                {keyword} ({count})
+                              </Badge>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Content Suggestions */}
                     <div className="p-4 bg-blue-50 rounded-lg">
-                      <h4 className="font-semibold text-blue-800 mb-2">Gợi ý cải thiện nội dung</h4>
+                      <h4 className="font-semibold text-blue-800 mb-2">Gợi ý cải thiện</h4>
                       <ul className="text-sm text-blue-700 space-y-1">
-                        <li>• Thêm 2-3 từ khóa phụ vào đoạn đầu</li>
-                        <li>• Cải thiện cấu trúc heading (H2, H3)</li>
-                        <li>• Tăng độ dài nội dung lên 1500+ từ</li>
+                        {(analysisResults?.contentAnalysis?.wordCount || 0) < 1500 && (
+                          <li>• Tăng độ dài nội dung lên tối thiểu 1500 từ</li>
+                        )}
+                        {(analysisResults?.headings?.h1?.length || 0) !== 1 && (
+                          <li>• Đảm bảo chỉ có 1 thẻ H1 duy nhất</li>
+                        )}
+                        {(analysisResults?.headings?.h2?.length || 0) < 3 && (
+                          <li>• Thêm nhiều thẻ H2 để cải thiện cấu trúc nội dung</li>
+                        )}
                       </ul>
                     </div>
                   </div>
@@ -399,22 +548,89 @@ export function SimplifiedSEODashboard({
                 <CardContent>
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
+                      {/* HTTPS Check */}
                       <div className="flex items-center justify-between p-3 border rounded-lg">
                         <span>HTTPS</span>
-                        <div className="text-green-600 font-semibold">✓</div>
+                        {analysisResults?.url?.startsWith('https://') ? (
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-600" />
+                        )}
                       </div>
+
+                      {/* Title Check */}
                       <div className="flex items-center justify-between p-3 border rounded-lg">
-                        <span>Mobile Friendly</span>
-                        <div className="text-green-600 font-semibold">✓</div>
+                        <span>Title Tag</span>
+                        {analysisResults?.title ? (
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-600" />
+                        )}
                       </div>
+
+                      {/* Meta Description Check */}
                       <div className="flex items-center justify-between p-3 border rounded-lg">
-                        <span>Page Speed</span>
-                        <div className="text-yellow-600 font-semibold">85/100</div>
+                        <span>Meta Description</span>
+                        {analysisResults?.metaDescription ? (
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-600" />
+                        )}
                       </div>
+
+                      {/* Schema Check */}
                       <div className="flex items-center justify-between p-3 border rounded-lg">
-                        <span>Core Web Vitals</span>
-                        <div className="text-red-600 font-semibold">Cần sửa</div>
+                        <span>Schema Markup</span>
+                        {analysisResults?.existingSchema ? (
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-600" />
+                        )}
                       </div>
+                    </div>
+
+                    {/* Meta Tags Details */}
+                    <div className="space-y-3">
+                      {analysisResults?.title && (
+                        <div className="p-3 border rounded-lg">
+                          <div className="text-sm text-gray-600 mb-1">Title:</div>
+                          <div className="text-sm font-medium">{analysisResults.title}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Độ dài: {analysisResults.title.length} ký tự
+                            {analysisResults.title.length < 30 || analysisResults.title.length > 60 ? (
+                              <span className="text-yellow-600 ml-2">⚠ Nên từ 30-60 ký tự</span>
+                            ) : (
+                              <span className="text-green-600 ml-2">✓ Độ dài tốt</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {analysisResults?.metaDescription && (
+                        <div className="p-3 border rounded-lg">
+                          <div className="text-sm text-gray-600 mb-1">Meta Description:</div>
+                          <div className="text-sm">{analysisResults.metaDescription}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Độ dài: {analysisResults.metaDescription.length} ký tự
+                            {analysisResults.metaDescription.length < 120 || analysisResults.metaDescription.length > 160 ? (
+                              <span className="text-yellow-600 ml-2">⚠ Nên từ 120-160 ký tự</span>
+                            ) : (
+                              <span className="text-green-600 ml-2">✓ Độ dài tốt</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {analysisResults?.existingSchema && (
+                        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="text-sm text-green-800 font-medium mb-1">
+                            ✓ Đã có Schema Markup
+                          </div>
+                          <div className="text-xs text-green-700">
+                            Website đã implement structured data
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
