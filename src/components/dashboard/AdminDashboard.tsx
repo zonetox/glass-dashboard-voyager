@@ -114,176 +114,26 @@ export function AdminDashboard() {
     try {
       setLoading(true);
       
-      // Fetch user stats
-      const { data: userStats } = await supabase
-        .from('user_profiles')
-        .select('id, email, tier, created_at, last_active_at');
+      // Call secure admin-metrics edge function (server-side validation)
+      const { data, error } = await supabase.functions.invoke('admin-metrics');
 
-      // Fetch recent users
-      const { data: recentUsers } = await supabase
-        .from('user_profiles')
-        .select('id, email, tier, created_at, last_active_at')
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      // Fetch scan stats
-      const { data: scanStats } = await supabase
-        .from('scans')
-        .select('url, created_at');
-
-      // Fetch API logs for error analysis
-      const { data: apiLogs } = await supabase
-        .from('api_logs')
-        .select('api_name, success, error_message, created_at')
-        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
-
-      // Fetch PDF reports
-      const { data: pdfReports } = await supabase
-        .from('reports')
-        .select('id')
-        .eq('report_type', 'seo_analysis');
-
-      // Fetch storage usage and database health
-      const { data: storageInfo } = await supabase.storage.listBuckets();
-      let totalStorageSize = 0;
-      
-      if (storageInfo) {
-        for (const bucket of storageInfo) {
-          const { data: files } = await supabase.storage.from(bucket.name).list();
-          if (files) {
-            // Calculate approximate storage usage
-            totalStorageSize += files.length;
-          }
-        }
-      }
-      
-      // Calculate storage percentage (assuming 1000 files = 100%)
-      const storagePercentage = Math.min(Math.round((totalStorageSize / 1000) * 100), 100);
-
-      // Process data
-      const currentDate = new Date();
-      const oneWeekAgo = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const today = new Date().toDateString();
-
-      // User metrics
-      const totalUsers = userStats?.length || 0;
-      const newUsersThisWeek = userStats?.filter(user => 
-        new Date(user.created_at) >= oneWeekAgo
-      ).length || 0;
-      const activeUsersToday = userStats?.filter(user => 
-        new Date(user.created_at).toDateString() === today
-      ).length || 0;
-
-      // Scan metrics
-      const totalScansThisMonth = scanStats?.filter(scan => 
-        new Date(scan.created_at).getMonth() === currentDate.getMonth()
-      ).length || 0;
-
-      // API error analysis
-      const failedAPIs = apiLogs ? Object.entries(
-        apiLogs
-          .filter(log => !log.success)
-          .reduce((acc, log) => {
-            if (!acc[log.api_name]) {
-              acc[log.api_name] = { count: 0, last_error: '' };
-            }
-            acc[log.api_name].count++;
-            acc[log.api_name].last_error = log.error_message || 'Unknown error';
-            return acc;
-          }, {} as Record<string, { count: number; last_error: string }>)
-      ).map(([name, data]) => ({
-        name,
-        failures: data.count,
-        last_error: data.last_error
-      })).sort((a, b) => b.failures - a.failures).slice(0, 5) : [];
-
-      // Top domains analysis
-      const domainCounts = scanStats ? Object.entries(
-        scanStats.reduce((acc, scan) => {
-          try {
-            const domain = new URL(scan.url).hostname;
-            acc[domain] = (acc[domain] || 0) + 1;
-          } catch {
-            // Invalid URL, skip
-          }
-          return acc;
-        }, {} as Record<string, number>)
-      ).sort(([,a], [,b]) => b - a).slice(0, 10) : [];
-
-      const totalDomainScans = domainCounts.reduce((sum, [, count]) => sum + count, 0);
-      const topDomains = domainCounts.map(([domain, scans]) => ({
-        domain,
-        scans,
-        percentage: Math.round((scans / totalDomainScans) * 100)
-      }));
-
-      // Users by tier
-      const tierCounts = userStats ? userStats.reduce((acc, user) => {
-        acc[user.tier] = (acc[user.tier] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>) : {};
-
-      const usersByTier = Object.entries(tierCounts).map(([tier, count]) => ({
-        tier: tier.charAt(0).toUpperCase() + tier.slice(1),
-        count,
-        percentage: Math.round((count / totalUsers) * 100)
-      }));
-
-      // Monthly trends from real data
-      const monthlyScansData = [];
-      for (let i = 5; i >= 0; i--) {
-        const date = new Date();
-        date.setMonth(date.getMonth() - i);
-        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-        
-        const monthScans = scanStats?.filter(scan => {
-          const scanDate = new Date(scan.created_at);
-          return scanDate >= monthStart && scanDate <= monthEnd;
-        }).length || 0;
-        
-        const monthUsers = userStats?.filter(user => {
-          const userDate = new Date(user.created_at);
-          return userDate >= monthStart && userDate <= monthEnd;
-        }).length || 0;
-        
-        monthlyScansData.push({
-          month: date.toLocaleDateString('vi-VN', { month: 'short' }),
-          scans: monthScans,
-          users: monthUsers
-        });
+      if (error) {
+        throw error;
       }
 
-      setMetrics({
-        totalUsers,
-        newUsersThisWeek,
-        activeUsersToday,
-        totalScansThisMonth,
-        totalAPICallsToday: apiLogs?.length || 0,
-        totalPDFReports: pdfReports?.length || 0,
-        failedAPIs,
-        topDomains,
-        usersByTier,
-        monthlyScansData,
-        systemHealth: {
-          database: 'healthy',
-          apis: failedAPIs.length > 10 ? 'warning' : 'healthy',
-          storage: storagePercentage
-        },
-        recentUsers: recentUsers?.map(user => ({
-          id: user.id,
-          email: user.email || 'N/A',
-          tier: user.tier || 'free',
-          created_at: user.created_at,
-          last_active: user.last_active_at || user.created_at
-        })) || []
-      });
+      if (!data) {
+        throw new Error('No data returned from admin-metrics');
+      }
+
+      setMetrics(data);
 
     } catch (error) {
       console.error('Error loading dashboard metrics:', error);
       toast({
         title: "Lỗi tải dữ liệu",
-        description: "Không thể tải thống kê dashboard",
+        description: error.message === 'Insufficient permissions' 
+          ? "Bạn không có quyền truy cập trang này" 
+          : "Không thể tải thống kê dashboard",
         variant: "destructive"
       });
     } finally {

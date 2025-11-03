@@ -126,3 +126,6 @@ verify_jwt = false
 
 [functions.seo-risk-alert]
 verify_jwt = false
+
+[functions.admin-metrics]
+verify_jwt = true
