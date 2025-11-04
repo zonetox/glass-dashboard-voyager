@@ -54,6 +54,8 @@ import { QuickDomainInput } from '@/components/QuickDomainInput';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { ApiManagement } from '@/components/dashboard/ApiManagement';
 import { ComprehensiveOnboarding } from '@/components/dashboard/ComprehensiveOnboarding';
+import { AutomatedRescans } from '@/components/dashboard/AutomatedRescans';
+import { SEOAlerts } from '@/components/dashboard/SEOAlerts';
 import { Website, SEOIssue } from '@/lib/types';
 
 export default function Dashboard() {
