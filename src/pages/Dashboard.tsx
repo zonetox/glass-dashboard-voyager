@@ -38,7 +38,8 @@ import {
   PenLine,
   LineChart,
   Calendar,
-  Settings2
+  Settings2,
+  Bell
 } from 'lucide-react';
 import EnhancedAutoFixStepper from '@/components/dashboard/EnhancedAutoFixStepper';
 
@@ -337,6 +338,14 @@ export default function Dashboard() {
                   <Settings2 className="h-4 w-4" />
                   <span className="hidden lg:inline">API Management</span>
                 </TabsTrigger>
+                <TabsTrigger value="automation" className="flex items-center gap-2">
+                  <RotateCcw className="h-4 w-4" />
+                  <span className="hidden lg:inline">Automation</span>
+                </TabsTrigger>
+                <TabsTrigger value="alerts" className="flex items-center gap-2">
+                  <Bell className="h-4 w-4" />
+                  <span className="hidden lg:inline">Alerts</span>
+                </TabsTrigger>
               </TabsList>
 
               {/* Overview Tab */}
@@ -539,6 +548,16 @@ export default function Dashboard() {
 
               <TabsContent value="api-management" className="space-y-6">
                 <ApiManagement />
+              </TabsContent>
+
+              {/* Automation Tab */}
+              <TabsContent value="automation" className="space-y-6">
+                <AutomatedRescans />
+              </TabsContent>
+
+              {/* Alerts Tab */}
+              <TabsContent value="alerts" className="space-y-6">
+                <SEOAlerts />
               </TabsContent>
             </Tabs>
           </div>

@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Crown, UserCheck } from 'lucide-react';
 
 export default function AdminPromotion() {
-  const [email, setEmail] = useState('tanloifmc@yahoo.com');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
