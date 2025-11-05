@@ -35,9 +35,39 @@ import moment from 'moment';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { z } from 'zod';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 const localizer = momentLocalizer(moment);
+
+// Zod validation schemas
+const contentPlannerSchema = z.object({
+  domain: z.string()
+    .trim()
+    .min(1, { message: "Domain không được để trống" })
+    .max(255, { message: "Domain không được vượt quá 255 ký tự" })
+    .regex(/^[a-zA-Z0-9][a-zA-Z0-9-_.]*[a-zA-Z0-9](\.[a-zA-Z]{2,})?$/, { 
+      message: "Domain không hợp lệ (ví dụ: example.com hoặc subdomain.example.com)" 
+    })
+    .refine(val => !val.includes('<') && !val.includes('>') && !val.includes('script'), {
+      message: "Domain chứa ký tự không hợp lệ"
+    }),
+  mainTopic: z.string()
+    .trim()
+    .min(3, { message: "Chủ đề phải có ít nhất 3 ký tự" })
+    .max(500, { message: "Chủ đề không được vượt quá 500 ký tự" })
+    .refine(val => !val.includes('<') && !val.includes('>'), {
+      message: "Chủ đề chứa ký tự không hợp lệ"
+    })
+});
+
+const assignmentNotesSchema = z.string()
+  .trim()
+  .max(2000, { message: "Ghi chú không được vượt quá 2000 ký tự" })
+  .refine(val => !val.includes('<script') && !val.includes('javascript:'), {
+    message: "Ghi chú chứa nội dung không hợp lệ"
+  })
+  .optional();
 
 interface ContentPlan {
   id: string;
@@ -112,21 +142,29 @@ export function ContentPlanner() {
   const { user } = useAuth();
 
   const handleGeneratePlan = async () => {
-    if (!domain.trim() || !mainTopic.trim()) {
-      toast({
-        title: "Thiếu thông tin",
-        description: "Vui lòng nhập domain và chủ đề chính",
-        variant: "destructive"
-      });
-      return;
-    }
-
     if (!user) {
       toast({
         title: "Chưa đăng nhập",
         description: "Vui lòng đăng nhập để sử dụng tính năng này",
         variant: "destructive"
       });
+      return;
+    }
+
+    // Validate inputs
+    try {
+      contentPlannerSchema.parse({
+        domain: domain,
+        mainTopic: mainTopic
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Dữ liệu không hợp lệ",
+          description: error.errors[0].message,
+          variant: "destructive"
+        });
+      }
       return;
     }
 
@@ -450,13 +488,29 @@ export function ContentPlanner() {
       return;
     }
 
+    // Validate assignment notes
+    if (assignmentNotes) {
+      try {
+        assignmentNotesSchema.parse(assignmentNotes);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          toast({
+            title: "Ghi chú không hợp lệ",
+            description: error.errors[0].message,
+            variant: "destructive"
+          });
+        }
+        return;
+      }
+    }
+
     try {
       const { error } = await supabase
         .from('content_assignments')
         .insert({
           content_plan_id: assignmentDialog.plan.id,
           writer_id: selectedWriter,
-          notes: assignmentNotes,
+          notes: assignmentNotes.trim() || null,
           due_date: assignmentDueDate || null,
           status: 'assigned'
         });
