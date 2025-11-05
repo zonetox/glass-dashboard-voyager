@@ -5,7 +5,19 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { Bell, Mail, AlertTriangle, BarChart, Save } from 'lucide-react';
+import { z } from 'zod';
+
+// Validation schema for notification settings
+const notificationSettingsSchema = z.object({
+  email_notifications: z.boolean(),
+  usage_alerts: z.boolean(),
+  weekly_reports: z.boolean(),
+  security_alerts: z.boolean(),
+  marketing_emails: z.boolean(),
+  system_updates: z.boolean(),
+});
 
 interface NotificationSettings {
   email_notifications: boolean;
@@ -37,14 +49,43 @@ export function NotificationSettings() {
   }, [user]);
 
   const loadNotificationSettings = async () => {
+    if (!user) return;
+
     try {
-      // For now, use local storage as fallback until table is created
-      const savedSettings = localStorage.getItem(`notification_settings_${user?.id}`);
-      if (savedSettings) {
-        setSettings(JSON.parse(savedSettings));
+      // Load from Supabase database
+      const { data, error } = await supabase
+        .from('user_notification_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        // Validate data with Zod schema
+        const parsed = notificationSettingsSchema.safeParse({
+          email_notifications: data.email_notifications,
+          usage_alerts: data.scan_alerts, // Map scan_alerts to usage_alerts
+          weekly_reports: data.weekly_reports,
+          security_alerts: data.security_alerts,
+          marketing_emails: data.marketing_emails,
+          system_updates: true, // Default as this field doesn't exist in DB yet
+        });
+
+        if (parsed.success) {
+          setSettings({
+            email_notifications: parsed.data.email_notifications,
+            usage_alerts: parsed.data.usage_alerts,
+            weekly_reports: parsed.data.weekly_reports,
+            security_alerts: parsed.data.security_alerts,
+            marketing_emails: parsed.data.marketing_emails,
+            system_updates: parsed.data.system_updates
+          });
+        }
       }
     } catch (error) {
       console.error('Error loading notification settings:', error);
+      // No localStorage fallback - safer to use defaults
     } finally {
       setLoading(false);
     }
@@ -55,14 +96,32 @@ export function NotificationSettings() {
 
     setSaving(true);
     try {
-      // For now, save to local storage as fallback
-      localStorage.setItem(`notification_settings_${user.id}`, JSON.stringify(settings));
+      // Validate settings before saving
+      const validated = notificationSettingsSchema.parse(settings);
+
+      // Save to Supabase database
+      const { error } = await supabase
+        .from('user_notification_settings')
+        .upsert({
+          user_id: user.id,
+          email_notifications: validated.email_notifications,
+          scan_alerts: validated.usage_alerts, // Map usage_alerts to scan_alerts
+          weekly_reports: validated.weekly_reports,
+          security_alerts: validated.security_alerts,
+          marketing_emails: validated.marketing_emails,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (error) throw error;
 
       toast({
         title: "Đã lưu cài đặt",
         description: "Cài đặt thông báo đã được cập nhật thành công."
       });
     } catch (error: any) {
+      console.error('Error saving notification settings:', error);
       toast({
         title: "Lỗi",
         description: error.message || "Không thể lưu cài đặt",
@@ -74,7 +133,7 @@ export function NotificationSettings() {
   };
 
   const updateSetting = (key: keyof NotificationSettings, value: boolean) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    setSettings(prev => ({ ...prev, [key]: value } as NotificationSettings));
   };
 
   if (loading) {

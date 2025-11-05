@@ -2031,6 +2031,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_notification_settings: {
+        Row: {
+          created_at: string
+          email_notifications: boolean | null
+          id: string
+          marketing_emails: boolean | null
+          scan_alerts: boolean | null
+          security_alerts: boolean | null
+          updated_at: string
+          user_id: string
+          weekly_reports: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          email_notifications?: boolean | null
+          id?: string
+          marketing_emails?: boolean | null
+          scan_alerts?: boolean | null
+          security_alerts?: boolean | null
+          updated_at?: string
+          user_id: string
+          weekly_reports?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          email_notifications?: boolean | null
+          id?: string
+          marketing_emails?: boolean | null
+          scan_alerts?: boolean | null
+          security_alerts?: boolean | null
+          updated_at?: string
+          user_id?: string
+          weekly_reports?: boolean | null
+        }
+        Relationships: []
+      }
       user_plans: {
         Row: {
           created_at: string | null
