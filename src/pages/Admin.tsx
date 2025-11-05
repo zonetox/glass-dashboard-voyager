@@ -163,12 +163,19 @@ export default function Admin() {
 
   const updateUserRole = async (userId: string, newRole: 'admin' | 'member') => {
     try {
-      const { error } = await supabase
-        .from('user_roles')
-        .update({ role: newRole })
-        .eq('user_id', userId);
-      
+      // Call secure edge function instead of direct database update
+      const { data, error } = await supabase.functions.invoke('update-user-role', {
+        body: {
+          targetUserId: userId,
+          newRole: newRole
+        }
+      });
+
       if (error) throw error;
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update user role');
+      }
       
       setUsers(prev => prev.map(user => 
         user.id === userId 
@@ -178,7 +185,7 @@ export default function Admin() {
       
       toast({
         title: "User role updated",
-        description: `User role has been changed to ${newRole}`,
+        description: data.message || `User role has been changed to ${newRole}`,
       });
     } catch (error: any) {
       toast({

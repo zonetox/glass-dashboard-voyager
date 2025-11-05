@@ -61,12 +61,18 @@ serve(async (req) => {
     logStep("Webhook data received", webhookData);
 
     const paymentMethod = detectPaymentMethod(webhookData);
+    
+    if (!paymentMethod) {
+      throw new Error('Cannot detect payment method - invalid webhook data');
+    }
+    
     logStep("Payment method detected", { paymentMethod });
 
     let orderId: string;
     let success: boolean;
     let transactionId: string;
 
+    // Process webhook with mandatory signature verification
     switch (paymentMethod) {
       case 'momo':
         ({ orderId, success, transactionId } = await processMoMoWebhook(webhookData));
@@ -78,7 +84,29 @@ serve(async (req) => {
         ({ orderId, success, transactionId } = await processPayPalWebhook(webhookData));
         break;
       default:
-        throw new Error('Unknown payment method');
+        throw new Error('Unsupported payment method');
+    }
+
+    // Check for duplicate transaction
+    const { data: existingOrder, error: checkError } = await supabaseClient
+      .from('payment_orders')
+      .select('id, status')
+      .eq('transaction_id', transactionId)
+      .maybeSingle();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
+    }
+
+    if (existingOrder && existingOrder.status === 'completed') {
+      logStep("Duplicate transaction detected", { transactionId, orderId: existingOrder.id });
+      return new Response(
+        JSON.stringify({ status: 'duplicate', message: 'Transaction already processed' }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
     }
 
     logStep("Payment processed", { orderId, success, transactionId });
@@ -161,19 +189,29 @@ serve(async (req) => {
   }
 });
 
-function detectPaymentMethod(data: any): string {
-  if (data.partnerCode || data.resultCode !== undefined) {
+function detectPaymentMethod(data: any): string | null {
+  // Strict payment method detection with validation
+  if (data.partnerCode && data.signature && data.resultCode !== undefined) {
     return 'momo';
-  } else if (data.vnp_TmnCode || data.vnp_ResponseCode !== undefined) {
+  } else if (data.vnp_TmnCode && data.vnp_SecureHash && data.vnp_ResponseCode !== undefined) {
     return 'vnpay';
-  } else if (data.payer_id || data.payment_id) {
+  } else if ((data.payer_id || data.payment_id || data.paymentId) && (data.event_type || data.resource)) {
     return 'paypal';
   }
-  throw new Error('Cannot detect payment method');
+  return null;
 }
 
 async function processMoMoWebhook(data: any) {
-  const secretKey = Deno.env.get("MOMO_SECRET_KEY") || "";
+  const secretKey = Deno.env.get("MOMO_SECRET_KEY");
+  
+  if (!secretKey) {
+    throw new Error('MOMO_SECRET_KEY not configured');
+  }
+
+  // Validate required fields
+  if (!data.signature || !data.orderId || data.resultCode === undefined) {
+    throw new Error('Invalid MoMo webhook data - missing required fields');
+  }
   
   // Verify signature
   const rawSignature = `accessKey=${data.accessKey}&amount=${data.amount}&extraData=${data.extraData}&message=${data.message}&orderId=${data.orderId}&orderInfo=${data.orderInfo}&orderType=${data.orderType}&partnerCode=${data.partnerCode}&payType=${data.payType}&requestId=${data.requestId}&responseTime=${data.responseTime}&resultCode=${data.resultCode}&transId=${data.transId}`;
@@ -182,7 +220,7 @@ async function processMoMoWebhook(data: any) {
   const signature = await hmac.update(rawSignature).digest('hex');
   
   if (signature !== data.signature) {
-    throw new Error('Invalid MoMo signature');
+    throw new Error('Invalid MoMo signature - signature verification failed');
   }
   
   return {
@@ -193,19 +231,29 @@ async function processMoMoWebhook(data: any) {
 }
 
 async function processVNPayWebhook(data: any) {
-  const secretKey = Deno.env.get("VNPAY_HASH_SECRET") || "";
+  const secretKey = Deno.env.get("VNPAY_HASH_SECRET");
+  
+  if (!secretKey) {
+    throw new Error('VNPAY_HASH_SECRET not configured');
+  }
+
+  // Validate required fields
+  if (!data.vnp_SecureHash || !data.vnp_TxnRef || !data.vnp_ResponseCode) {
+    throw new Error('Invalid VNPay webhook data - missing required fields');
+  }
   
   // Verify signature
   const secureHash = data.vnp_SecureHash;
-  delete data.vnp_SecureHash;
+  const dataToVerify = { ...data };
+  delete dataToVerify.vnp_SecureHash;
   
-  const sortedKeys = Object.keys(data).sort();
-  const signData = sortedKeys.map(key => `${key}=${data[key]}`).join('&');
+  const sortedKeys = Object.keys(dataToVerify).sort();
+  const signData = sortedKeys.map(key => `${key}=${dataToVerify[key]}`).join('&');
   const hmac = await createHmac('sha512', secretKey);
   const computedHash = await hmac.update(signData).digest('hex');
   
   if (computedHash !== secureHash) {
-    throw new Error('Invalid VNPay signature');
+    throw new Error('Invalid VNPay signature - signature verification failed');
   }
   
   return {
@@ -216,10 +264,19 @@ async function processVNPayWebhook(data: any) {
 }
 
 async function processPayPalWebhook(data: any) {
-  // For PayPal, we'll need to verify the payment with PayPal API
-  const clientId = Deno.env.get("PAYPAL_CLIENT_ID") || "";
-  const clientSecret = Deno.env.get("PAYPAL_CLIENT_SECRET") || "";
+  const clientId = Deno.env.get("PAYPAL_CLIENT_ID");
+  const clientSecret = Deno.env.get("PAYPAL_CLIENT_SECRET");
   const baseUrl = Deno.env.get("PAYPAL_BASE_URL") || "https://api-m.sandbox.paypal.com";
+  
+  if (!clientId || !clientSecret) {
+    throw new Error('PayPal credentials not configured');
+  }
+
+  // Validate required fields
+  const paymentId = data.paymentId || data.payment_id;
+  if (!paymentId) {
+    throw new Error('Invalid PayPal webhook data - missing payment ID');
+  }
   
   // Get access token
   const auth = btoa(`${clientId}:${clientSecret}`);
@@ -232,11 +289,14 @@ async function processPayPalWebhook(data: any) {
     body: 'grant_type=client_credentials'
   });
   
+  if (!tokenResponse.ok) {
+    throw new Error('Failed to obtain PayPal access token');
+  }
+  
   const tokenData = await tokenResponse.json();
   const accessToken = tokenData.access_token;
   
-  // Verify payment
-  const paymentId = data.paymentId || data.payment_id;
+  // Verify payment directly with PayPal API
   const paymentResponse = await fetch(`${baseUrl}/v1/payments/payment/${paymentId}`, {
     headers: {
       'Authorization': `Bearer ${accessToken}`,
@@ -244,7 +304,15 @@ async function processPayPalWebhook(data: any) {
     }
   });
   
+  if (!paymentResponse.ok) {
+    throw new Error('Failed to verify payment with PayPal API');
+  }
+  
   const paymentData = await paymentResponse.json();
+  
+  if (!paymentData.transactions || !paymentData.transactions[0]) {
+    throw new Error('Invalid PayPal payment response');
+  }
   
   return {
     orderId: paymentData.transactions[0].custom,
