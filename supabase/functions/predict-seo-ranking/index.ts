@@ -168,7 +168,7 @@ Return ONLY a valid JSON array in this format:
   } catch (error) {
     console.error('Error in predict-seo-ranking function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'An error occurred processing your request' }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

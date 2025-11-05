@@ -182,7 +182,7 @@ serve(async (req) => {
 
   } catch (error: any) {
     logStep("ERROR", { message: error.message });
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: 'An error occurred processing your request' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });
